@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C C:/repos/TOCATO log --oneline)",
+      "Bash(git -C C:/repos/TOCATO add .gitignore ATTRIBUTIONS.md CLAUDE.md README.md default_shadcn_theme.css docs guidelines index.html package-lock.json package.json pnpm-workspace.yaml postcss.config.mjs src vite.config.ts)",
+      "Bash(git -C C:/repos/TOCATO commit -m ' *)",
+      "Bash(git -C C:/repos/TOCATO status)"
+    ]
+  }
+}
