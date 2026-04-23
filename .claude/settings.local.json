@@ -4,7 +4,30 @@
       "Bash(git -C C:/repos/TOCATO log --oneline)",
       "Bash(git -C C:/repos/TOCATO add .gitignore ATTRIBUTIONS.md CLAUDE.md README.md default_shadcn_theme.css docs guidelines index.html package-lock.json package.json pnpm-workspace.yaml postcss.config.mjs src vite.config.ts)",
       "Bash(git -C C:/repos/TOCATO commit -m ' *)",
-      "Bash(git -C C:/repos/TOCATO status)"
+      "Bash(git -C C:/repos/TOCATO status)",
+      "Bash(git -C C:/repos/TOCATO remote -v)",
+      "Bash(git -C C:/repos/TOCATO config --get user.name)",
+      "Bash(git -C C:/repos/TOCATO config --get user.email)",
+      "Bash(git config *)",
+      "Bash(git -C C:/repos/TOCATO log --oneline -5)",
+      "Bash(gh auth *)",
+      "Bash(gh --version)",
+      "Bash(gh repo *)",
+      "WebFetch(domain:docs.expo.dev)",
+      "Bash(npm -v)",
+      "Bash(npx --yes create-expo-app@latest mobile --template default --no-install)",
+      "WebFetch(domain:www.nativewind.dev)",
+      "WebFetch(domain:rnr-docs.vercel.app)",
+      "WebFetch(domain:reactnativereusables.com)",
+      "Bash(gh api *)",
+      "WebFetch(domain:github.com)",
+      "Bash(npm install *)",
+      "Bash(npx expo *)",
+      "Bash(node ./scripts/reset-project.js)",
+      "Bash(npx --yes @react-native-reusables/cli@latest add button text --yes)",
+      "Bash(npx @react-native-reusables/cli@latest doctor)",
+      "Bash(npx expo-doctor *)",
+      "Bash(git -C C:/repos/TOCATO status --short)"
     ]
   }
 }
