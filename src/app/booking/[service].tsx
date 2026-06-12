@@ -1,0 +1,293 @@
+import * as Haptics from 'expo-haptics';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
+import { ArrowLeft, CheckCircle2, X } from 'lucide-react-native';
+import { useState } from 'react';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { AddressStep } from '@/components/booking/address-step';
+import { DetailsStep } from '@/components/booking/details-step';
+import { QuestionStep } from '@/components/booking/question-step';
+import { ReviewStep } from '@/components/booking/review-step';
+import { ScheduleStep } from '@/components/booking/schedule-step';
+import { ProviderRow } from '@/components/provider-row';
+import { AppText } from '@/components/ui/app-text';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { ProgressBar } from '@/components/ui/progress-bar';
+import { Radius, Spacing } from '@/constants/theme';
+import { useTheme } from '@/hooks/use-theme';
+import { getProvider } from '@/lib/mock-data';
+import { getService, isServiceId } from '@/lib/services';
+import { useAppStore } from '@/lib/store';
+import type { BookingAnswer, TimeSlotId } from '@/lib/types';
+
+/** Étapes fixes ajoutées après les questions propres au service. */
+const EXTRA_STEPS = ['details', 'address', 'schedule', 'review'] as const;
+
+export default function BookingWizardScreen() {
+  const colors = useTheme();
+  const router = useRouter();
+  const { service: serviceParam } = useLocalSearchParams<{ service: string }>();
+
+  const createBooking = useAppStore((s) => s.createBooking);
+  const addresses = useAppStore((s) => s.user.addresses);
+
+  const [stepIndex, setStepIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
+  const [description, setDescription] = useState('');
+  const [photos, setPhotos] = useState<string[]>([]);
+  const [addressId, setAddressId] = useState<string | null>(addresses[0]?.id ?? null);
+  const [asap, setAsap] = useState(false);
+  const [scheduledDate, setScheduledDate] = useState<string | null>(null);
+  const [timeSlot, setTimeSlot] = useState<TimeSlotId | null>(null);
+  const [submittedIds, setSubmittedIds] = useState<{
+    bookingId: string;
+    conversationId: string;
+  } | null>(null);
+
+  if (!serviceParam || !isServiceId(serviceParam)) {
+    return <Redirect href="/(tabs)/reserver" />;
+  }
+  const service = getService(serviceParam);
+
+  const steps: string[] = [...service.questions.map((q) => q.id), ...EXTRA_STEPS];
+  const currentStep = steps[stepIndex];
+  const currentQuestion = service.questions.find((q) => q.id === currentStep);
+  const selectedAddress = addresses.find((a) => a.id === addressId) ?? addresses[0];
+
+  const isStepValid = (): boolean => {
+    if (currentQuestion) {
+      return Boolean(currentQuestion.optional) || (answers[currentQuestion.id] ?? []).length > 0;
+    }
+    switch (currentStep) {
+      case 'details':
+        return description.trim().length >= 10;
+      case 'address':
+        return selectedAddress != null;
+      case 'schedule':
+        return asap || (scheduledDate != null && timeSlot != null);
+      default:
+        return true;
+    }
+  };
+
+  const buildAnswers = (): BookingAnswer[] =>
+    service.questions
+      .map((question) => ({
+        questionId: question.id,
+        questionLabel: question.title,
+        values: (answers[question.id] ?? []).map(
+          (optionId) => question.options.find((o) => o.id === optionId)?.label ?? optionId,
+        ),
+      }))
+      .filter((answer) => answer.values.length > 0);
+
+  const submit = () => {
+    const ids = createBooking({
+      serviceId: service.id,
+      answers: buildAnswers(),
+      description: description.trim(),
+      photoCount: photos.length,
+      address: selectedAddress,
+      scheduledDate: asap ? undefined : (scheduledDate ?? undefined),
+      timeSlot: asap ? undefined : (timeSlot ?? undefined),
+    });
+    if (Platform.OS !== 'web') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+    setSubmittedIds(ids);
+  };
+
+  const goNext = () => {
+    if (currentStep === 'review') {
+      submit();
+    } else {
+      setStepIndex((i) => i + 1);
+    }
+  };
+
+  const goBack = () => {
+    if (stepIndex > 0) {
+      setStepIndex((i) => i - 1);
+    } else {
+      router.back();
+    }
+  };
+
+  const close = () => {
+    if (stepIndex === 0) {
+      router.back();
+      return;
+    }
+    Alert.alert('Abandonner la demande ?', 'Vos réponses ne seront pas conservées.', [
+      { text: 'Continuer ma demande', style: 'cancel' },
+      { text: 'Abandonner', style: 'destructive', onPress: () => router.back() },
+    ]);
+  };
+
+  // ——— Écran de succès après envoi ———
+  if (submittedIds) {
+    const booking = useAppStore.getState().bookings.find((b) => b.id === submittedIds.bookingId);
+    const provider = booking ? getProvider(booking.providerId) : undefined;
+    return (
+      <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
+        <View style={styles.success}>
+          <CheckCircle2 size={64} color={colors.success} />
+          <AppText variant="heading" style={styles.centered}>
+            Demande envoyée !
+          </AppText>
+          <AppText variant="secondary" style={styles.centered}>
+            Votre demande de {service.categoryName.toLowerCase()} a été transmise. Le prestataire
+            vous répondra dans le chat avec un devis.
+          </AppText>
+          {provider ? (
+            <Card style={styles.successProvider}>
+              <ProviderRow provider={provider} />
+            </Card>
+          ) : null}
+        </View>
+        <View style={styles.footer}>
+          <Button
+            title="Ouvrir le chat"
+            size="lg"
+            onPress={() =>
+              router.replace({ pathname: '/chat/[id]', params: { id: submittedIds.conversationId } })
+            }
+          />
+          <Button
+            title="Voir mes réservations"
+            variant="ghost"
+            onPress={() => {
+              router.back();
+              router.push('/(tabs)/reservations');
+            }}
+          />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
+      {/* En-tête : retour, progression, fermer */}
+      <View style={styles.header}>
+        <Pressable onPress={goBack} hitSlop={10} style={styles.headerButton}>
+          <ArrowLeft size={22} color={colors.text} />
+        </Pressable>
+        <View style={styles.progress}>
+          <ProgressBar progress={(stepIndex + 1) / steps.length} />
+        </View>
+        <Pressable onPress={close} hitSlop={10} style={styles.headerButton}>
+          <X size={22} color={colors.textSecondary} />
+        </Pressable>
+      </View>
+
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled">
+          {currentQuestion ? (
+            <QuestionStep
+              question={currentQuestion}
+              selected={answers[currentQuestion.id] ?? []}
+              onChange={(optionIds) =>
+                setAnswers((prev) => ({ ...prev, [currentQuestion.id]: optionIds }))
+              }
+            />
+          ) : null}
+
+          {currentStep === 'details' ? (
+            <DetailsStep
+              description={description}
+              onDescriptionChange={setDescription}
+              photos={photos}
+              onPhotosChange={setPhotos}
+            />
+          ) : null}
+
+          {currentStep === 'address' ? (
+            <AddressStep selectedAddressId={selectedAddress?.id ?? null} onSelect={setAddressId} />
+          ) : null}
+
+          {currentStep === 'schedule' ? (
+            <ScheduleStep
+              asap={asap}
+              onAsapChange={setAsap}
+              scheduledDate={scheduledDate}
+              onDateChange={(date) => {
+                setAsap(false);
+                setScheduledDate(date);
+              }}
+              timeSlot={timeSlot}
+              onTimeSlotChange={setTimeSlot}
+            />
+          ) : null}
+
+          {currentStep === 'review' && selectedAddress ? (
+            <ReviewStep
+              service={service}
+              answers={buildAnswers()}
+              description={description}
+              photoCount={photos.length}
+              address={selectedAddress}
+              asap={asap}
+              scheduledDate={scheduledDate}
+              timeSlot={timeSlot}
+            />
+          ) : null}
+        </ScrollView>
+
+        <View style={[styles.footer, { borderTopColor: colors.border }]}>
+          <Button
+            title={currentStep === 'review' ? 'Envoyer la demande' : 'Continuer'}
+            size="lg"
+            onPress={goNext}
+            disabled={!isStepValid()}
+          />
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1 },
+  flex: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.three,
+    paddingHorizontal: Spacing.three,
+    paddingVertical: Spacing.two + 4,
+  },
+  headerButton: { padding: Spacing.one },
+  progress: { flex: 1 },
+  content: { padding: Spacing.three, paddingBottom: Spacing.five },
+  footer: {
+    padding: Spacing.three,
+    paddingBottom: Spacing.two,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: Spacing.two,
+  },
+  success: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.three,
+    padding: Spacing.five,
+  },
+  successProvider: { alignSelf: 'stretch', marginTop: Spacing.three, borderRadius: Radius.lg },
+  centered: { textAlign: 'center' },
+});

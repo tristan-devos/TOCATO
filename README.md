@@ -1,11 +1,33 @@
+# TOCATO
 
-  # TOCATO
+Application de mise en relation entre clients et prestataires de services à domicile
+(plombier, déménageur, jardinier), lancée à Montréal. Ce dépôt contient la partie client,
+construite avec Expo (iOS / Android / web).
 
-  This is a code bundle for TOCATO. The original project is available at https://www.figma.com/design/M0ZSyZrHPaV4m4uCJrl8Fc/TOCATO.
+## Lancer l'app
 
-  ## Running the code
+```bash
+npm install
+npx expo start
+```
 
-  Run `npm i` to install the dependencies.
+- iPhone : scanner le QR code avec l'app [Expo Go](https://expo.dev/go).
+- Web : appuyer sur `w` dans le terminal.
 
-  Run `npm run dev` to start the development server.
-  
+L'app tourne entièrement avec des données de démo, sans backend. Les réponses des
+prestataires dans le chat sont simulées. « Profil → Réinitialiser la démo » restaure les
+données de départ.
+
+## Fonctionnalités
+
+- **Accueil** — services, réservation en cours, prestataires populaires
+- **Messages** — un chat s'ouvre avec le prestataire à chaque demande ; les devis
+  s'acceptent ou se refusent directement dans la conversation
+- **Réserver** (bouton central) — demande guidée en quelques questions : photos, adresse,
+  date et estimation de prix
+- **Mes réservations** — suivi en cours / historique, statut détaillé, annulation
+- **Profil** — adresses, paiement, aide
+
+## Documentation technique
+
+Voir [AGENTS.md](./AGENTS.md) : stack, architecture, conventions et commandes.
