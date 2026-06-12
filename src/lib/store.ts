@@ -116,6 +116,9 @@ export const useAppStore = create<AppState>()(
           // alternant pour varier. Le vrai matching viendra du backend.
           const candidates = providersForService(draft.serviceId);
           const provider = candidates[get().bookings.length % candidates.length];
+          if (!provider) {
+            throw new Error(`Aucun prestataire disponible pour ${draft.serviceId}`);
+          }
 
           const booking: Booking = {
             id: bookingId,
@@ -228,7 +231,7 @@ export const useAppStore = create<AppState>()(
               conversationId,
               senderId: conversation.providerId,
               type: 'text',
-              text: CANNED_REPLIES[replyIndex % CANNED_REPLIES.length],
+              text: CANNED_REPLIES[replyIndex % CANNED_REPLIES.length] ?? 'Bien reçu, merci !',
             },
             2_000 + Math.random() * 1_500,
           );

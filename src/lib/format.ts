@@ -65,9 +65,9 @@ export function formatRelative(iso: string): string {
 
 /** Une date seule (YYYY-MM-DD) doit être interprétée en heure locale, pas UTC. */
 function parseIso(iso: string): Date {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-    const [y, m, d] = iso.split('-').map(Number);
-    return new Date(y, m - 1, d);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (match) {
+    return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
   }
   return new Date(iso);
 }

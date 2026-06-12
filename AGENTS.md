@@ -70,6 +70,19 @@ src/hooks/use-theme.ts      Accès au thème selon le color scheme
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).
 
+## Typage (priorité absolue)
+
+Le typage strict est une exigence forte de Tristan. Le projet compile avec `strict`,
+`noUncheckedIndexedAccess`, `noUnusedLocals` et `noUnusedParameters` :
+
+- **Jamais de `any`**, jamais de `as` pour faire taire le compilateur, jamais de `!`
+  (non-null assertion) — prouver l'existence avec une garde (`if (!x) return/throw`).
+- Tous les types du domaine vivent dans `src/lib/types.ts` — c'est la source de vérité,
+  et le futur contrat d'API du backend. Pas de types métier redéfinis dans les écrans.
+- Un accès indexé (`array[i]`, `record[key]`) retourne `T | undefined` : toujours gérer le
+  cas `undefined` explicitement.
+- `npx tsc --noEmit` doit passer à zéro erreur avant de conclure toute modification.
+
 ## Règles anti-dérive (importantes)
 
 Tristan a déjà perdu le contrôle de projets précédents à cause de fichiers devenus énormes.

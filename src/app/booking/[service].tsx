@@ -92,6 +92,7 @@ export default function BookingWizardScreen() {
       .filter((answer) => answer.values.length > 0);
 
   const submit = () => {
+    if (!selectedAddress) return;
     const ids = createBooking({
       serviceId: service.id,
       answers: buildAnswers(),
