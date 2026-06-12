@@ -39,6 +39,19 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "83c31465-c53d-4aac-b3be-615809d04420"
+      }
+    },
+    "owner": "tristanos",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/83c31465-c53d-4aac-b3be-615809d04420"
     }
   }
 }

@@ -20,7 +20,13 @@
       "PowerShell(npx expo-doctor 2>&1 | Select-Object -Last 8)",
       "PowerShell(Set-Content *)",
       "PowerShell($files = @\\('src\\\\app\\\\booking\\\\[service].tsx', 'src\\\\app\\\\chat\\\\[id].tsx', 'src\\\\app\\\\reservation\\\\[id].tsx'\\); foreach \\($f in $files\\) { $lines = \\(Get-Content -LiteralPath $f | Measure-Object -Line\\).Lines; \"$lines  $f\" })",
-      "PowerShell(git add *)"
+      "PowerShell(git add *)",
+      "PowerShell(npx eas-cli whoami 2>&1 | Select-Object -Last 3)",
+      "PowerShell(npx expo install expo-updates 2>&1 | Select-Object -Last 3)",
+      "PowerShell(npx eas-cli whoami 2>&1 | Select-Object -Last 1)",
+      "PowerShell(npx eas-cli init --force --non-interactive 2>&1 | Select-Object -Last 5)",
+      "PowerShell(npx eas-cli update:configure --non-interactive 2>&1 | Select-Object -Last 6)",
+      "PowerShell(npx eas-cli update --branch preview --message \"Premiere version de demo TOCATO\" --non-interactive 2>&1 | Select-Object -Last 20)"
     ]
   }
 }
