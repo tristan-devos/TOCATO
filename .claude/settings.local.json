@@ -26,7 +26,17 @@
       "PowerShell(npx eas-cli whoami 2>&1 | Select-Object -Last 1)",
       "PowerShell(npx eas-cli init --force --non-interactive 2>&1 | Select-Object -Last 5)",
       "PowerShell(npx eas-cli update:configure --non-interactive 2>&1 | Select-Object -Last 6)",
-      "PowerShell(npx eas-cli update --branch preview --message \"Premiere version de demo TOCATO\" --non-interactive 2>&1 | Select-Object -Last 20)"
+      "PowerShell(npx eas-cli update --branch preview --message \"Premiere version de demo TOCATO\" --non-interactive 2>&1 | Select-Object -Last 20)",
+      "PowerShell(npx eas-cli project:info 2>&1 | Select-Object -Last 6)",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 30)",
+      "Bash(get-childitem *)",
+      "PowerShell(head *)",
+      "Bash(xargs grep -l \"Réserver\\\\|Prestataire\\\\|Plombier\\\\|Message\")",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npx expo *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }
