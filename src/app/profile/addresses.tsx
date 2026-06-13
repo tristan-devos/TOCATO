@@ -11,19 +11,23 @@ import { ListItem } from '@/components/ui/list-item';
 import { PageHeader } from '@/components/ui/page-header';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useAppStore } from '@/lib/store';
+import { useAddresses, useProfileStore } from '@/lib/profile-store';
 
 export default function AddressesScreen() {
   const colors = useTheme();
   const { t } = useTranslation();
-  const addresses = useAppStore((s) => s.user.addresses);
-  const removeAddress = useAppStore((s) => s.removeAddress);
+  const addresses = useAddresses();
+  const removeAddress = useProfileStore((s) => s.removeAddress);
   const [showForm, setShowForm] = useState(false);
 
   const confirmRemove = (addressId: string, label: string) => {
     Alert.alert(t('addresses.deleteTitle'), t('addresses.deleteMessage', { label }), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => removeAddress(addressId) },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: () => void removeAddress(addressId),
+      },
     ]);
   };
 

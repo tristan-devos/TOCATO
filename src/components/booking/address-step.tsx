@@ -8,7 +8,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Chip } from '@/components/ui/chip';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useAppStore } from '@/lib/store';
+import { useAddresses } from '@/lib/profile-store';
 
 interface AddressStepProps {
   selectedAddressId: string | null;
@@ -18,7 +18,7 @@ interface AddressStepProps {
 export function AddressStep({ selectedAddressId, onSelect }: AddressStepProps) {
   const colors = useTheme();
   const { t } = useTranslation();
-  const addresses = useAppStore((s) => s.user.addresses);
+  const addresses = useAddresses();
   const [showForm, setShowForm] = useState(false);
 
   return (

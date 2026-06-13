@@ -6,7 +6,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useAppStore } from '@/lib/store';
+import { useProfileStore } from '@/lib/profile-store';
 
 interface AddressFormProps {
   onSaved: (addressId: string) => void;
@@ -16,22 +16,25 @@ interface AddressFormProps {
 export function AddressForm({ onSaved, onCancel }: AddressFormProps) {
   const colors = useTheme();
   const { t } = useTranslation();
-  const addAddress = useAppStore((s) => s.addAddress);
+  const addAddress = useProfileStore((s) => s.addAddress);
 
   const [label, setLabel] = useState('');
   const [street, setStreet] = useState('');
   const [postalCode, setPostalCode] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const valid = street.trim().length > 3 && postalCode.trim().length >= 6;
 
-  const save = () => {
-    const id = addAddress({
+  const save = async () => {
+    setSaving(true);
+    const id = await addAddress({
       label: label.trim() || t('addressForm.defaultLabel'),
       street: street.trim(),
       city: 'Montréal',
       postalCode: postalCode.trim().toUpperCase(),
     });
-    onSaved(id);
+    setSaving(false);
+    if (id) onSaved(id);
   };
 
   const inputStyle = [
@@ -66,7 +69,13 @@ export function AddressForm({ onSaved, onCancel }: AddressFormProps) {
       />
       <View style={styles.actions}>
         <Button title={t('common.cancel')} variant="ghost" size="sm" onPress={onCancel} />
-        <Button title={t('common.save')} size="sm" onPress={save} disabled={!valid} />
+        <Button
+          title={t('common.save')}
+          size="sm"
+          onPress={() => void save()}
+          disabled={!valid}
+          loading={saving}
+        />
       </View>
     </View>
   );

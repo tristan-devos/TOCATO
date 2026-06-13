@@ -27,6 +27,7 @@ import { ProgressBar } from '@/components/ui/progress-bar';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getProvider } from '@/lib/mock-data';
+import { useAddresses } from '@/lib/profile-store';
 import { isServiceId } from '@/lib/services';
 import { useLocalizedService } from '@/lib/use-localized-service';
 import { useAppStore } from '@/lib/store';
@@ -41,7 +42,7 @@ export default function BookingWizardScreen() {
   const { service: serviceParam } = useLocalSearchParams<{ service: string }>();
 
   const createBooking = useAppStore((s) => s.createBooking);
-  const addresses = useAppStore((s) => s.user.addresses);
+  const addresses = useAddresses();
 
   // Hook must be called unconditionally — use a valid fallback until the guard runs
   const validId: ServiceId =

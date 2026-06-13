@@ -19,13 +19,15 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuthStore } from '@/lib/auth-store';
 import { changeLanguage } from '@/i18n';
+import { useAddresses, useProfile } from '@/lib/profile-store';
 import { useAppStore } from '@/lib/store';
 
 export default function ProfilScreen() {
   const colors = useTheme();
   const router = useRouter();
   const { t, i18n } = useTranslation();
-  const user = useAppStore((s) => s.user);
+  const profile = useProfile();
+  const addresses = useAddresses();
   const resetDemo = useAppStore((s) => s.resetDemo);
   const signOut = useAuthStore((s) => s.signOut);
   const currentLang = i18n.language as 'fr' | 'en';
@@ -76,11 +78,11 @@ export default function ProfilScreen() {
       <AppText variant="title">{t('profile.title')}</AppText>
 
       <Card style={styles.userCard}>
-        <Avatar name={user.name} size={64} />
+        <Avatar name={profile?.name ?? ''} size={64} />
         <View style={styles.userTexts}>
-          <AppText variant="subheading">{user.name}</AppText>
-          <AppText variant="secondary">{user.email}</AppText>
-          <AppText variant="secondary">{user.phone}</AppText>
+          <AppText variant="subheading">{profile?.name ?? ''}</AppText>
+          <AppText variant="secondary">{profile?.email ?? ''}</AppText>
+          {profile?.phone ? <AppText variant="secondary">{profile.phone}</AppText> : null}
         </View>
       </Card>
 
@@ -91,7 +93,7 @@ export default function ProfilScreen() {
         <Card style={styles.menuCard}>
           <ListItem
             title={t('profile.addresses')}
-            subtitle={t('profile.addressCount', { count: user.addresses.length })}
+            subtitle={t('profile.addressCount', { count: addresses.length })}
             leading={<MapPin size={20} color={colors.primary} />}
             onPress={() => router.push('/profile/addresses')}
           />

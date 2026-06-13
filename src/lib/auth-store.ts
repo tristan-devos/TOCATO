@@ -9,6 +9,7 @@
 import type { AuthError, Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
 
+import { useProfileStore } from '@/lib/profile-store';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'anonymous';
@@ -93,6 +94,11 @@ export function initAuth(): void {
       session,
       status: session ? 'authenticated' : 'anonymous',
     });
+    if (session) {
+      void useProfileStore.getState().loadProfile();
+    } else {
+      useProfileStore.getState().clear();
+    }
   };
 
   void supabase.auth.getSession().then(({ data }) => apply(data.session));

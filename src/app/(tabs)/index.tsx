@@ -13,15 +13,17 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { PROVIDERS } from '@/lib/mock-data';
+import { useProfile } from '@/lib/profile-store';
 import { SERVICE_IDS } from '@/lib/services';
-import { useAppStore, useHighlightedBooking } from '@/lib/store';
+import { useHighlightedBooking } from '@/lib/store';
 import type { ServiceId } from '@/lib/types';
 
 export default function HomeScreen() {
   const colors = useTheme();
   const router = useRouter();
   const { t } = useTranslation();
-  const firstName = useAppStore((s) => s.user.name).split(' ')[0];
+  const profile = useProfile();
+  const firstName = (profile?.name ?? '').split(' ')[0];
   const highlighted = useHighlightedBooking();
   const topProviders = PROVIDERS.filter((p) => p.verified).slice(0, 3);
 

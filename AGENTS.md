@@ -28,9 +28,9 @@ Services au lancement : plombier, déménageur, jardinier.
   dépendances ajoutées, justifiées : `@supabase/supabase-js` (client officiel) et
   `react-native-url-polyfill` (fournit `URL`/`URLSearchParams` que Hermes n'expose pas
   complètement, requis par supabase-js sous React Native). État de la migration :
-  **auth en place** (connexion/inscription email + mot de passe, garde de navigation), le
-  store mock Zustand reste la source des bookings/chat ; leur migration vers Supabase se
-  fera domaine par domaine dans des PR suivantes. La simulation des réponses prestataires passera côté serveur (Edge Function +
+  **auth + profil/adresses migrés** (connexion email/mot de passe, garde de navigation,
+  `profile-store` adossé à Supabase) ; les bookings/conversations/messages restent dans le
+  store mock Zustand, leur migration suit domaine par domaine. La simulation des réponses prestataires passera côté serveur (Edge Function +
   Realtime).
 - React Compiler (expérimental) et typed routes activés (`app.json > experiments`).
 
@@ -73,9 +73,11 @@ src/lib/
   types.ts                  Types du domaine = futurs contrats d'API
   services.ts               Catalogue des services + questions du wizard (config-driven :
                             ajouter un service = ajouter une entrée ici)
-  store.ts                  Store Zustand persisté : réservations, conversations, messages,
-                            user. Les réponses prestataires sont simulées par setTimeout —
-                            c'est le point d'entrée du futur backend temps réel.
+  store.ts                  Store Zustand persisté : réservations, conversations, messages
+                            (encore mock). Les réponses prestataires sont simulées par
+                            setTimeout — point d'entrée du futur backend temps réel.
+  profile-store.ts          Profil + adresses de l'utilisateur connecté, adossé à Supabase
+                            (chargé à la connexion). A remplacé le `user` mock du store.
   mock-data.ts              Données de démo (prestataires montréalais, seed réservations)
   format.ts                 Formatage fr-CA (prix CAD, dates)
   booking-status.ts         Libellés/tons des statuts de réservation

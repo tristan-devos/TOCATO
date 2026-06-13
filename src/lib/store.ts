@@ -17,8 +17,8 @@ import {
   SEED_BOOKINGS,
   SEED_CONVERSATIONS,
   SEED_MESSAGES,
-  SEED_USER,
 } from '@/lib/mock-data';
+import { useProfileStore } from '@/lib/profile-store';
 import { estimatePrice } from '@/lib/services';
 import type {
   Address,
@@ -28,7 +28,6 @@ import type {
   Message,
   ServiceId,
   TimeSlotId,
-  User,
 } from '@/lib/types';
 
 export interface BookingDraft {
@@ -42,7 +41,6 @@ export interface BookingDraft {
 }
 
 interface AppState {
-  user: User;
   bookings: Booking[];
   conversations: Conversation[];
   messages: Message[];
@@ -55,14 +53,10 @@ interface AppState {
   respondToQuote: (messageId: string, accept: boolean) => void;
   markConversationRead: (conversationId: string) => void;
   setActiveConversation: (conversationId: string | null) => void;
-  /** Returns the id of the newly created address. */
-  addAddress: (address: Omit<Address, 'id'>) => string;
-  removeAddress: (addressId: string) => void;
   resetDemo: () => void;
 }
 
 const seedState = {
-  user: SEED_USER,
   bookings: SEED_BOOKINGS,
   conversations: SEED_CONVERSATIONS,
   messages: SEED_MESSAGES,
@@ -164,7 +158,7 @@ export const useAppStore = create<AppState>()(
             ],
           }));
 
-          const firstName = get().user.name.split(' ')[0];
+          const firstName = (useProfileStore.getState().profile?.name ?? '').split(' ')[0];
           scheduleProviderMessage(
             {
               conversationId,
@@ -291,26 +285,6 @@ export const useAppStore = create<AppState>()(
           if (conversationId) get().markConversationRead(conversationId);
         },
 
-        addAddress: (address) => {
-          const id = newId('addr');
-          set((state) => ({
-            user: {
-              ...state.user,
-              addresses: [...state.user.addresses, { ...address, id }],
-            },
-          }));
-          return id;
-        },
-
-        removeAddress: (addressId) => {
-          set((state) => ({
-            user: {
-              ...state.user,
-              addresses: state.user.addresses.filter((a) => a.id !== addressId),
-            },
-          }));
-        },
-
         resetDemo: () => set({ ...seedState }),
       };
     },
@@ -318,7 +292,6 @@ export const useAppStore = create<AppState>()(
       name: 'tocato-store-v2',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
-        user: state.user,
         bookings: state.bookings,
         conversations: state.conversations,
         messages: state.messages,

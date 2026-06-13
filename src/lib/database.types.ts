@@ -45,6 +45,7 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['profiles']['Insert']>;
+        Relationships: [];
       };
       addresses: {
         Row: {
@@ -66,6 +67,7 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database['public']['Tables']['addresses']['Insert']>;
+        Relationships: [];
       };
       providers: {
         Row: {
@@ -83,6 +85,7 @@ export interface Database {
         };
         Insert: Database['public']['Tables']['providers']['Row'];
         Update: Partial<Database['public']['Tables']['providers']['Row']>;
+        Relationships: [];
       };
       bookings: {
         Row: {
@@ -122,6 +125,7 @@ export interface Database {
           conversation_id: string;
         };
         Update: Partial<Database['public']['Tables']['bookings']['Insert']>;
+        Relationships: [];
       };
       conversations: {
         Row: {
@@ -141,6 +145,7 @@ export interface Database {
           last_message_at?: string;
         };
         Update: Partial<Database['public']['Tables']['conversations']['Insert']>;
+        Relationships: [];
       };
       messages: {
         Row: {
@@ -166,6 +171,7 @@ export interface Database {
           document?: Document | null;
         };
         Update: Partial<Database['public']['Tables']['messages']['Insert']>;
+        Relationships: [];
       };
     };
     Views: Record<never, never>;
