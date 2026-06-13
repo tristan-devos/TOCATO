@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { loadSavedLanguage } from '@/i18n';
+import { initAuth } from '@/lib/auth-store';
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -16,6 +17,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     void loadSavedLanguage();
+    initAuth();
   }, []);
 
   // Align the navigation theme (backgrounds, native headers) with our tokens.

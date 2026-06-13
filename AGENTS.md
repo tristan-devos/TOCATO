@@ -24,6 +24,14 @@ Services au lancement : plombier, déménageur, jardinier.
 - **Zustand 5** + AsyncStorage (persistance) pour l'état global.
 - **lucide-react-native** pour les icônes (jamais `lucide-react`, DOM-only).
 - **expo-image** pour les images, **expo-image-picker** pour les photos du wizard.
+- **Supabase** comme backend (auth email/mot de passe, Postgres + RLS, Realtime). Deux
+  dépendances ajoutées, justifiées : `@supabase/supabase-js` (client officiel) et
+  `react-native-url-polyfill` (fournit `URL`/`URLSearchParams` que Hermes n'expose pas
+  complètement, requis par supabase-js sous React Native). État de la migration :
+  **fondations posées** (client typé, schéma SQL, couche auth), le store mock Zustand est
+  encore en place ; la migration se fera domaine par domaine (bookings, chat) dans des PR
+  suivantes. La simulation des réponses prestataires passera côté serveur (Edge Function +
+  Realtime).
 - React Compiler (expérimental) et typed routes activés (`app.json > experiments`).
 
 ## Commandes
@@ -35,6 +43,11 @@ Services au lancement : plombier, déménageur, jardinier.
 - `npx expo export --platform web` — build web de prod ; c'est aussi le **smoke test** de
   référence : si toutes les routes se bundlent, le pipeline est sain.
 - `npx expo-doctor` — validation de la config Expo.
+- **Supabase** : copier `.env.example` en `.env` et remplir `EXPO_PUBLIC_SUPABASE_URL` /
+  `EXPO_PUBLIC_SUPABASE_ANON_KEY` (Dashboard > Project Settings > API). Exécuter
+  `supabase/schema.sql` dans le SQL editor pour créer tables + RLS + seed prestataires.
+  Types DB régénérables via `npx supabase gen types typescript --project-id <ref>`
+  (réimporter ensuite les unions de `lib/types.ts` dans `lib/database.types.ts`).
 
 Pas de tests unitaires ni de linter au-delà d'`eslint-config-expo` pour l'instant.
 
@@ -64,8 +77,15 @@ src/lib/
   mock-data.ts              Données de démo (prestataires montréalais, seed réservations)
   format.ts                 Formatage fr-CA (prix CAD, dates)
   booking-status.ts         Libellés/tons des statuts de réservation
+  supabase.ts               Client Supabase (auth/DB/realtime) ; `isSupabaseConfigured`
+                            reste false tant que .env est vide (app fonctionnelle sans).
+  database.types.ts         Type `Database` du schéma Postgres, aligné sur types.ts
+  auth-store.ts             Store Zustand auth (signUp/signIn/signOut, session), séparé du
+                            store applicatif ; `initAuth()` appelé au montage racine.
 src/constants/theme.ts      Design tokens (couleurs light/dark, spacing, radius, fontsize)
 src/hooks/use-theme.ts      Accès au thème selon le color scheme
+supabase/schema.sql         Schéma Postgres : tables + RLS + seed prestataires (à exécuter
+                            dans le SQL editor Supabase). Miroir de lib/types.ts.
 ```
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).
