@@ -17,10 +17,15 @@ export interface AuthResult {
   error: string | null;
 }
 
+export interface SignUpResult extends AuthResult {
+  /** Vrai quand l'inscription exige une confirmation par courriel (pas de session). */
+  needsConfirmation: boolean;
+}
+
 interface AuthState {
   session: Session | null;
   status: AuthStatus;
-  signUp: (email: string, password: string, name: string) => Promise<AuthResult>;
+  signUp: (email: string, password: string, name: string) => Promise<SignUpResult>;
   signIn: (email: string, password: string) => Promise<AuthResult>;
   signOut: () => Promise<AuthResult>;
 }
@@ -45,12 +50,15 @@ export const useAuthStore = create<AuthState>(() => ({
   status: 'loading',
 
   signUp: async (email, password, name) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { name } },
     });
-    return { error: toFrenchError(error) };
+    return {
+      error: toFrenchError(error),
+      needsConfirmation: !error && data.session === null,
+    };
   },
 
   signIn: async (email, password) => {

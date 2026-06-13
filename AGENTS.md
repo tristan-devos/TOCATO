@@ -28,9 +28,9 @@ Services au lancement : plombier, déménageur, jardinier.
   dépendances ajoutées, justifiées : `@supabase/supabase-js` (client officiel) et
   `react-native-url-polyfill` (fournit `URL`/`URLSearchParams` que Hermes n'expose pas
   complètement, requis par supabase-js sous React Native). État de la migration :
-  **fondations posées** (client typé, schéma SQL, couche auth), le store mock Zustand est
-  encore en place ; la migration se fera domaine par domaine (bookings, chat) dans des PR
-  suivantes. La simulation des réponses prestataires passera côté serveur (Edge Function +
+  **auth en place** (connexion/inscription email + mot de passe, garde de navigation), le
+  store mock Zustand reste la source des bookings/chat ; leur migration vers Supabase se
+  fera domaine par domaine dans des PR suivantes. La simulation des réponses prestataires passera côté serveur (Edge Function +
   Realtime).
 - React Compiler (expérimental) et typed routes activés (`app.json > experiments`).
 
@@ -55,7 +55,8 @@ Pas de tests unitaires ni de linter au-delà d'`eslint-config-expo` pour l'insta
 
 ```
 src/app/                    Routes expo-router
-  _layout.tsx               Stack racine (thème nav + déclaration des routes, modal booking)
+  _layout.tsx               Stack racine (thème nav + routes, modal booking, garde auth)
+  (auth)/{login,signup}.tsx Connexion / inscription (Supabase Auth email + mot de passe)
   (tabs)/_layout.tsx        5 onglets : Accueil, Messages, Réserver (bouton central logo),
                             Réservations, Profil
   (tabs)/{index,chats,reserver,reservations,profil}.tsx
@@ -64,6 +65,7 @@ src/app/                    Routes expo-router
   reservation/[id].tsx      Détail réservation (timeline de statut, annulation)
   profile/{addresses,payments,help}.tsx
 src/components/             Composants métier (booking-card, provider-row, service-card…)
+  auth/                     auth-text-field (champ libellé des formulaires de connexion)
   booking/                  Étapes du wizard (question, details, address, schedule, review)
   chat/                     message-bubble (texte / devis / document / système)
   ui/                       Primitives (button, card, chip, badge, avatar, screen…)
@@ -84,6 +86,7 @@ src/lib/
                             store applicatif ; `initAuth()` appelé au montage racine.
 src/constants/theme.ts      Design tokens (couleurs light/dark, spacing, radius, fontsize)
 src/hooks/use-theme.ts      Accès au thème selon le color scheme
+src/hooks/use-auth-guard.ts Redirige login <-> app selon la session (inactif sans Supabase)
 supabase/schema.sql         Schéma Postgres : tables + RLS + seed prestataires (à exécuter
                             dans le SQL editor Supabase). Miroir de lib/types.ts.
 ```
