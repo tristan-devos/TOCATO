@@ -61,6 +61,7 @@ export default function BookingWizardScreen() {
     bookingId: string;
     conversationId: string;
   } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   if (!serviceParam || !isServiceId(serviceParam)) {
     return <Redirect href="/(tabs)/reserver" />;
@@ -98,9 +99,10 @@ export default function BookingWizardScreen() {
       }))
       .filter((answer) => answer.values.length > 0);
 
-  const submit = () => {
-    if (!selectedAddress) return;
-    const ids = createBooking({
+  const submit = async () => {
+    if (!selectedAddress || submitting) return;
+    setSubmitting(true);
+    const ids = await createBooking({
       serviceId: service.id,
       answers: buildAnswers(),
       description: description.trim(),
@@ -109,6 +111,8 @@ export default function BookingWizardScreen() {
       scheduledDate: asap ? undefined : (scheduledDate ?? undefined),
       timeSlot: asap ? undefined : (timeSlot ?? undefined),
     });
+    setSubmitting(false);
+    if (!ids) return;
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
@@ -117,7 +121,7 @@ export default function BookingWizardScreen() {
 
   const goNext = () => {
     if (currentStep === 'review') {
-      submit();
+      void submit();
     } else {
       setStepIndex((i) => i + 1);
     }
@@ -268,6 +272,7 @@ export default function BookingWizardScreen() {
             size="lg"
             onPress={goNext}
             disabled={!isStepValid()}
+            loading={currentStep === 'review' && submitting}
           />
         </View>
       </KeyboardAvoidingView>

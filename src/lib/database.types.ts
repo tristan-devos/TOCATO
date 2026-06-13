@@ -175,7 +175,27 @@ export interface Database {
       };
     };
     Views: Record<never, never>;
-    Functions: Record<never, never>;
+    Functions: {
+      create_booking: {
+        Args: {
+          p_service_id: ServiceId;
+          p_scheduled_date: string | null;
+          p_time_slot: TimeSlotId | null;
+          p_address: Address;
+          p_answers: BookingAnswer[];
+          p_description: string;
+          p_photo_count: number;
+          p_estimate_min: number;
+          p_estimate_max: number;
+          p_provider_id: string;
+        };
+        Returns: { booking_id: string; conversation_id: string }[];
+      };
+      seed_demo: {
+        Args: Record<string, never>;
+        Returns: undefined;
+      };
+    };
     Enums: Record<never, never>;
   };
 }

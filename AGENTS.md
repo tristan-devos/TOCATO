@@ -28,9 +28,10 @@ Services au lancement : plombier, déménageur, jardinier.
   dépendances ajoutées, justifiées : `@supabase/supabase-js` (client officiel) et
   `react-native-url-polyfill` (fournit `URL`/`URLSearchParams` que Hermes n'expose pas
   complètement, requis par supabase-js sous React Native). État de la migration :
-  **auth + profil/adresses migrés** (connexion email/mot de passe, garde de navigation,
-  `profile-store` adossé à Supabase) ; les bookings/conversations/messages restent dans le
-  store mock Zustand, leur migration suit domaine par domaine. La simulation des réponses prestataires passera côté serveur (Edge Function +
+  **migration store terminée** : auth, profil/adresses, et bookings/conversations/messages
+  passent tous par Supabase (lectures + Realtime + écritures). Reste à faire : déplacer la
+  simulation prestataire de `provider-sim.ts` (client) vers une Edge Function serveur, et
+  l'upload des photos du wizard vers Supabase Storage. La simulation des réponses prestataires passera côté serveur (Edge Function +
   Realtime).
 - React Compiler (expérimental) et typed routes activés (`app.json > experiments`).
 
@@ -45,7 +46,8 @@ Services au lancement : plombier, déménageur, jardinier.
 - `npx expo-doctor` — validation de la config Expo.
 - **Supabase** : copier `.env.example` en `.env` et remplir `EXPO_PUBLIC_SUPABASE_URL` /
   `EXPO_PUBLIC_SUPABASE_ANON_KEY` (Dashboard > Project Settings > API). Exécuter
-  `supabase/schema.sql` dans le SQL editor pour créer tables + RLS + seed prestataires.
+  `supabase/schema.sql` puis `supabase/rpc.sql` dans le SQL editor (tables + RLS + Realtime +
+  seed, puis fonctions/triggers ; les deux idempotents et ré-exécutables).
   Types DB régénérables via `npx supabase gen types typescript --project-id <ref>`
   (réimporter ensuite les unions de `lib/types.ts` dans `lib/database.types.ts`).
 
@@ -73,11 +75,14 @@ src/lib/
   types.ts                  Types du domaine = futurs contrats d'API
   services.ts               Catalogue des services + questions du wizard (config-driven :
                             ajouter un service = ajouter une entrée ici)
-  store.ts                  Store Zustand persisté : réservations, conversations, messages
-                            (encore mock). Les réponses prestataires sont simulées par
-                            setTimeout — point d'entrée du futur backend temps réel.
+  store.ts                  Store Zustand adossé à Supabase : réservations, conversations,
+                            messages. Charge à la connexion (loadAll), écoute le Realtime,
+                            réécrit via Supabase (create_booking RPC, updates, inserts).
   profile-store.ts          Profil + adresses de l'utilisateur connecté, adossé à Supabase
                             (chargé à la connexion). A remplacé le `user` mock du store.
+  db-mappers.ts             Conversion lignes Supabase -> types du domaine (frontière DB/app)
+  provider-sim.ts           Simulation TEMPORAIRE des réponses prestataire (insère dans
+                            Supabase après délai) — à remplacer par une Edge Function.
   mock-data.ts              Données de démo (prestataires montréalais, seed réservations)
   format.ts                 Formatage fr-CA (prix CAD, dates)
   booking-status.ts         Libellés/tons des statuts de réservation
@@ -89,8 +94,10 @@ src/lib/
 src/constants/theme.ts      Design tokens (couleurs light/dark, spacing, radius, fontsize)
 src/hooks/use-theme.ts      Accès au thème selon le color scheme
 src/hooks/use-auth-guard.ts Redirige login <-> app selon la session (inactif sans Supabase)
-supabase/schema.sql         Schéma Postgres : tables + RLS + seed prestataires (à exécuter
-                            dans le SQL editor Supabase). Miroir de lib/types.ts.
+supabase/schema.sql         Schéma Postgres : tables + RLS + Realtime + seed prestataires
+                            (idempotent, ré-exécutable). Miroir de lib/types.ts.
+supabase/rpc.sql            Fonctions/triggers (create_booking, seed_demo, trigger messages)
+                            — à exécuter APRÈS schema.sql.
 ```
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).

@@ -130,28 +130,35 @@ alter table public.conversations enable row level security;
 alter table public.messages      enable row level security;
 
 -- profiles : chacun gère son propre profil.
+drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own" on public.profiles
   for select using (auth.uid() = id);
+drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own" on public.profiles
   for update using (auth.uid() = id);
 
 -- addresses : owner-only (toutes opérations).
+drop policy if exists "addresses_all_own" on public.addresses;
 create policy "addresses_all_own" on public.addresses
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- providers : catalogue en lecture pour tout utilisateur connecté.
+drop policy if exists "providers_select_all" on public.providers;
 create policy "providers_select_all" on public.providers
   for select using (true);
 
 -- bookings : owner-only.
+drop policy if exists "bookings_all_own" on public.bookings;
 create policy "bookings_all_own" on public.bookings
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- conversations : owner-only.
+drop policy if exists "conversations_all_own" on public.conversations;
 create policy "conversations_all_own" on public.conversations
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
 -- messages : accès via la conversation possédée par l'utilisateur.
+drop policy if exists "messages_select_own" on public.messages;
 create policy "messages_select_own" on public.messages
   for select using (
     exists (
@@ -159,6 +166,7 @@ create policy "messages_select_own" on public.messages
       where c.id = messages.conversation_id and c.user_id = auth.uid()
     )
   );
+drop policy if exists "messages_insert_own" on public.messages;
 create policy "messages_insert_own" on public.messages
   for insert with check (
     exists (
@@ -166,12 +174,32 @@ create policy "messages_insert_own" on public.messages
       where c.id = messages.conversation_id and c.user_id = auth.uid()
     )
   );
+drop policy if exists "messages_update_own" on public.messages;
+create policy "messages_update_own" on public.messages
+  for update using (
+    exists (
+      select 1 from public.conversations c
+      where c.id = messages.conversation_id and c.user_id = auth.uid()
+    )
+  );
 
 -- =============================================================================
--- Realtime : prépare la future Edge Function de simulation prestataire.
+-- Realtime : le client s'abonne aux changements (messages, bookings,
+-- conversations). Idempotent — n'ajoute la table que si absente de la publication.
 -- =============================================================================
-alter publication supabase_realtime add table public.messages;
-alter publication supabase_realtime add table public.bookings;
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['messages', 'bookings', 'conversations'] loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t
+    ) then
+      execute format('alter publication supabase_realtime add table public.%I', t);
+    end if;
+  end loop;
+end $$;
 
 -- =============================================================================
 -- Seed du catalogue prestataires (miroir de src/lib/mock-data.ts)

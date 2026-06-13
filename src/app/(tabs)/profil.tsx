@@ -35,7 +35,11 @@ export default function ProfilScreen() {
   const confirmReset = () => {
     Alert.alert(t('profile.resetTitle'), t('profile.resetMessage'), [
       { text: t('common.cancel'), style: 'cancel' },
-      { text: t('profile.resetConfirm'), style: 'destructive', onPress: resetDemo },
+      {
+        text: t('profile.resetConfirm'),
+        style: 'destructive',
+        onPress: () => void resetDemo(),
+      },
     ]);
   };
 

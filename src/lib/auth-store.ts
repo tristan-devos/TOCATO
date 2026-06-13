@@ -10,6 +10,7 @@ import type { AuthError, Session } from '@supabase/supabase-js';
 import { create } from 'zustand';
 
 import { useProfileStore } from '@/lib/profile-store';
+import { useAppStore } from '@/lib/store';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'anonymous';
@@ -96,8 +97,10 @@ export function initAuth(): void {
     });
     if (session) {
       void useProfileStore.getState().loadProfile();
+      void useAppStore.getState().loadAll();
     } else {
       useProfileStore.getState().clear();
+      useAppStore.getState().clearAll();
     }
   };
 
