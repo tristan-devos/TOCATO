@@ -1,13 +1,14 @@
 import { Calendar, FileText, Images, MapPin } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { ServiceIcon } from '@/components/service-icon';
 import { AppText } from '@/components/ui/app-text';
 import { Card } from '@/components/ui/card';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { formatDateLong, formatPriceRange } from '@/lib/format';
+import { useFormats } from '@/hooks/use-formats';
 import { estimatePrice, TIME_SLOTS, type ServiceDefinition } from '@/lib/services';
 import type { Address, BookingAnswer, TimeSlotId } from '@/lib/types';
 
@@ -31,7 +32,6 @@ function ReviewRow({ icon, children }: { icon: ReactNode; children: ReactNode })
   );
 }
 
-/** Dernière étape : récapitulatif complet avant envoi de la demande. */
 export function ReviewStep({
   service,
   answers,
@@ -43,22 +43,22 @@ export function ReviewStep({
   timeSlot,
 }: ReviewStepProps) {
   const colors = useTheme();
+  const { t } = useTranslation();
+  const { formatDateLong, formatPriceRange } = useFormats();
   const estimate = estimatePrice(service.id);
   const slot = TIME_SLOTS.find((s) => s.id === timeSlot);
 
   const scheduleLabel = asap
-    ? 'Dès que possible'
+    ? t('common.asap')
     : scheduledDate
-      ? `${formatDateLong(scheduledDate)}${slot ? ` · ${slot.label.toLowerCase()} (${slot.hours})` : ''}`
+      ? `${formatDateLong(scheduledDate)}${slot ? ` · ${t(`timeSlots.${slot.id}`).toLowerCase()} (${t(`timeSlots.${slot.id}Hours`)})` : ''}`
       : '—';
 
   return (
     <View style={styles.base}>
       <View style={styles.titles}>
-        <AppText variant="heading">Récapitulatif</AppText>
-        <AppText variant="secondary">
-          Vérifiez votre demande — elle sera envoyée au prestataire le plus adapté.
-        </AppText>
+        <AppText variant="heading">{t('wizard.reviewTitle')}</AppText>
+        <AppText variant="secondary">{t('wizard.reviewSubtitle')}</AppText>
       </View>
 
       <Card style={styles.card}>
@@ -86,7 +86,7 @@ export function ReviewStep({
         {photoCount > 0 ? (
           <ReviewRow icon={<Images size={16} color={colors.textSecondary} />}>
             <AppText variant="secondary">
-              {photoCount} photo{photoCount > 1 ? 's' : ''} jointe{photoCount > 1 ? 's' : ''}
+              {t('reservationDetail.photos', { count: photoCount })}
             </AppText>
           </ReviewRow>
         ) : null}
@@ -103,10 +103,10 @@ export function ReviewStep({
       <View style={[styles.estimate, { backgroundColor: colors.primaryMuted }]}>
         <View style={styles.estimateTexts}>
           <AppText variant="label" color={colors.primary}>
-            Estimation
+            {t('wizard.estimate')}
           </AppText>
           <AppText variant="small" color={colors.primary}>
-            Le prix final sera confirmé par devis dans le chat.
+            {t('wizard.estimateNote')}
           </AppText>
         </View>
         <AppText variant="subheading" color={colors.primary}>

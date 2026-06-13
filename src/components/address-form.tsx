@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
@@ -12,9 +13,9 @@ interface AddressFormProps {
   onCancel: () => void;
 }
 
-/** Formulaire d'ajout d'adresse (Montréal). Utilisé par le wizard et le profil. */
 export function AddressForm({ onSaved, onCancel }: AddressFormProps) {
   const colors = useTheme();
+  const { t } = useTranslation();
   const addAddress = useAppStore((s) => s.addAddress);
 
   const [label, setLabel] = useState('');
@@ -25,7 +26,7 @@ export function AddressForm({ onSaved, onCancel }: AddressFormProps) {
 
   const save = () => {
     const id = addAddress({
-      label: label.trim() || 'Autre',
+      label: label.trim() || t('addressForm.defaultLabel'),
       street: street.trim(),
       city: 'Montréal',
       postalCode: postalCode.trim().toUpperCase(),
@@ -40,32 +41,32 @@ export function AddressForm({ onSaved, onCancel }: AddressFormProps) {
 
   return (
     <View style={[styles.form, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <AppText variant="label">Nouvelle adresse</AppText>
+      <AppText variant="label">{t('addressForm.title')}</AppText>
       <TextInput
         value={label}
         onChangeText={setLabel}
-        placeholder="Nom (ex. : Chalet)"
+        placeholder={t('addressForm.labelPlaceholder')}
         placeholderTextColor={colors.textSecondary}
         style={inputStyle}
       />
       <TextInput
         value={street}
         onChangeText={setStreet}
-        placeholder="Numéro et rue"
+        placeholder={t('addressForm.streetPlaceholder')}
         placeholderTextColor={colors.textSecondary}
         style={inputStyle}
       />
       <TextInput
         value={postalCode}
         onChangeText={setPostalCode}
-        placeholder="Code postal (ex. : H2J 2L2)"
+        placeholder={t('addressForm.postalCodePlaceholder')}
         placeholderTextColor={colors.textSecondary}
         autoCapitalize="characters"
         style={inputStyle}
       />
       <View style={styles.actions}>
-        <Button title="Annuler" variant="ghost" size="sm" onPress={onCancel} />
-        <Button title="Enregistrer" size="sm" onPress={save} disabled={!valid} />
+        <Button title={t('common.cancel')} variant="ghost" size="sm" onPress={onCancel} />
+        <Button title={t('common.save')} size="sm" onPress={save} disabled={!valid} />
       </View>
     </View>
   );

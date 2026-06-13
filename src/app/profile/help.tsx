@@ -2,6 +2,7 @@ import { ChevronDown, ChevronUp, Mail } from 'lucide-react-native';
 import { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
@@ -10,47 +11,25 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-const FAQ = [
-  {
-    question: 'Comment se passe une réservation ?',
-    answer:
-      'Vous décrivez votre besoin en répondant à quelques questions, puis un prestataire vérifié vous envoie un devis dans le chat. Vous acceptez le devis quand il vous convient — la réservation est alors confirmée.',
-  },
-  {
-    question: 'Quand est-ce que je paie ?',
-    answer:
-      'Toujours après avoir accepté le devis, jamais avant. Le prix convenu dans le chat est le prix final — pas de frais cachés.',
-  },
-  {
-    question: 'Puis-je annuler une réservation ?',
-    answer:
-      'Oui, depuis la page de la réservation, tant que la prestation n’a pas commencé. Le prestataire est automatiquement prévenu dans le chat.',
-  },
-  {
-    question: 'Les prestataires sont-ils vérifiés ?',
-    answer:
-      'Oui : identité, certifications professionnelles (ex. CMMTQ pour les plombiers) et avis clients sont vérifiés avant qu’un prestataire rejoigne TOCATO.',
-  },
-  {
-    question: 'Dans quelles villes TOCATO est-il disponible ?',
-    answer:
-      'TOCATO est lancé dans le Grand Montréal. D’autres villes du Québec suivront bientôt !',
-  },
-];
-
 export default function HelpScreen() {
   const colors = useTheme();
+  const { t } = useTranslation();
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+
+  const faq = Array.from({ length: 5 }, (_, i) => ({
+    question: t(`help.faq${i}q`),
+    answer: t(`help.faq${i}a`),
+  }));
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: colors.background }]}>
-      <PageHeader title="Aide" />
+      <PageHeader title={t('help.title')} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.faqList}>
-          {FAQ.map((item, index) => {
+          {faq.map((item, index) => {
             const open = openIndex === index;
             return (
-              <Card key={item.question}>
+              <Card key={index}>
                 <Pressable
                   onPress={() => setOpenIndex(open ? null : index)}
                   style={styles.questionRow}>
@@ -75,10 +54,10 @@ export default function HelpScreen() {
 
         <View style={styles.contact}>
           <AppText variant="secondary" style={styles.contactText}>
-            Vous ne trouvez pas votre réponse ?
+            {t('help.contactPrompt')}
           </AppText>
           <Button
-            title="Écrire au support"
+            title={t('help.contactButton')}
             variant="secondary"
             icon={<Mail size={16} color={colors.primary} />}
             onPress={() => Linking.openURL('mailto:support@tocato.ca')}

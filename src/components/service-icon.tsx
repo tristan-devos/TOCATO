@@ -6,18 +6,15 @@ import { useTheme } from '@/hooks/use-theme';
 import type { ServiceId } from '@/lib/types';
 
 const ICONS: Record<ServiceId, LucideIcon> = {
-  plombier: Wrench,
-  demenageur: Truck,
-  jardinier: Leaf,
+  plumber: Wrench,
+  mover: Truck,
+  gardener: Leaf,
 };
 
 interface ServiceIconProps {
   serviceId: ServiceId;
-  /** Taille de l'icône elle-même */
   size?: number;
-  /** Affiche l'icône dans un carré arrondi au fond de marque atténué */
   boxed?: boolean;
-  /** Taille du carré quand `boxed` est actif */
   boxSize?: number;
 }
 

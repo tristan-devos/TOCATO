@@ -1,24 +1,26 @@
 import { useRouter } from 'expo-router';
 import { BadgeCheck, FileText, LockKeyhole } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { ServiceCard } from '@/components/service-card';
 import { AppText } from '@/components/ui/app-text';
 import { Screen } from '@/components/ui/screen';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { SERVICE_IDS, SERVICES } from '@/lib/services';
+import { SERVICE_IDS } from '@/lib/services';
 import type { ServiceId } from '@/lib/types';
-
-const REASSURANCES = [
-  { icon: BadgeCheck, text: 'Prestataires vérifiés et notés par la communauté' },
-  { icon: FileText, text: 'Devis gratuit avant toute intervention' },
-  { icon: LockKeyhole, text: 'Prix convenu dans le chat, sans surprise' },
-];
 
 export default function ReserverScreen() {
   const colors = useTheme();
   const router = useRouter();
+  const { t } = useTranslation();
+
+  const reassurances = [
+    { icon: BadgeCheck, text: t('bookScreen.reassurance1') },
+    { icon: FileText, text: t('bookScreen.reassurance2') },
+    { icon: LockKeyhole, text: t('bookScreen.reassurance3') },
+  ];
 
   const openBooking = (serviceId: ServiceId) =>
     router.push({ pathname: '/booking/[service]', params: { service: serviceId } });
@@ -26,20 +28,19 @@ export default function ReserverScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <AppText variant="title">Réserver une prestation</AppText>
-        <AppText variant="secondary">
-          Choisissez un service, décrivez votre besoin et recevez un devis en quelques minutes.
-        </AppText>
+        <AppText variant="title">{t('bookScreen.title')}</AppText>
+        <AppText variant="secondary">{t('bookScreen.subtitle')}</AppText>
       </View>
 
       <View style={styles.servicesList}>
         {SERVICE_IDS.map((id) => (
-          <ServiceCard key={id} service={SERVICES[id]} onPress={() => openBooking(id)} />
+          <ServiceCard key={id} serviceId={id} onPress={() => openBooking(id)} />
         ))}
       </View>
 
-      <View style={[styles.reassurance, { backgroundColor: colors.card, borderColor: colors.border }]}>
-        {REASSURANCES.map(({ icon: Icon, text }) => (
+      <View
+        style={[styles.reassurance, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        {reassurances.map(({ icon: Icon, text }) => (
           <View key={text} style={styles.reassuranceRow}>
             <Icon size={18} color={colors.primary} />
             <AppText variant="secondary" style={styles.reassuranceText}>
@@ -50,7 +51,7 @@ export default function ReserverScreen() {
       </View>
 
       <AppText variant="small" style={styles.footer} color={colors.textSecondary}>
-        D’autres services arrivent bientôt à Montréal.
+        {t('bookScreen.comingSoon')}
       </AppText>
     </Screen>
   );

@@ -1,7 +1,16 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Calendar, Check, FileText, Images, MapPin, XCircle } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  Calendar,
+  Check,
+  FileText,
+  Images,
+  MapPin,
+  XCircle,
+} from 'lucide-react-native';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { ProviderRow } from '@/components/provider-row';
 import { ServiceIcon } from '@/components/service-icon';
@@ -11,19 +20,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useFormats } from '@/hooks/use-formats';
 import { BOOKING_STATUS, isActiveStatus } from '@/lib/booking-status';
-import { formatDateLong, formatPrice, formatPriceRange } from '@/lib/format';
 import { getProvider } from '@/lib/mock-data';
-import { getService, TIME_SLOTS } from '@/lib/services';
+import { TIME_SLOTS } from '@/lib/services';
 import { useAppStore, useBooking } from '@/lib/store';
 import type { BookingStatus } from '@/lib/types';
-
-const TIMELINE: { status: BookingStatus; label: string }[] = [
-  { status: 'pending', label: 'Demande envoyée' },
-  { status: 'confirmed', label: 'Devis accepté, réservation confirmée' },
-  { status: 'in_progress', label: 'Intervention en cours' },
-  { status: 'completed', label: 'Prestation terminée' },
-];
 
 const STATUS_ORDER: Record<Exclude<BookingStatus, 'cancelled'>, number> = {
   pending: 0,
@@ -35,6 +37,8 @@ const STATUS_ORDER: Record<Exclude<BookingStatus, 'cancelled'>, number> = {
 export default function ReservationDetailScreen() {
   const colors = useTheme();
   const router = useRouter();
+  const { t } = useTranslation();
+  const { formatDateLong, formatPrice, formatPriceRange } = useFormats();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const booking = useBooking(id);
@@ -44,65 +48,70 @@ export default function ReservationDetailScreen() {
     return <Redirect href="/(tabs)/reservations" />;
   }
 
-  const service = getService(booking.serviceId);
   const provider = getProvider(booking.providerId);
   const status = BOOKING_STATUS[booking.status];
   const slot = TIME_SLOTS.find((s) => s.id === booking.timeSlot);
   const cancelled = booking.status === 'cancelled';
   const reachedIndex = booking.status === 'cancelled' ? 0 : STATUS_ORDER[booking.status];
 
+  const TIMELINE: { status: BookingStatus; label: string }[] = [
+    { status: 'pending', label: t('reservationDetail.timelinePending') },
+    { status: 'confirmed', label: t('reservationDetail.timelineConfirmed') },
+    { status: 'in_progress', label: t('reservationDetail.timelineInProgress') },
+    { status: 'completed', label: t('reservationDetail.timelineCompleted') },
+  ];
+
   const openChat = () =>
     router.push({ pathname: '/chat/[id]', params: { id: booking.conversationId } });
 
   const confirmCancel = () => {
-    Alert.alert(
-      'Annuler la réservation ?',
-      'Le prestataire sera prévenu dans le chat. Cette action est définitive.',
-      [
-        { text: 'Garder ma réservation', style: 'cancel' },
-        {
-          text: 'Annuler la réservation',
-          style: 'destructive',
-          onPress: () => cancelBooking(booking.id),
-        },
-      ],
-    );
+    Alert.alert(t('reservationDetail.cancelTitle'), t('reservationDetail.cancelMessage'), [
+      { text: t('reservationDetail.keepBooking'), style: 'cancel' },
+      {
+        text: t('reservationDetail.confirmCancel'),
+        style: 'destructive',
+        onPress: () => cancelBooking(booking.id),
+      },
+    ]);
   };
+
+  const scheduleText = booking.scheduledDate
+    ? `${formatDateLong(booking.scheduledDate)}${slot ? ` · ${t(`timeSlots.${slot.id}`).toLowerCase()} (${t(`timeSlots.${slot.id}Hours`)})` : ''}`
+    : t('common.asap');
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: colors.background }]}>
-      {/* En-tête */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={10} style={styles.headerButton}>
           <ArrowLeft size={22} color={colors.text} />
         </Pressable>
         <AppText variant="subheading" style={styles.headerTitle}>
-          Réservation
+          {t('reservationDetail.title')}
         </AppText>
         <View style={styles.headerButton} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Résumé */}
         <Card style={styles.summary}>
           <View style={styles.summaryRow}>
-            <ServiceIcon serviceId={service.id} boxed size={22} boxSize={48} />
+            <ServiceIcon serviceId={booking.serviceId} boxed size={22} boxSize={48} />
             <View style={styles.summaryTexts}>
-              <AppText variant="subheading">{service.categoryName}</AppText>
+              <AppText variant="subheading">
+                {t(`services.${booking.serviceId}.categoryName`)}
+              </AppText>
               <AppText variant="secondary">
-                Demande du {formatDateLong(booking.createdAt)}
+                {t('reservationDetail.requestDate', { date: formatDateLong(booking.createdAt) })}
               </AppText>
             </View>
-            <Badge label={status.label} tone={status.tone} />
+            <Badge label={t(`bookingStatus.${booking.status}`)} tone={status.tone} />
           </View>
         </Card>
 
-        {/* Suivi */}
         {cancelled ? (
           <Card style={[styles.cancelledCard, { backgroundColor: colors.destructiveMuted }]}>
             <XCircle size={20} color={colors.destructive} />
             <AppText variant="secondary" color={colors.destructive} style={styles.cancelledText}>
-              Cette réservation a été annulée.
+              {t('reservationDetail.cancelled')}
             </AppText>
           </Card>
         ) : (
@@ -128,7 +137,10 @@ export default function ReservationDetailScreen() {
                         <View
                           style={[
                             styles.timelineLine,
-                            { backgroundColor: index < reachedIndex ? colors.primary : colors.border },
+                            {
+                              backgroundColor:
+                                index < reachedIndex ? colors.primary : colors.border,
+                            },
                           ]}
                         />
                       ) : null}
@@ -148,11 +160,10 @@ export default function ReservationDetailScreen() {
           </Card>
         )}
 
-        {/* Prestataire */}
         {provider ? (
           <View>
             <AppText variant="label" style={styles.sectionLabel} color={colors.textSecondary}>
-              VOTRE PRESTATAIRE
+              {t('reservationDetail.providerSection')}
             </AppText>
             <Card style={styles.providerCard}>
               <ProviderRow provider={provider} />
@@ -161,10 +172,9 @@ export default function ReservationDetailScreen() {
           </View>
         ) : null}
 
-        {/* Détails de la demande */}
         <View>
           <AppText variant="label" style={styles.sectionLabel} color={colors.textSecondary}>
-            VOTRE DEMANDE
+            {t('reservationDetail.requestSection')}
           </AppText>
           <Card style={styles.detailsCard}>
             {booking.answers.map((answer) => (
@@ -186,8 +196,7 @@ export default function ReservationDetailScreen() {
               <View style={styles.iconRow}>
                 <Images size={16} color={colors.textSecondary} />
                 <AppText variant="secondary" style={styles.iconRowText}>
-                  {booking.photoCount} photo{booking.photoCount > 1 ? 's' : ''} jointe
-                  {booking.photoCount > 1 ? 's' : ''}
+                  {t('reservationDetail.photos', { count: booking.photoCount })}
                 </AppText>
               </View>
             ) : null}
@@ -201,23 +210,22 @@ export default function ReservationDetailScreen() {
             <View style={styles.iconRow}>
               <Calendar size={16} color={colors.textSecondary} />
               <AppText variant="secondary" style={styles.iconRowText}>
-                {booking.scheduledDate
-                  ? `${formatDateLong(booking.scheduledDate)}${slot ? ` · ${slot.label.toLowerCase()} (${slot.hours})` : ''}`
-                  : 'Dès que possible'}
+                {scheduleText}
               </AppText>
             </View>
           </Card>
         </View>
 
-        {/* Prix */}
         <View style={[styles.priceBanner, { backgroundColor: colors.primaryMuted }]}>
           <View style={styles.priceTexts}>
             <AppText variant="label" color={colors.primary}>
-              {booking.agreedPrice != null ? 'Prix convenu' : 'Estimation'}
+              {booking.agreedPrice != null
+                ? t('reservationDetail.agreedPrice')
+                : t('reservationDetail.estimate')}
             </AppText>
             {booking.agreedPrice == null ? (
               <AppText variant="small" color={colors.primary}>
-                En attente du devis du prestataire.
+                {t('reservationDetail.waitingQuote')}
               </AppText>
             ) : null}
           </View>
@@ -228,11 +236,14 @@ export default function ReservationDetailScreen() {
           </AppText>
         </View>
 
-        {/* Actions */}
         <View style={styles.actions}>
-          <Button title="Ouvrir le chat" size="lg" onPress={openChat} />
+          <Button title={t('reservationDetail.openChat')} size="lg" onPress={openChat} />
           {isActiveStatus(booking.status) ? (
-            <Button title="Annuler la réservation" variant="destructive" onPress={confirmCancel} />
+            <Button
+              title={t('reservationDetail.cancelBooking')}
+              variant="destructive"
+              onPress={confirmCancel}
+            />
           ) : null}
         </View>
       </ScrollView>

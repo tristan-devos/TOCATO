@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { AddressForm } from '@/components/address-form';
 import { AppText } from '@/components/ui/app-text';
@@ -14,17 +15,17 @@ interface AddressStepProps {
   onSelect: (addressId: string) => void;
 }
 
-/** Étape « adresse » : choix parmi les adresses enregistrées, ou ajout d'une nouvelle. */
 export function AddressStep({ selectedAddressId, onSelect }: AddressStepProps) {
   const colors = useTheme();
+  const { t } = useTranslation();
   const addresses = useAppStore((s) => s.user.addresses);
   const [showForm, setShowForm] = useState(false);
 
   return (
     <View style={styles.base}>
       <View style={styles.titles}>
-        <AppText variant="heading">Où a lieu la prestation ?</AppText>
-        <AppText variant="secondary">TOCATO est disponible dans le Grand Montréal.</AppText>
+        <AppText variant="heading">{t('wizard.addressTitle')}</AppText>
+        <AppText variant="secondary">{t('wizard.addressSubtitle')}</AppText>
       </View>
 
       <View style={styles.options}>
@@ -53,7 +54,7 @@ export function AddressStep({ selectedAddressId, onSelect }: AddressStepProps) {
           style={({ pressed }) => [styles.addRow, { opacity: pressed ? 0.6 : 1 }]}>
           <Plus size={18} color={colors.primary} />
           <AppText variant="label" color={colors.primary}>
-            Ajouter une adresse
+            {t('common.addAddress')}
           </AppText>
         </Pressable>
       )}

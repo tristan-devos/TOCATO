@@ -1,5 +1,6 @@
 import { Calendar, MapPin } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { ServiceIcon } from '@/components/service-icon';
 import { Avatar } from '@/components/ui/avatar';
@@ -7,10 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { FontSize, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useFormats } from '@/hooks/use-formats';
 import { BOOKING_STATUS } from '@/lib/booking-status';
-import { formatDateLong, formatPrice, formatPriceRange } from '@/lib/format';
 import { getProvider } from '@/lib/mock-data';
-import { getService, TIME_SLOTS } from '@/lib/services';
+import { TIME_SLOTS } from '@/lib/services';
 import type { Booking } from '@/lib/types';
 
 interface BookingCardProps {
@@ -20,7 +21,8 @@ interface BookingCardProps {
 
 export function BookingCard({ booking, onPress }: BookingCardProps) {
   const colors = useTheme();
-  const service = getService(booking.serviceId);
+  const { t } = useTranslation();
+  const { formatDateLong, formatPrice, formatPriceRange } = useFormats();
   const provider = getProvider(booking.providerId);
   const status = BOOKING_STATUS[booking.status];
   const slot = TIME_SLOTS.find((s) => s.id === booking.timeSlot);
@@ -29,9 +31,11 @@ export function BookingCard({ booking, onPress }: BookingCardProps) {
     <Card onPress={onPress}>
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <ServiceIcon serviceId={service.id} boxed size={18} boxSize={40} />
+          <ServiceIcon serviceId={booking.serviceId} boxed size={18} boxSize={40} />
           <View style={styles.titleTexts}>
-            <Text style={[styles.title, { color: colors.text }]}>{service.categoryName}</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {t(`services.${booking.serviceId}.categoryName`)}
+            </Text>
             {provider ? (
               <Text style={[styles.provider, { color: colors.textSecondary }]}>
                 {provider.name}
@@ -39,7 +43,7 @@ export function BookingCard({ booking, onPress }: BookingCardProps) {
             ) : null}
           </View>
         </View>
-        <Badge label={status.label} tone={status.tone} />
+        <Badge label={t(`bookingStatus.${booking.status}`)} tone={status.tone} />
       </View>
 
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
@@ -48,8 +52,8 @@ export function BookingCard({ booking, onPress }: BookingCardProps) {
         <Calendar size={15} color={colors.textSecondary} />
         <Text style={[styles.detail, { color: colors.textSecondary }]}>
           {booking.scheduledDate
-            ? `${formatDateLong(booking.scheduledDate)}${slot ? ` · ${slot.label.toLowerCase()}` : ''}`
-            : 'Dès que possible'}
+            ? `${formatDateLong(booking.scheduledDate)}${slot ? ` · ${t(`timeSlots.${slot.id}`).toLowerCase()}` : ''}`
+            : t('common.asap')}
         </Text>
       </View>
       <View style={styles.detailRow}>

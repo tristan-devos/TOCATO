@@ -1,69 +1,68 @@
-/**
- * Formatage des dates et montants, locale fr-CA (Montréal).
- */
-
-const CAD = new Intl.NumberFormat('fr-CA', {
-  style: 'currency',
-  currency: 'CAD',
-  maximumFractionDigits: 0,
-});
-
-export function formatPrice(amount: number): string {
-  return CAD.format(amount);
+export interface Formatters {
+  formatPrice: (amount: number) => string;
+  formatPriceRange: (range: { min: number; max: number }) => string;
+  formatDateLong: (iso: string) => string;
+  formatDateShort: (iso: string) => string;
+  formatTime: (iso: string) => string;
+  formatRelative: (iso: string) => string;
 }
 
-export function formatPriceRange(range: { min: number; max: number }): string {
-  return `${CAD.format(range.min)} – ${CAD.format(range.max)}`;
+export function createFormatters(locale: string): Formatters {
+  const cad = new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'CAD',
+    maximumFractionDigits: 0,
+  });
+  const dateLong = new Intl.DateTimeFormat(locale, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+  const dateShort = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' });
+  const time = new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' });
+
+  return {
+    formatPrice(amount: number): string {
+      return cad.format(amount);
+    },
+
+    formatPriceRange(range: { min: number; max: number }): string {
+      return `${cad.format(range.min)} – ${cad.format(range.max)}`;
+    },
+
+    formatDateLong(iso: string): string {
+      return dateLong.format(parseIso(iso));
+    },
+
+    formatDateShort(iso: string): string {
+      return dateShort.format(parseIso(iso));
+    },
+
+    formatTime(iso: string): string {
+      return time.format(new Date(iso));
+    },
+
+    /**
+     * Compact timestamp for conversation lists:
+     * time if today, "yesterday"/"hier", weekday if < 7 days, else short date.
+     */
+    formatRelative(iso: string): string {
+      const date = new Date(iso);
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const dayDiff =
+        Math.floor((startOfToday.getTime() - date.getTime()) / 86_400_000) + 1;
+
+      if (date >= startOfToday) return time.format(date);
+      if (dayDiff <= 1) return locale.startsWith('fr') ? 'hier' : 'yesterday';
+      if (dayDiff < 7)
+        return new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(date);
+      return dateShort.format(date);
+    },
+  };
 }
 
-const DATE_LONG = new Intl.DateTimeFormat('fr-CA', {
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-});
-
-const DATE_SHORT = new Intl.DateTimeFormat('fr-CA', {
-  day: 'numeric',
-  month: 'short',
-});
-
-const TIME = new Intl.DateTimeFormat('fr-CA', {
-  hour: 'numeric',
-  minute: '2-digit',
-});
-
-/** « jeudi 15 juin » — accepte un ISO date-time ou date seule. */
-export function formatDateLong(iso: string): string {
-  return DATE_LONG.format(parseIso(iso));
-}
-
-/** « 15 juin » */
-export function formatDateShort(iso: string): string {
-  return DATE_SHORT.format(parseIso(iso));
-}
-
-/** Heure d'un message : « 14 h 05 » */
-export function formatTime(iso: string): string {
-  return TIME.format(new Date(iso));
-}
-
-/**
- * Horodatage compact pour les listes de conversations :
- * heure si aujourd'hui, « hier », jour de la semaine si < 7 jours, sinon date courte.
- */
-export function formatRelative(iso: string): string {
-  const date = new Date(iso);
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const dayDiff = Math.floor((startOfToday.getTime() - date.getTime()) / 86_400_000) + 1;
-
-  if (date >= startOfToday) return TIME.format(date);
-  if (dayDiff <= 1) return 'hier';
-  if (dayDiff < 7) return new Intl.DateTimeFormat('fr-CA', { weekday: 'long' }).format(date);
-  return DATE_SHORT.format(date);
-}
-
-/** Une date seule (YYYY-MM-DD) doit être interprétée en heure locale, pas UTC. */
+/** A date-only string (YYYY-MM-DD) must be parsed as local time, not UTC. */
 function parseIso(iso: string): Date {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (match) {

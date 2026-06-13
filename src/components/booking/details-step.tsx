@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { ImagePlus, X } from 'lucide-react-native';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { AppText } from '@/components/ui/app-text';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
@@ -16,7 +17,6 @@ interface DetailsStepProps {
   onPhotosChange: (uris: string[]) => void;
 }
 
-/** Étape « détails » : description libre + photos optionnelles. */
 export function DetailsStep({
   description,
   onDescriptionChange,
@@ -24,6 +24,7 @@ export function DetailsStep({
   onPhotosChange,
 }: DetailsStepProps) {
   const colors = useTheme();
+  const { t } = useTranslation();
 
   const pickPhotos = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -43,16 +44,14 @@ export function DetailsStep({
   return (
     <View style={styles.base}>
       <View style={styles.titles}>
-        <AppText variant="heading">Décrivez votre besoin</AppText>
-        <AppText variant="secondary">
-          Plus c’est précis, plus le devis sera juste. Les photos aident beaucoup.
-        </AppText>
+        <AppText variant="heading">{t('wizard.detailsTitle')}</AppText>
+        <AppText variant="secondary">{t('wizard.detailsSubtitle')}</AppText>
       </View>
 
       <TextInput
         value={description}
         onChangeText={onDescriptionChange}
-        placeholder="Ex. : fuite sous l’évier de la cuisine, le raccord goutte en continu…"
+        placeholder={t('wizard.detailsPlaceholder')}
         placeholderTextColor={colors.textSecondary}
         multiline
         textAlignVertical="top"
@@ -79,11 +78,15 @@ export function DetailsStep({
             onPress={pickPhotos}
             style={({ pressed }) => [
               styles.addPhoto,
-              { borderColor: colors.border, backgroundColor: colors.card, opacity: pressed ? 0.7 : 1 },
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+                opacity: pressed ? 0.7 : 1,
+              },
             ]}>
             <ImagePlus size={22} color={colors.primary} />
             <AppText variant="small" color={colors.textSecondary}>
-              Photos
+              {t('wizard.photos')}
             </AppText>
           </Pressable>
         ) : null}

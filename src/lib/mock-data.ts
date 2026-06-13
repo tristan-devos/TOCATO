@@ -1,9 +1,9 @@
 /**
- * Données mock pour la démo TOCATO — marché de Montréal.
+ * Mock data for the TOCATO demo — Montréal market.
  *
- * Les dates sont générées relativement à aujourd'hui pour que la démo reste
- * crédible quel que soit le jour où on la lance. Tout ceci sera remplacé par
- * le backend.
+ * Dates are generated relative to today so the demo stays credible
+ * regardless of when it is launched. All of this will be replaced by
+ * the real backend.
  */
 
 import type {
@@ -16,12 +16,12 @@ import type {
   User,
 } from '@/lib/types';
 
-/** ISO date-time décalée de `days` jours (et `hours` heures) par rapport à maintenant. */
+/** ISO datetime offset by `days` days (and `hours` hours) from now. */
 export function isoFromNow(days: number, hours = 0): string {
   return new Date(Date.now() + (days * 24 + hours) * 3_600_000).toISOString();
 }
 
-/** ISO date seule (YYYY-MM-DD) décalée de `days` jours. */
+/** ISO date-only string (YYYY-MM-DD) offset by `days` days from now. */
 export function isoDateFromNow(days: number): string {
   return isoFromNow(days).slice(0, 10);
 }
@@ -36,20 +36,20 @@ export const PROVIDERS: Provider[] = [
   {
     id: 'p-marc',
     name: 'Marc Tremblay',
-    services: ['plombier'],
+    services: ['plumber'],
     rating: 4.9,
     reviewCount: 127,
     jobsCompleted: 340,
     verified: true,
     responseTime: 'Répond en ~15 min',
     hourlyRate: 95,
-    bio: 'Plombier certifié CMMTQ, 12 ans d’expérience sur le Plateau et Rosemont. Urgences acceptées.',
+    bio: "Plombier certifié CMMTQ, 12 ans d'expérience sur le Plateau et Rosemont. Urgences acceptées.",
     memberSince: '2021',
   },
   {
     id: 'p-amadou',
     name: 'Amadou Diallo',
-    services: ['plombier'],
+    services: ['plumber'],
     rating: 4.8,
     reviewCount: 89,
     jobsCompleted: 210,
@@ -62,7 +62,7 @@ export const PROVIDERS: Provider[] = [
   {
     id: 'p-jp',
     name: 'Jean-Philippe Côté',
-    services: ['demenageur'],
+    services: ['mover'],
     rating: 4.7,
     reviewCount: 203,
     jobsCompleted: 480,
@@ -75,7 +75,7 @@ export const PROVIDERS: Provider[] = [
   {
     id: 'p-kevin',
     name: 'Kevin Nguyen',
-    services: ['demenageur'],
+    services: ['mover'],
     rating: 4.9,
     reviewCount: 156,
     jobsCompleted: 320,
@@ -88,7 +88,7 @@ export const PROVIDERS: Provider[] = [
   {
     id: 'p-sophie',
     name: 'Sophie Gagnon',
-    services: ['jardinier'],
+    services: ['gardener'],
     rating: 5.0,
     reviewCount: 78,
     jobsCompleted: 190,
@@ -101,7 +101,7 @@ export const PROVIDERS: Provider[] = [
   {
     id: 'p-maria',
     name: 'Maria Fernandez',
-    services: ['jardinier'],
+    services: ['gardener'],
     rating: 4.8,
     reviewCount: 112,
     jobsCompleted: 260,
@@ -147,26 +147,30 @@ export const SEED_USER: User = {
 };
 
 /**
- * Scénario de départ :
- *  - une réservation plomberie à venir, avec un devis en attente dans le chat ;
- *  - une réservation jardinage terminée, avec facture dans le chat.
+ * Seed scenario:
+ *  - one upcoming plumbing booking with a pending quote in the chat;
+ *  - one completed gardening booking with an invoice in the chat.
  */
 
 const PLUMBING_BOOKING: Booking = {
   id: 'b-seed-plomberie',
-  serviceId: 'plombier',
+  serviceId: 'plumber',
   status: 'pending',
   createdAt: isoFromNow(-2, -3),
   scheduledDate: isoDateFromNow(3),
   timeSlot: 'morning',
   address: HOME_ADDRESS,
   answers: [
-    { questionId: 'intervention', questionLabel: 'Quel est le problème ?', values: ['Fuite d’eau'] },
-    { questionId: 'urgence', questionLabel: 'C’est urgent ?', values: ['Cette semaine'] },
-    { questionId: 'logement', questionLabel: 'Type de logement ?', values: ['Appartement / condo'] },
+    { questionId: 'issue', questionLabel: 'Quel est le problème ?', values: ["Fuite d'eau"] },
+    { questionId: 'urgency', questionLabel: "C'est urgent ?", values: ['Cette semaine'] },
+    {
+      questionId: 'housingType',
+      questionLabel: 'Type de logement ?',
+      values: ['Appartement / condo'],
+    },
   ],
   description:
-    'Fuite sous l’évier de la cuisine, le raccord du siphon goutte en continu. J’ai mis un seau en attendant.',
+    "Fuite sous l'évier de la cuisine, le raccord du siphon goutte en continu. J'ai mis un seau en attendant.",
   photoCount: 2,
   estimate: { min: 170, max: 300 },
   providerId: 'p-marc',
@@ -175,7 +179,7 @@ const PLUMBING_BOOKING: Booking = {
 
 const GARDEN_BOOKING: Booking = {
   id: 'b-seed-jardin',
-  serviceId: 'jardinier',
+  serviceId: 'gardener',
   status: 'completed',
   createdAt: isoFromNow(-16),
   scheduledDate: isoDateFromNow(-12),
@@ -183,14 +187,14 @@ const GARDEN_BOOKING: Booking = {
   address: HOME_ADDRESS,
   answers: [
     {
-      questionId: 'travaux',
+      questionId: 'work',
       questionLabel: 'Quels travaux ?',
       values: ['Tonte de pelouse', 'Taille de haies et arbustes'],
     },
-    { questionId: 'surface', questionLabel: 'Quelle surface ?', values: ['Petit terrain'] },
-    { questionId: 'frequence', questionLabel: 'À quelle fréquence ?', values: ['Une seule fois'] },
+    { questionId: 'area', questionLabel: 'Quelle surface ?', values: ['Petit terrain'] },
+    { questionId: 'frequency', questionLabel: 'À quelle fréquence ?', values: ['Une seule fois'] },
   ],
-  description: 'Petite cour arrière, haie de cèdres à rafraîchir avant l’été.',
+  description: "Petite cour arrière, haie de cèdres à rafraîchir avant l'été.",
   photoCount: 0,
   estimate: { min: 135, max: 270 },
   agreedPrice: 160,
@@ -218,7 +222,7 @@ export const SEED_CONVERSATIONS: Conversation[] = [
 ];
 
 export const SEED_MESSAGES: Message[] = [
-  // — Plomberie (devis en attente) —
+  // — Plumbing (quote pending) —
   {
     id: 'm-p1',
     conversationId: 'c-seed-plomberie',
@@ -232,7 +236,7 @@ export const SEED_MESSAGES: Message[] = [
     conversationId: 'c-seed-plomberie',
     senderId: 'p-marc',
     type: 'text',
-    text: 'Bonjour Tristan ! J’ai bien vu votre demande pour la fuite sous l’évier. Les photos sont claires, c’est fort probablement le joint du siphon.',
+    text: "Bonjour Tristan ! J'ai bien vu votre demande pour la fuite sous l'évier. Les photos sont claires, c'est fort probablement le joint du siphon.",
     createdAt: isoFromNow(-2, -1),
   },
   {
@@ -240,7 +244,7 @@ export const SEED_MESSAGES: Message[] = [
     conversationId: 'c-seed-plomberie',
     senderId: 'me',
     type: 'text',
-    text: 'Bonjour ! Oui c’est ça, ça goutte surtout quand on fait couler l’eau. Vous pouvez passer cette semaine ?',
+    text: "Bonjour ! Oui c'est ça, ça goutte surtout quand on fait couler l'eau. Vous pouvez passer cette semaine ?",
     createdAt: isoFromNow(-1, -6),
   },
   {
@@ -248,16 +252,17 @@ export const SEED_MESSAGES: Message[] = [
     conversationId: 'c-seed-plomberie',
     senderId: 'p-marc',
     type: 'quote',
-    text: 'Voici mon devis pour l’intervention. Je peux passer comme prévu en matinée.',
+    text: "Voici mon devis pour l'intervention. Je peux passer comme prévu en matinée.",
     createdAt: isoFromNow(0, -2),
     quote: {
       amount: 185,
-      details: 'Remplacement du siphon et des joints, main-d’œuvre et déplacement inclus. Garantie 6 mois.',
+      details:
+        "Remplacement du siphon et des joints, main-d'œuvre et déplacement inclus. Garantie 6 mois.",
       status: 'pending',
     },
   },
 
-  // — Jardinage (terminé) —
+  // — Gardening (completed) —
   {
     id: 'm-j1',
     conversationId: 'c-seed-jardin',
@@ -287,7 +292,7 @@ export const SEED_MESSAGES: Message[] = [
     conversationId: 'c-seed-jardin',
     senderId: 'p-sophie',
     type: 'text',
-    text: 'C’est fait ! La haie est taillée et la pelouse tondue. Merci pour votre confiance.',
+    text: "C'est fait ! La haie est taillée et la pelouse tondue. Merci pour votre confiance.",
     createdAt: isoFromNow(-12, 5),
   },
   {
@@ -301,11 +306,11 @@ export const SEED_MESSAGES: Message[] = [
   },
 ];
 
-/** Réponses automatiques du prestataire pour simuler une conversation en démo. */
+/** Canned provider replies to simulate a conversation in the demo. */
 export const CANNED_REPLIES: string[] = [
-  'Parfait, c’est noté !',
+  "Parfait, c'est noté !",
   'Très bonne question — oui, tout le matériel de base est inclus.',
-  'Je vous confirme ça d’ici la fin de la journée.',
-  'Pas de souci, je m’adapte à votre horaire.',
-  'Merci pour la précision, ça m’aide à bien préparer l’intervention.',
+  "Je vous confirme ça d'ici la fin de la journée.",
+  "Pas de souci, je m'adapte à votre horaire.",
+  "Merci pour la précision, ça m'aide à bien préparer l'intervention.",
 ];

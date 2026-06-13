@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { AddressStep } from '@/components/booking/address-step';
 import { DetailsStep } from '@/components/booking/details-step';
@@ -26,20 +27,26 @@ import { ProgressBar } from '@/components/ui/progress-bar';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getProvider } from '@/lib/mock-data';
-import { getService, isServiceId } from '@/lib/services';
+import { isServiceId } from '@/lib/services';
+import { useLocalizedService } from '@/lib/use-localized-service';
 import { useAppStore } from '@/lib/store';
-import type { BookingAnswer, TimeSlotId } from '@/lib/types';
+import type { BookingAnswer, ServiceId, TimeSlotId } from '@/lib/types';
 
-/** Étapes fixes ajoutées après les questions propres au service. */
 const EXTRA_STEPS = ['details', 'address', 'schedule', 'review'] as const;
 
 export default function BookingWizardScreen() {
   const colors = useTheme();
   const router = useRouter();
+  const { t } = useTranslation();
   const { service: serviceParam } = useLocalSearchParams<{ service: string }>();
 
   const createBooking = useAppStore((s) => s.createBooking);
   const addresses = useAppStore((s) => s.user.addresses);
+
+  // Hook must be called unconditionally — use a valid fallback until the guard runs
+  const validId: ServiceId =
+    serviceParam && isServiceId(serviceParam) ? serviceParam : 'plumber';
+  const service = useLocalizedService(validId);
 
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
@@ -57,7 +64,6 @@ export default function BookingWizardScreen() {
   if (!serviceParam || !isServiceId(serviceParam)) {
     return <Redirect href="/(tabs)/reserver" />;
   }
-  const service = getService(serviceParam);
 
   const steps: string[] = [...service.questions.map((q) => q.id), ...EXTRA_STEPS];
   const currentStep = steps[stepIndex];
@@ -129,26 +135,26 @@ export default function BookingWizardScreen() {
       router.back();
       return;
     }
-    Alert.alert('Abandonner la demande ?', 'Vos réponses ne seront pas conservées.', [
-      { text: 'Continuer ma demande', style: 'cancel' },
-      { text: 'Abandonner', style: 'destructive', onPress: () => router.back() },
+    Alert.alert(t('wizard.abandonTitle'), t('wizard.abandonMessage'), [
+      { text: t('wizard.continueRequest'), style: 'cancel' },
+      { text: t('wizard.abandon'), style: 'destructive', onPress: () => router.back() },
     ]);
   };
 
-  // ——— Écran de succès après envoi ———
   if (submittedIds) {
-    const booking = useAppStore.getState().bookings.find((b) => b.id === submittedIds.bookingId);
+    const booking = useAppStore
+      .getState()
+      .bookings.find((b) => b.id === submittedIds.bookingId);
     const provider = booking ? getProvider(booking.providerId) : undefined;
     return (
       <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
         <View style={styles.success}>
           <CheckCircle2 size={64} color={colors.success} />
           <AppText variant="heading" style={styles.centered}>
-            Demande envoyée !
+            {t('wizard.successTitle')}
           </AppText>
           <AppText variant="secondary" style={styles.centered}>
-            Votre demande de {service.categoryName.toLowerCase()} a été transmise. Le prestataire
-            vous répondra dans le chat avec un devis.
+            {t('wizard.successMessage', { service: service.categoryName.toLowerCase() })}
           </AppText>
           {provider ? (
             <Card style={styles.successProvider}>
@@ -158,14 +164,17 @@ export default function BookingWizardScreen() {
         </View>
         <View style={styles.footer}>
           <Button
-            title="Ouvrir le chat"
+            title={t('common.openChat')}
             size="lg"
             onPress={() =>
-              router.replace({ pathname: '/chat/[id]', params: { id: submittedIds.conversationId } })
+              router.replace({
+                pathname: '/chat/[id]',
+                params: { id: submittedIds.conversationId },
+              })
             }
           />
           <Button
-            title="Voir mes réservations"
+            title={t('wizard.viewBookings')}
             variant="ghost"
             onPress={() => {
               router.back();
@@ -179,7 +188,6 @@ export default function BookingWizardScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
-      {/* En-tête : retour, progression, fermer */}
       <View style={styles.header}>
         <Pressable onPress={goBack} hitSlop={10} style={styles.headerButton}>
           <ArrowLeft size={22} color={colors.text} />
@@ -219,7 +227,10 @@ export default function BookingWizardScreen() {
           ) : null}
 
           {currentStep === 'address' ? (
-            <AddressStep selectedAddressId={selectedAddress?.id ?? null} onSelect={setAddressId} />
+            <AddressStep
+              selectedAddressId={selectedAddress?.id ?? null}
+              onSelect={setAddressId}
+            />
           ) : null}
 
           {currentStep === 'schedule' ? (
@@ -252,7 +263,7 @@ export default function BookingWizardScreen() {
 
         <View style={[styles.footer, { borderTopColor: colors.border }]}>
           <Button
-            title={currentStep === 'review' ? 'Envoyer la demande' : 'Continuer'}
+            title={currentStep === 'review' ? t('wizard.send') : t('wizard.next')}
             size="lg"
             onPress={goNext}
             disabled={!isStepValid()}

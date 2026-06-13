@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { CalendarDays, House, MessageCircle, UserRound } from 'lucide-react-native';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { TocatoMark } from '@/components/tocato-mark';
 import { FontSize } from '@/constants/theme';
@@ -10,6 +11,7 @@ import { useUnreadTotal } from '@/lib/store';
 export default function TabsLayout() {
   const colors = useTheme();
   const unread = useUnreadTotal();
+  const { t } = useTranslation();
 
   return (
     <Tabs
@@ -26,14 +28,14 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Accueil',
+          title: t('tabs.home'),
           tabBarIcon: ({ color, size }) => <House color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="chats"
         options={{
-          title: 'Messages',
+          title: t('tabs.messages'),
           tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
           tabBarBadge: unread > 0 ? unread : undefined,
           tabBarBadgeStyle: {
@@ -46,14 +48,13 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="reserver"
         options={{
-          title: 'Réserver',
+          title: t('tabs.book'),
           tabBarLabel: () => null,
           tabBarIcon: () => null,
-          // Bouton central surélevé avec le logo TOCATO.
           tabBarButton: (props) => (
             <Pressable
               onPress={props.onPress}
-              accessibilityLabel="Réserver une prestation"
+              accessibilityLabel={t('tabs.bookA11yLabel')}
               accessibilityRole="button"
               style={styles.centerSlot}>
               <View style={[styles.centerButton, { shadowColor: colors.primary }]}>
@@ -66,14 +67,14 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="reservations"
         options={{
-          title: 'Réservations',
+          title: t('tabs.reservations'),
           tabBarIcon: ({ color, size }) => <CalendarDays color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="profil"
         options={{
-          title: 'Profil',
+          title: t('tabs.profile'),
           tabBarIcon: ({ color, size }) => <UserRound color={color} size={size} />,
         }}
       />

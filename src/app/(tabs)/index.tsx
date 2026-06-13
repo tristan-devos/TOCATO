@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { MapPin, Search, ShieldCheck } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { BookingCard } from '@/components/booking-card';
 import { ProviderRow } from '@/components/provider-row';
@@ -12,19 +13,14 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { PROVIDERS } from '@/lib/mock-data';
-import { SERVICE_IDS, SERVICES } from '@/lib/services';
+import { SERVICE_IDS } from '@/lib/services';
 import { useAppStore, useHighlightedBooking } from '@/lib/store';
 import type { ServiceId } from '@/lib/types';
-
-const HOW_IT_WORKS = [
-  { step: '1', title: 'Décrivez votre besoin', detail: 'Quelques questions, deux minutes.' },
-  { step: '2', title: 'Recevez un devis', detail: 'Le prestataire vous répond dans le chat.' },
-  { step: '3', title: 'Confirmez sereinement', detail: 'Prestataires vérifiés, prix convenu à l’avance.' },
-];
 
 export default function HomeScreen() {
   const colors = useTheme();
   const router = useRouter();
+  const { t } = useTranslation();
   const firstName = useAppStore((s) => s.user.name).split(' ')[0];
   const highlighted = useHighlightedBooking();
   const topProviders = PROVIDERS.filter((p) => p.verified).slice(0, 3);
@@ -32,20 +28,24 @@ export default function HomeScreen() {
   const openBooking = (serviceId: ServiceId) =>
     router.push({ pathname: '/booking/[service]', params: { service: serviceId } });
 
+  const howItWorks = [
+    { step: '1', title: t('home.step1Title'), detail: t('home.step1Detail') },
+    { step: '2', title: t('home.step2Title'), detail: t('home.step2Detail') },
+    { step: '3', title: t('home.step3Title'), detail: t('home.step3Detail') },
+  ];
+
   return (
     <Screen>
-      {/* En-tête */}
       <View style={styles.header}>
         <View>
-          <AppText variant="title">Bonjour {firstName}</AppText>
+          <AppText variant="title">{t('home.greeting', { name: firstName })}</AppText>
           <View style={styles.location}>
             <MapPin size={14} color={colors.textSecondary} />
-            <AppText variant="secondary">Montréal, QC</AppText>
+            <AppText variant="secondary">{t('home.location')}</AppText>
           </View>
         </View>
       </View>
 
-      {/* Barre de recherche (raccourci vers Réserver) */}
       <Pressable
         onPress={() => router.push('/(tabs)/reserver')}
         style={({ pressed }) => [
@@ -54,16 +54,15 @@ export default function HomeScreen() {
         ]}>
         <Search size={18} color={colors.textSecondary} />
         <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>
-          De quoi avez-vous besoin ?
+          {t('home.searchPlaceholder')}
         </Text>
       </Pressable>
 
-      {/* Réservation en cours */}
       {highlighted ? (
         <View>
           <SectionHeader
-            title="En ce moment"
-            actionLabel="Tout voir"
+            title={t('home.currentSection')}
+            actionLabel={t('home.viewAll')}
             onAction={() => router.push('/(tabs)/reservations')}
           />
           <BookingCard
@@ -75,22 +74,20 @@ export default function HomeScreen() {
         </View>
       ) : null}
 
-      {/* Services */}
       <View>
-        <SectionHeader title="Nos services" />
+        <SectionHeader title={t('home.servicesSection')} />
         <View style={styles.servicesList}>
           {SERVICE_IDS.map((id) => (
-            <ServiceCard key={id} service={SERVICES[id]} onPress={() => openBooking(id)} />
+            <ServiceCard key={id} serviceId={id} onPress={() => openBooking(id)} />
           ))}
         </View>
       </View>
 
-      {/* Comment ça marche */}
       <View>
-        <SectionHeader title="Comment ça marche" />
+        <SectionHeader title={t('home.howItWorksSection')} />
         <Card>
           <View style={styles.steps}>
-            {HOW_IT_WORKS.map((item) => (
+            {howItWorks.map((item) => (
               <View key={item.step} style={styles.stepRow}>
                 <View style={[styles.stepCircle, { backgroundColor: colors.primaryMuted }]}>
                   <Text style={[styles.stepNumber, { color: colors.primary }]}>{item.step}</Text>
@@ -105,24 +102,24 @@ export default function HomeScreen() {
         </Card>
       </View>
 
-      {/* Prestataires populaires */}
       <View>
-        <SectionHeader title="Prestataires populaires" />
+        <SectionHeader title={t('home.popularProviders')} />
         <Card style={styles.providersCard}>
           {topProviders.map((provider, index) => (
             <View key={provider.id}>
-              {index > 0 ? <View style={[styles.divider, { backgroundColor: colors.border }]} /> : null}
+              {index > 0 ? (
+                <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              ) : null}
               <ProviderRow provider={provider} />
             </View>
           ))}
         </Card>
       </View>
 
-      {/* Confiance */}
       <View style={[styles.trustBanner, { backgroundColor: colors.primaryMuted }]}>
         <ShieldCheck size={20} color={colors.primary} />
         <Text style={[styles.trustText, { color: colors.primary }]}>
-          Prestataires vérifiés · Devis gratuit · Support 7 j/7
+          {t('home.trustBadge')}
         </Text>
       </View>
     </Screen>

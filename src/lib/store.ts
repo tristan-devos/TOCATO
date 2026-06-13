@@ -1,9 +1,9 @@
 /**
- * Store global TOCATO (Zustand + persistance AsyncStorage).
+ * Global TOCATO store (Zustand + AsyncStorage persistence).
  *
- * Contient tout l'état dynamique : réservations, conversations, messages,
- * profil utilisateur. Les réponses des prestataires sont simulées par des
- * minuteries — c'est le point qui sera remplacé par le backend temps réel.
+ * Holds all dynamic state: bookings, conversations, messages, user profile.
+ * Provider responses are simulated with timers — these will be replaced by
+ * the real-time backend.
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -46,7 +46,7 @@ interface AppState {
   bookings: Booking[];
   conversations: Conversation[];
   messages: Message[];
-  /** Conversation actuellement ouverte — ses nouveaux messages ne comptent pas comme non lus. */
+  /** Currently open conversation — its incoming messages don't count as unread. */
   activeConversationId: string | null;
 
   createBooking: (draft: BookingDraft) => { bookingId: string; conversationId: string };
@@ -55,7 +55,7 @@ interface AppState {
   respondToQuote: (messageId: string, accept: boolean) => void;
   markConversationRead: (conversationId: string) => void;
   setActiveConversation: (conversationId: string | null) => void;
-  /** Retourne l'id de l'adresse créée. */
+  /** Returns the id of the newly created address. */
   addAddress: (address: Omit<Address, 'id'>) => string;
   removeAddress: (addressId: string) => void;
   resetDemo: () => void;
@@ -69,7 +69,7 @@ const seedState = {
   activeConversationId: null as string | null,
 };
 
-/** Ajoute un message et met à jour la conversation (tri + non-lus). */
+/** Appends a message and updates the conversation (sort + unread count). */
 function appendMessage(
   state: Pick<AppState, 'messages' | 'conversations' | 'activeConversationId'>,
   message: Message,
@@ -95,10 +95,13 @@ export const useAppStore = create<AppState>()(
     (set, get) => {
       const pushMessage = (message: Message) => set((state) => appendMessage(state, message));
 
-      /** Réponse simulée du prestataire, après un délai. */
-      const scheduleProviderMessage = (message: Omit<Message, 'id' | 'createdAt'>, delayMs: number) => {
+      /** Simulated provider reply, delivered after a delay. */
+      const scheduleProviderMessage = (
+        message: Omit<Message, 'id' | 'createdAt'>,
+        delayMs: number,
+      ) => {
         setTimeout(() => {
-          // La conversation peut avoir disparu après un reset de la démo.
+          // The conversation may have been wiped by a demo reset.
           if (!get().conversations.some((c) => c.id === message.conversationId)) return;
           pushMessage({ ...message, id: newId('m'), createdAt: new Date().toISOString() });
         }, delayMs);
@@ -112,12 +115,13 @@ export const useAppStore = create<AppState>()(
           const conversationId = newId('c');
           const now = new Date().toISOString();
 
-          // Démo : on assigne le prestataire le mieux noté du service, en
-          // alternant pour varier. Le vrai matching viendra du backend.
+          // Demo: assign the highest-rated provider for the service,
+          // cycling through candidates to vary the demo. Real matching
+          // will come from the backend.
           const candidates = providersForService(draft.serviceId);
           const provider = candidates[get().bookings.length % candidates.length];
           if (!provider) {
-            throw new Error(`Aucun prestataire disponible pour ${draft.serviceId}`);
+            throw new Error(`No provider available for ${draft.serviceId}`);
           }
 
           const booking: Booking = {
@@ -166,7 +170,7 @@ export const useAppStore = create<AppState>()(
               conversationId,
               senderId: provider.id,
               type: 'text',
-              text: `Bonjour ${firstName} ! J’ai bien reçu votre demande, je la regarde et je vous envoie un devis rapidement.`,
+              text: `Bonjour ${firstName} ! J'ai bien reçu votre demande, je la regarde et je vous envoie un devis rapidement.`,
             },
             2_500,
           );
@@ -181,7 +185,8 @@ export const useAppStore = create<AppState>()(
               text: 'Voici mon devis détaillé pour votre demande.',
               quote: {
                 amount: quoteAmount,
-                details: 'Main-d’œuvre, déplacement et matériel de base inclus. Ajustable après visite si besoin.',
+                details:
+                  "Main-d'œuvre, déplacement et matériel de base inclus. Ajustable après visite si besoin.",
                 status: 'pending',
               },
             },
@@ -193,7 +198,8 @@ export const useAppStore = create<AppState>()(
 
         cancelBooking: (bookingId) => {
           const booking = get().bookings.find((b) => b.id === bookingId);
-          if (!booking || booking.status === 'cancelled' || booking.status === 'completed') return;
+          if (!booking || booking.status === 'cancelled' || booking.status === 'completed')
+            return;
 
           set((state) => ({
             bookings: state.bookings.map((b) =>
@@ -248,7 +254,9 @@ export const useAppStore = create<AppState>()(
             ),
           }));
 
-          const conversation = get().conversations.find((c) => c.id === message.conversationId);
+          const conversation = get().conversations.find(
+            (c) => c.id === message.conversationId,
+          );
           if (!conversation) return;
 
           if (accept) {
@@ -265,9 +273,7 @@ export const useAppStore = create<AppState>()(
             conversationId: message.conversationId,
             senderId: 'system',
             type: 'system',
-            text: accept
-              ? 'Devis accepté — votre réservation est confirmée.'
-              : 'Vous avez refusé le devis.',
+            text: accept ? 'Devis accepté — votre réservation est confirmée.' : 'Vous avez refusé le devis.',
             createdAt: new Date().toISOString(),
           });
         },
@@ -309,7 +315,7 @@ export const useAppStore = create<AppState>()(
       };
     },
     {
-      name: 'tocato-store-v1',
+      name: 'tocato-store-v2',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         user: state.user,
@@ -321,7 +327,7 @@ export const useAppStore = create<AppState>()(
   ),
 );
 
-// ——— Sélecteurs ———
+// ——— Selectors ———
 
 export function useBooking(bookingId: string | undefined) {
   return useAppStore((s) => s.bookings.find((b) => b.id === bookingId));
@@ -335,9 +341,11 @@ export function useUnreadTotal() {
   return useAppStore((s) => s.conversations.reduce((sum, c) => sum + c.unreadCount, 0));
 }
 
-/** Réservation à mettre en avant sur l'accueil : la prochaine active. */
+/** Booking to highlight on the home screen: the next active one. */
 export function useHighlightedBooking() {
   return useAppStore((s) =>
-    s.bookings.find((b) => b.status === 'pending' || b.status === 'confirmed' || b.status === 'in_progress'),
+    s.bookings.find(
+      (b) => b.status === 'pending' || b.status === 'confirmed' || b.status === 'in_progress',
+    ),
   );
 }

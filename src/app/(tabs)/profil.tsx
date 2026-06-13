@@ -2,11 +2,13 @@ import { useRouter } from 'expo-router';
 import {
   CircleHelp,
   CreditCard,
+  Globe,
   LogOut,
   MapPin,
   RotateCcw,
 } from 'lucide-react-native';
 import { Alert, StyleSheet, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/ui/avatar';
@@ -15,34 +17,52 @@ import { ListItem } from '@/components/ui/list-item';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { changeLanguage } from '@/i18n';
 import { useAppStore } from '@/lib/store';
 
 export default function ProfilScreen() {
   const colors = useTheme();
   const router = useRouter();
+  const { t, i18n } = useTranslation();
   const user = useAppStore((s) => s.user);
   const resetDemo = useAppStore((s) => s.resetDemo);
+  const currentLang = i18n.language as 'fr' | 'en';
 
   const confirmReset = () => {
-    Alert.alert(
-      'Réinitialiser la démo',
-      'Toutes vos réservations et conversations seront remplacées par les données de départ.',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Réinitialiser', style: 'destructive', onPress: resetDemo },
-      ],
-    );
+    Alert.alert(t('profile.resetTitle'), t('profile.resetMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('profile.resetConfirm'), style: 'destructive', onPress: resetDemo },
+    ]);
   };
 
   const mockLogout = () => {
-    Alert.alert('Déconnexion', 'La connexion par compte arrivera avec le backend.');
+    Alert.alert(t('profile.logoutTitle'), t('profile.logoutMessage'));
   };
+
+  const pickLanguage = () => {
+    Alert.alert(t('profile.language'), undefined, [
+      {
+        text: t('profile.languageFr'),
+        onPress: () => {
+          void changeLanguage('fr');
+        },
+      },
+      {
+        text: t('profile.languageEn'),
+        onPress: () => {
+          void changeLanguage('en');
+        },
+      },
+      { text: t('common.cancel'), style: 'cancel' },
+    ]);
+  };
+
+  const langLabel = currentLang === 'fr' ? t('profile.languageFr') : t('profile.languageEn');
 
   return (
     <Screen>
-      <AppText variant="title">Profil</AppText>
+      <AppText variant="title">{t('profile.title')}</AppText>
 
-      {/* Carte utilisateur */}
       <Card style={styles.userCard}>
         <Avatar name={user.name} size={64} />
         <View style={styles.userTexts}>
@@ -52,41 +72,45 @@ export default function ProfilScreen() {
         </View>
       </Card>
 
-      {/* Mon compte */}
       <View>
         <AppText variant="label" style={styles.sectionLabel} color={colors.textSecondary}>
-          MON COMPTE
+          {t('profile.accountSection')}
         </AppText>
         <Card style={styles.menuCard}>
           <ListItem
-            title="Mes adresses"
-            subtitle={`${user.addresses.length} adresse${user.addresses.length > 1 ? 's' : ''} enregistrée${user.addresses.length > 1 ? 's' : ''}`}
+            title={t('profile.addresses')}
+            subtitle={t('profile.addressCount', { count: user.addresses.length })}
             leading={<MapPin size={20} color={colors.primary} />}
             onPress={() => router.push('/profile/addresses')}
           />
           <ListItem
-            title="Paiement"
-            subtitle="Cartes et moyens de paiement"
+            title={t('profile.payment')}
+            subtitle={t('profile.paymentSubtitle')}
             leading={<CreditCard size={20} color={colors.primary} />}
             onPress={() => router.push('/profile/payments')}
           />
         </Card>
       </View>
 
-      {/* Support */}
       <View>
         <AppText variant="label" style={styles.sectionLabel} color={colors.textSecondary}>
-          SUPPORT
+          {t('profile.supportSection')}
         </AppText>
         <Card style={styles.menuCard}>
           <ListItem
-            title="Aide et questions fréquentes"
+            title={t('profile.help')}
             leading={<CircleHelp size={20} color={colors.primary} />}
             onPress={() => router.push('/profile/help')}
           />
           <ListItem
-            title="Réinitialiser la démo"
-            subtitle="Restaurer les données d'exemple"
+            title={t('profile.language')}
+            subtitle={langLabel}
+            leading={<Globe size={20} color={colors.primary} />}
+            onPress={pickLanguage}
+          />
+          <ListItem
+            title={t('profile.resetDemo')}
+            subtitle={t('profile.resetDemoSubtitle')}
             leading={<RotateCcw size={20} color={colors.primary} />}
             onPress={confirmReset}
           />
@@ -95,7 +119,7 @@ export default function ProfilScreen() {
 
       <Card style={styles.menuCard}>
         <ListItem
-          title="Se déconnecter"
+          title={t('profile.logout')}
           leading={<LogOut size={20} color={colors.destructive} />}
           onPress={mockLogout}
           destructive
@@ -103,7 +127,7 @@ export default function ProfilScreen() {
       </Card>
 
       <AppText variant="small" style={styles.version} color={colors.textSecondary}>
-        TOCATO v1.0.0 · Montréal
+        {t('profile.version')}
       </AppText>
     </Screen>
   );

@@ -13,18 +13,19 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { MessageBubble } from '@/components/chat/message-bubble';
 import { Avatar } from '@/components/ui/avatar';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getProvider } from '@/lib/mock-data';
-import { getService } from '@/lib/services';
 import { useAppStore, useBooking, useConversation } from '@/lib/store';
 
 export default function ChatScreen() {
   const colors = useTheme();
   const router = useRouter();
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const conversation = useConversation(id);
@@ -36,7 +37,6 @@ export default function ChatScreen() {
 
   const [draft, setDraft] = useState('');
 
-  // Marque la conversation comme lue tant qu'elle est ouverte.
   useEffect(() => {
     if (!id) return;
     setActiveConversation(id);
@@ -53,7 +53,7 @@ export default function ChatScreen() {
   }
 
   const provider = getProvider(conversation.providerId);
-  const service = booking ? getService(booking.serviceId) : undefined;
+  const serviceName = booking ? t(`services.${booking.serviceId}.categoryName`) : '';
 
   const send = () => {
     sendMessage(conversation.id, draft);
@@ -61,29 +61,38 @@ export default function ChatScreen() {
   };
 
   const attachComingSoon = () => {
-    Alert.alert('Bientôt disponible', 'L’envoi de documents et de photos arrive très vite.');
+    Alert.alert(t('chat.attachTitle'), t('chat.attachMessage'));
   };
 
   return (
-    <SafeAreaView edges={['top', 'bottom']} style={[styles.safe, { backgroundColor: colors.background }]}>
-      {/* En-tête */}
-      <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
+    <SafeAreaView
+      edges={['top', 'bottom']}
+      style={[styles.safe, { backgroundColor: colors.background }]}>
+      <View
+        style={[
+          styles.header,
+          { borderBottomColor: colors.border, backgroundColor: colors.card },
+        ]}>
         <Pressable onPress={() => router.back()} hitSlop={10} style={styles.headerButton}>
           <ArrowLeft size={22} color={colors.text} />
         </Pressable>
         <Avatar name={provider?.name ?? '?'} size={38} />
         <View style={styles.headerTexts}>
           <Text style={[styles.headerName, { color: colors.text }]} numberOfLines={1}>
-            {provider?.name ?? 'Prestataire'}
+            {provider?.name ?? t('common.provider')}
           </Text>
-          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]} numberOfLines={1}>
-            {service ? `${service.categoryName} · ` : ''}
+          <Text
+            style={[styles.headerSubtitle, { color: colors.textSecondary }]}
+            numberOfLines={1}>
+            {serviceName ? `${serviceName} · ` : ''}
             {provider?.responseTime ?? ''}
           </Text>
         </View>
         {booking ? (
           <Pressable
-            onPress={() => router.push({ pathname: '/reservation/[id]', params: { id: booking.id } })}
+            onPress={() =>
+              router.push({ pathname: '/reservation/[id]', params: { id: booking.id } })
+            }
             hitSlop={10}
             style={styles.headerButton}>
             <Info size={22} color={colors.primary} />
@@ -105,15 +114,18 @@ export default function ChatScreen() {
           )}
         />
 
-        {/* Barre de saisie */}
-        <View style={[styles.inputBar, { borderTopColor: colors.border, backgroundColor: colors.card }]}>
+        <View
+          style={[
+            styles.inputBar,
+            { borderTopColor: colors.border, backgroundColor: colors.card },
+          ]}>
           <Pressable onPress={attachComingSoon} hitSlop={8} style={styles.attachButton}>
             <Paperclip size={20} color={colors.textSecondary} />
           </Pressable>
           <TextInput
             value={draft}
             onChangeText={setDraft}
-            placeholder="Écrivez votre message…"
+            placeholder={t('chat.placeholder')}
             placeholderTextColor={colors.textSecondary}
             multiline
             style={[
@@ -128,7 +140,8 @@ export default function ChatScreen() {
             style={[
               styles.sendButton,
               {
-                backgroundColor: draft.trim().length > 0 ? colors.primary : colors.backgroundElement,
+                backgroundColor:
+                  draft.trim().length > 0 ? colors.primary : colors.backgroundElement,
               },
             ]}>
             <SendHorizontal

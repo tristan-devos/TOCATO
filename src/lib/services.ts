@@ -1,115 +1,107 @@
-/**
- * Catalogue des services TOCATO et configuration du flux de réservation.
- *
- * Le wizard de réservation (src/app/booking/[service].tsx) est entièrement
- * piloté par cette config : ajouter un service = ajouter une entrée ici.
- */
-
 import type { PriceRange, ServiceId, TimeSlotId } from '@/lib/types';
 
 export interface ServiceOption {
   id: string;
   label: string;
-  /** Précision affichée sous le libellé, ex. « 1 à 2 pièces » */
   hint?: string;
 }
 
 export interface ServiceQuestion {
   id: string;
-  /** Question affichée en titre d'étape, ex. « Quel est le problème ? » */
   title: string;
   subtitle?: string;
   type: 'single' | 'multi';
-  /** Pour `multi` : autoriser de continuer sans sélection */
   optional?: boolean;
   options: ServiceOption[];
 }
 
 export interface ServiceDefinition {
   id: ServiceId;
-  /** Nom du métier, ex. « Plombier » */
   name: string;
-  /** Nom de la prestation, ex. « Plomberie » */
   categoryName: string;
   tagline: string;
-  /** Fourchette horaire indicative en CAD, affichée sur les cartes service */
+  /** Indicative hourly range in CAD, shown on service cards */
   hourlyRange: PriceRange;
   questions: ServiceQuestion[];
 }
 
 export const SERVICES: Record<ServiceId, ServiceDefinition> = {
-  plombier: {
-    id: 'plombier',
+  plumber: {
+    id: 'plumber',
     name: 'Plombier',
     categoryName: 'Plomberie',
     tagline: 'Fuites, débouchage, installations',
     hourlyRange: { min: 85, max: 150 },
     questions: [
       {
-        id: 'intervention',
+        id: 'issue',
         title: 'Quel est le problème ?',
-        subtitle: 'Choisissez le type d’intervention.',
+        subtitle: "Choisissez le type d'intervention.",
         type: 'single',
         options: [
-          { id: 'fuite', label: 'Fuite d’eau', hint: 'Robinet, tuyau, raccord…' },
-          { id: 'debouchage', label: 'Débouchage', hint: 'Évier, douche, toilette…' },
-          { id: 'chauffe-eau', label: 'Chauffe-eau', hint: 'Panne ou remplacement' },
+          { id: 'leak', label: "Fuite d'eau", hint: 'Robinet, tuyau, raccord…' },
+          { id: 'unclogging', label: 'Débouchage', hint: 'Évier, douche, toilette…' },
+          { id: 'waterHeater', label: 'Chauffe-eau', hint: 'Panne ou remplacement' },
           { id: 'installation', label: 'Installation', hint: 'Robinetterie, sanitaire…' },
-          { id: 'autre', label: 'Autre', hint: 'Décrivez-le à l’étape suivante' },
+          { id: 'other', label: 'Autre', hint: "Décrivez-le à l'étape suivante" },
         ],
       },
       {
-        id: 'urgence',
-        title: 'C’est urgent ?',
+        id: 'urgency',
+        title: "C'est urgent ?",
         type: 'single',
         options: [
           { id: 'urgent', label: 'Oui, dans les 24 h', hint: 'Majoration possible' },
-          { id: 'semaine', label: 'Cette semaine' },
+          { id: 'thisWeek', label: 'Cette semaine' },
           { id: 'flexible', label: 'Je suis flexible' },
         ],
       },
       {
-        id: 'logement',
+        id: 'housingType',
         title: 'Type de logement ?',
         type: 'single',
         options: [
-          { id: 'appartement', label: 'Appartement / condo' },
-          { id: 'maison', label: 'Maison' },
-          { id: 'commerce', label: 'Local commercial' },
+          { id: 'apartment', label: 'Appartement / condo' },
+          { id: 'house', label: 'Maison' },
+          { id: 'commercial', label: 'Local commercial' },
         ],
       },
     ],
   },
 
-  demenageur: {
-    id: 'demenageur',
+  mover: {
+    id: 'mover',
     name: 'Déménageur',
     categoryName: 'Déménagement',
     tagline: 'Camion, bras et bonne humeur',
     hourlyRange: { min: 110, max: 180 },
     questions: [
       {
-        id: 'logement',
+        id: 'housingSize',
         title: 'Quelle taille de logement ?',
         subtitle: 'Format québécois — comptez les pièces et demies.',
         type: 'single',
         options: [
           { id: 'studio', label: 'Studio / 1½ – 2½' },
-          { id: '3et4', label: '3½ – 4½' },
-          { id: '5plus', label: '5½ et plus' },
-          { id: 'maison', label: 'Maison' },
-          { id: 'bureau', label: 'Bureau / commerce' },
+          { id: 'threeToFour', label: '3½ – 4½' },
+          { id: 'fivePlus', label: '5½ et plus' },
+          { id: 'house', label: 'Maison' },
+          { id: 'office', label: 'Bureau / commerce' },
         ],
       },
       {
-        id: 'acces',
-        title: 'L’accès au logement ?',
-        subtitle: 'Au départ ou à l’arrivée, le plus contraignant.',
+        id: 'access',
+        title: "L'accès au logement ?",
+        subtitle: "Au départ ou à l'arrivée, le plus contraignant.",
         type: 'single',
         options: [
-          { id: 'rdc', label: 'Rez-de-chaussée' },
-          { id: 'ascenseur', label: 'Étage avec ascenseur' },
-          { id: 'escalier', label: 'Étage sans ascenseur', hint: 'Les fameux escaliers montréalais' },
+          { id: 'groundFloor', label: 'Rez-de-chaussée' },
+          { id: 'withElevator', label: 'Étage avec ascenseur' },
+          {
+            id: 'withoutElevator',
+            label: 'Étage sans ascenseur',
+            hint: 'Les fameux escaliers montréalais',
+          },
         ],
       },
       {
@@ -118,10 +110,10 @@ export const SERVICES: Record<ServiceId, ServiceDefinition> = {
         type: 'multi',
         optional: true,
         options: [
-          { id: 'emballage', label: 'Emballage des cartons' },
-          { id: 'meubles', label: 'Démontage / remontage des meubles' },
-          { id: 'boites', label: 'Fourniture de boîtes' },
-          { id: 'entreposage', label: 'Entreposage temporaire' },
+          { id: 'packing', label: 'Emballage des cartons' },
+          { id: 'furniture', label: 'Démontage / remontage des meubles' },
+          { id: 'boxes', label: 'Fourniture de boîtes' },
+          { id: 'storage', label: 'Entreposage temporaire' },
         ],
       },
       {
@@ -129,53 +121,53 @@ export const SERVICES: Record<ServiceId, ServiceDefinition> = {
         title: 'Sur quelle distance ?',
         type: 'single',
         options: [
-          { id: 'quartier', label: 'Même quartier' },
-          { id: 'ville', label: 'Dans le Grand Montréal' },
-          { id: 'longue', label: 'Longue distance', hint: 'Plus de 50 km' },
+          { id: 'neighborhood', label: 'Même quartier' },
+          { id: 'city', label: 'Dans le Grand Montréal' },
+          { id: 'longDistance', label: 'Longue distance', hint: 'Plus de 50 km' },
         ],
       },
     ],
   },
 
-  jardinier: {
-    id: 'jardinier',
+  gardener: {
+    id: 'gardener',
     name: 'Jardinier',
     categoryName: 'Jardinage',
     tagline: 'Pelouse, haies et plates-bandes',
     hourlyRange: { min: 45, max: 90 },
     questions: [
       {
-        id: 'travaux',
+        id: 'work',
         title: 'Quels travaux ?',
         subtitle: 'Plusieurs choix possibles.',
         type: 'multi',
         options: [
-          { id: 'tonte', label: 'Tonte de pelouse' },
-          { id: 'haies', label: 'Taille de haies et arbustes' },
-          { id: 'desherbage', label: 'Désherbage' },
-          { id: 'plantation', label: 'Plantation' },
-          { id: 'amenagement', label: 'Aménagement paysager' },
+          { id: 'mowing', label: 'Tonte de pelouse' },
+          { id: 'hedges', label: 'Taille de haies et arbustes' },
+          { id: 'weeding', label: 'Désherbage' },
+          { id: 'planting', label: 'Plantation' },
+          { id: 'landscaping', label: 'Aménagement paysager' },
         ],
       },
       {
-        id: 'surface',
+        id: 'area',
         title: 'Quelle surface ?',
         type: 'single',
         options: [
-          { id: 'petit', label: 'Petit terrain', hint: 'Moins de 100 m²' },
-          { id: 'moyen', label: 'Terrain moyen', hint: '100 à 300 m²' },
-          { id: 'grand', label: 'Grand terrain', hint: 'Plus de 300 m²' },
+          { id: 'small', label: 'Petit terrain', hint: 'Moins de 100 m²' },
+          { id: 'medium', label: 'Terrain moyen', hint: '100 à 300 m²' },
+          { id: 'large', label: 'Grand terrain', hint: 'Plus de 300 m²' },
         ],
       },
       {
-        id: 'frequence',
+        id: 'frequency',
         title: 'À quelle fréquence ?',
         type: 'single',
         options: [
-          { id: 'unique', label: 'Une seule fois' },
-          { id: 'hebdo', label: 'Chaque semaine' },
-          { id: 'bimensuel', label: 'Aux deux semaines' },
-          { id: 'mensuel', label: 'Chaque mois' },
+          { id: 'once', label: 'Une seule fois' },
+          { id: 'weekly', label: 'Chaque semaine' },
+          { id: 'biweekly', label: 'Aux deux semaines' },
+          { id: 'monthly', label: 'Chaque mois' },
         ],
       },
     ],
@@ -199,14 +191,14 @@ export const TIME_SLOTS: { id: TimeSlotId; label: string; hours: string }[] = [
 ];
 
 /**
- * Estimation de prix très simple pour la démo : fourchette horaire du service
- * multipliée par une durée typique. Un vrai moteur de prix viendra du backend.
+ * Simple price estimate for demo purposes: hourly range × typical duration.
+ * A real pricing engine will come from the backend.
  */
 export function estimatePrice(serviceId: ServiceId): PriceRange {
   const typicalHours: Record<ServiceId, number> = {
-    plombier: 2,
-    demenageur: 4,
-    jardinier: 3,
+    plumber: 2,
+    mover: 4,
+    gardener: 3,
   };
   const { min, max } = SERVICES[serviceId].hourlyRange;
   const hours = typicalHours[serviceId];

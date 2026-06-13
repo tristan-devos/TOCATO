@@ -1,6 +1,7 @@
 import { Zap } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { AppText } from '@/components/ui/app-text';
 import { Chip } from '@/components/ui/chip';
@@ -27,9 +28,9 @@ interface DayOption {
   month: string;
 }
 
-function buildDays(): DayOption[] {
-  const weekdayFmt = new Intl.DateTimeFormat('fr-CA', { weekday: 'short' });
-  const monthFmt = new Intl.DateTimeFormat('fr-CA', { month: 'short' });
+function buildDays(locale: string): DayOption[] {
+  const weekdayFmt = new Intl.DateTimeFormat(locale, { weekday: 'short' });
+  const monthFmt = new Intl.DateTimeFormat(locale, { month: 'short' });
   return Array.from({ length: DAYS_SHOWN }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() + 1 + i);
@@ -43,7 +44,6 @@ function buildDays(): DayOption[] {
   });
 }
 
-/** Étape « date » : dès que possible, ou date + créneau. */
 export function ScheduleStep({
   asap,
   onAsapChange,
@@ -53,17 +53,19 @@ export function ScheduleStep({
   onTimeSlotChange,
 }: ScheduleStepProps) {
   const colors = useTheme();
-  const days = useMemo(buildDays, []);
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-CA' : 'fr-CA';
+  const days = useMemo(() => buildDays(locale), [locale]);
 
   return (
     <View style={styles.base}>
       <View style={styles.titles}>
-        <AppText variant="heading">Quand souhaitez-vous la prestation ?</AppText>
+        <AppText variant="heading">{t('wizard.scheduleTitle')}</AppText>
       </View>
 
       <Chip
-        label="Dès que possible"
-        hint="Le prestataire propose le premier créneau disponible"
+        label={t('wizard.scheduleAsap')}
+        hint={t('wizard.scheduleAsapHint')}
         selected={asap}
         onPress={() => onAsapChange(true)}
       />
@@ -71,12 +73,15 @@ export function ScheduleStep({
       <View style={styles.divider}>
         <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
         <AppText variant="small" color={colors.textSecondary}>
-          ou choisissez une date
+          {t('wizard.scheduleOrPickDate')}
         </AppText>
         <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.daysRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.daysRow}>
         {days.map((dayOption) => {
           const selected = !asap && scheduledDate === dayOption.iso;
           return (
@@ -90,13 +95,25 @@ export function ScheduleStep({
                   borderColor: selected ? colors.primary : colors.border,
                 },
               ]}>
-              <Text style={[styles.dayWeekday, { color: selected ? colors.onPrimary : colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.dayWeekday,
+                  { color: selected ? colors.onPrimary : colors.textSecondary },
+                ]}>
                 {dayOption.weekday}
               </Text>
-              <Text style={[styles.dayNumber, { color: selected ? colors.onPrimary : colors.text }]}>
+              <Text
+                style={[
+                  styles.dayNumber,
+                  { color: selected ? colors.onPrimary : colors.text },
+                ]}>
                 {dayOption.day}
               </Text>
-              <Text style={[styles.dayMonth, { color: selected ? colors.onPrimary : colors.textSecondary }]}>
+              <Text
+                style={[
+                  styles.dayMonth,
+                  { color: selected ? colors.onPrimary : colors.textSecondary },
+                ]}>
                 {dayOption.month}
               </Text>
             </Pressable>
@@ -106,7 +123,7 @@ export function ScheduleStep({
 
       {!asap && scheduledDate ? (
         <View style={styles.slots}>
-          <AppText variant="label">Créneau souhaité</AppText>
+          <AppText variant="label">{t('wizard.schedulePreferredSlot')}</AppText>
           <View style={styles.slotsRow}>
             {TIME_SLOTS.map((slot) => {
               const selected = timeSlot === slot.id;
@@ -121,10 +138,13 @@ export function ScheduleStep({
                       borderColor: selected ? colors.primary : colors.border,
                     },
                   ]}>
-                  <Text style={[styles.slotLabel, { color: selected ? colors.primary : colors.text }]}>
-                    {slot.label}
+                  <Text
+                    style={[styles.slotLabel, { color: selected ? colors.primary : colors.text }]}>
+                    {t(`timeSlots.${slot.id}`)}
                   </Text>
-                  <Text style={[styles.slotHours, { color: colors.textSecondary }]}>{slot.hours}</Text>
+                  <Text style={[styles.slotHours, { color: colors.textSecondary }]}>
+                    {t(`timeSlots.${slot.id}Hours`)}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -136,7 +156,7 @@ export function ScheduleStep({
         <View style={[styles.asapNote, { backgroundColor: colors.warningMuted }]}>
           <Zap size={16} color={colors.warning} />
           <AppText variant="secondary" style={styles.asapText} color={colors.warning}>
-            Les demandes urgentes peuvent entraîner une majoration.
+            {t('wizard.scheduleUrgentNote')}
           </AppText>
         </View>
       ) : null}

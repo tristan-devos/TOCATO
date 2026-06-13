@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { CalendarDays } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 import { BookingCard } from '@/components/booking-card';
 import { AppText } from '@/components/ui/app-text';
@@ -17,6 +18,7 @@ type Filter = 'active' | 'history';
 export default function ReservationsScreen() {
   const colors = useTheme();
   const router = useRouter();
+  const { t } = useTranslation();
   const bookings = useAppStore((s) => s.bookings);
   const [filter, setFilter] = useState<Filter>('active');
 
@@ -29,14 +31,14 @@ export default function ReservationsScreen() {
   );
 
   const tabs: { id: Filter; label: string }[] = [
-    { id: 'active', label: 'En cours' },
-    { id: 'history', label: 'Historique' },
+    { id: 'active', label: t('reservations.filterActive') },
+    { id: 'history', label: t('reservations.filterHistory') },
   ];
 
   return (
     <Screen scroll={false}>
       <View style={styles.header}>
-        <AppText variant="title">Mes réservations</AppText>
+        <AppText variant="title">{t('reservations.title')}</AppText>
 
         <View style={[styles.segmented, { backgroundColor: colors.backgroundElement }]}>
           {tabs.map((tab) => {
@@ -62,25 +64,35 @@ export default function ReservationsScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(b) => b.id}
-        contentContainerStyle={filtered.length === 0 ? styles.emptyContainer : styles.listContent}
+        contentContainerStyle={
+          filtered.length === 0 ? styles.emptyContainer : styles.listContent
+        }
         ItemSeparatorComponent={() => <View style={styles.gap} />}
         ListEmptyComponent={
           <EmptyState
             icon={<CalendarDays size={32} color={colors.primary} />}
-            title={filter === 'active' ? 'Aucune réservation en cours' : 'Aucun historique'}
+            title={
+              filter === 'active'
+                ? t('reservations.emptyActiveTitle')
+                : t('reservations.emptyHistoryTitle')
+            }
             message={
               filter === 'active'
-                ? 'Votre prochaine réservation apparaîtra ici.'
-                : 'Vos prestations terminées ou annulées apparaîtront ici.'
+                ? t('reservations.emptyActiveMessage')
+                : t('reservations.emptyHistoryMessage')
             }
-            actionLabel={filter === 'active' ? 'Réserver une prestation' : undefined}
-            onAction={filter === 'active' ? () => router.push('/(tabs)/reserver') : undefined}
+            actionLabel={filter === 'active' ? t('common.bookService') : undefined}
+            onAction={
+              filter === 'active' ? () => router.push('/(tabs)/reserver') : undefined
+            }
           />
         }
         renderItem={({ item }) => (
           <BookingCard
             booking={item}
-            onPress={() => router.push({ pathname: '/reservation/[id]', params: { id: item.id } })}
+            onPress={() =>
+              router.push({ pathname: '/reservation/[id]', params: { id: item.id } })
+            }
           />
         )}
       />

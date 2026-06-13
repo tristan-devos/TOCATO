@@ -2,6 +2,7 @@ import { MapPin, Plus, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { AddressForm } from '@/components/address-form';
 import { AppText } from '@/components/ui/app-text';
@@ -14,20 +15,21 @@ import { useAppStore } from '@/lib/store';
 
 export default function AddressesScreen() {
   const colors = useTheme();
+  const { t } = useTranslation();
   const addresses = useAppStore((s) => s.user.addresses);
   const removeAddress = useAppStore((s) => s.removeAddress);
   const [showForm, setShowForm] = useState(false);
 
   const confirmRemove = (addressId: string, label: string) => {
-    Alert.alert('Supprimer cette adresse ?', `« ${label} » sera retirée de votre compte.`, [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Supprimer', style: 'destructive', onPress: () => removeAddress(addressId) },
+    Alert.alert(t('addresses.deleteTitle'), t('addresses.deleteMessage', { label }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: () => removeAddress(addressId) },
     ]);
   };
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: colors.background }]}>
-      <PageHeader title="Mes adresses" />
+      <PageHeader title={t('addresses.title')} />
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Card style={styles.card}>
           {addresses.map((address) => (
@@ -55,7 +57,7 @@ export default function AddressesScreen() {
             style={({ pressed }) => [styles.addRow, { opacity: pressed ? 0.6 : 1 }]}>
             <Plus size={18} color={colors.primary} />
             <AppText variant="label" color={colors.primary}>
-              Ajouter une adresse
+              {t('common.addAddress')}
             </AppText>
           </Pressable>
         )}
