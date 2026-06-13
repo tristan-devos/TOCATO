@@ -1,28 +1,27 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
+import { StyleSheet } from 'react-native';
 
 interface TocatoMarkProps {
   size?: number;
-  /** Couleur du disque — par défaut le bleu TOCATO */
-  backgroundColor?: string;
 }
 
+const LOGO = require('@/assets/images/tocato-logo.png');
+
 /**
- * Le monogramme TOCATO : un « T » blanc sur disque bleu.
+ * Le logo TOCATO : la silhouette verte de marque sur disque, fond transparent.
  * Sert de logo dans le bouton central de la barre d'onglets et les en-têtes.
  */
-export function TocatoMark({ size = 56, backgroundColor = '#2563EB' }: TocatoMarkProps) {
+export function TocatoMark({ size = 56 }: TocatoMarkProps) {
   return (
-    <View
-      style={[
-        styles.base,
-        { width: size, height: size, borderRadius: size / 2, backgroundColor },
-      ]}>
-      <Text style={[styles.letter, { fontSize: size * 0.48 }]}>T</Text>
-    </View>
+    <Image
+      source={LOGO}
+      style={[styles.logo, { width: size, height: size }]}
+      contentFit="contain"
+      accessible={false}
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  base: { alignItems: 'center', justifyContent: 'center' },
-  letter: { color: '#FFFFFF', fontWeight: '800', letterSpacing: -1 },
+  logo: { backgroundColor: 'transparent' },
 });

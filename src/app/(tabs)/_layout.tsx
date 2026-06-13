@@ -58,7 +58,7 @@ export default function TabsLayout() {
               accessibilityRole="button"
               style={styles.centerSlot}>
               <View style={[styles.centerButton, { shadowColor: colors.primary }]}>
-                <TocatoMark size={56} backgroundColor={colors.primary} />
+                <TocatoMark size={56} />
               </View>
             </Pressable>
           ),

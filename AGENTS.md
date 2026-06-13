@@ -103,7 +103,7 @@ Ces règles sont non négociables :
 ## Conventions
 
 - UI 100 % en français (Québec) ; montants en CAD via `lib/format.ts` (`Intl`, locale fr-CA).
-- Couleur de marque : `#2563EB` (clair) / `#3B82F6` (sombre) — toujours passer par
+- Couleur de marque : `#1C6B3E` (clair) / `#3AB869` (sombre) — toujours passer par
   `useTheme()`, jamais de couleurs en dur dans les écrans (exception : avatars et logo).
 - Chaque composant : styles statiques dans `StyleSheet.create`, couleurs dynamiques inline
   depuis `useTheme()`.

@@ -11,27 +11,27 @@ import { Platform } from 'react-native';
 
 const light = {
     // Surfaces
-    background: '#F7F8FA',
-    card: '#FFFFFF',
-    backgroundElement: '#EEF1F5',
-    backgroundSelected: '#E3E8EF',
-    border: '#E5E9F0',
+    background: '#F6F3EC',
+    card: '#FDFBF6',
+    backgroundElement: '#EDE8DC',
+    backgroundSelected: '#E2DBCC',
+    border: '#D8D1C0',
 
     // Texte
-    text: '#0F172A',
-    textSecondary: '#64748B',
-    textInverse: '#FFFFFF',
+    text: '#1A1A12',
+    textSecondary: '#6B6555',
+    textInverse: '#FDFBF6',
 
     // Marque
-    primary: '#2563EB',
-    primaryPressed: '#1D4ED8',
-    primaryMuted: '#EAF1FE',
+    primary: '#1C6B3E',
+    primaryPressed: '#145530',
+    primaryMuted: '#E4F0E9',
     onPrimary: '#FFFFFF',
 
     // États
     success: '#16A34A',
-    successMuted: '#E8F7EE',
-    warning: '#D97706',
+    successMuted: '#E4F0E9',
+    warning: '#B45309',
     warningMuted: '#FDF3E3',
     destructive: '#DC2626',
     destructiveMuted: '#FDEAEA',
@@ -42,26 +42,26 @@ export type ThemeColor = keyof ThemeColors;
 
 const dark: ThemeColors = {
     // Surfaces
-    background: '#0B1120',
-    card: '#151C2C',
-    backgroundElement: '#1E2638',
-    backgroundSelected: '#2A3349',
-    border: '#27304A',
+    background: '#0D1710',
+    card: '#132018',
+    backgroundElement: '#1A2B1E',
+    backgroundSelected: '#213626',
+    border: '#2A3D2F',
 
     // Texte
-    text: '#F1F5F9',
-    textSecondary: '#94A3B8',
-    textInverse: '#0F172A',
+    text: '#EDE8DC',
+    textSecondary: '#8A9A8D',
+    textInverse: '#1A1A12',
 
     // Marque
-    primary: '#3B82F6',
-    primaryPressed: '#60A5FA',
-    primaryMuted: '#1B2A4A',
+    primary: '#3AB869',
+    primaryPressed: '#51CC7C',
+    primaryMuted: '#132B1E',
     onPrimary: '#FFFFFF',
 
     // États
     success: '#4ADE80',
-    successMuted: '#143323',
+    successMuted: '#132B1E',
     warning: '#FBBF24',
     warningMuted: '#3A2E12',
     destructive: '#F87171',
