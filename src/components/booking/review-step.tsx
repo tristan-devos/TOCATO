@@ -3,12 +3,14 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { ProviderRow } from '@/components/provider-row';
 import { ServiceIcon } from '@/components/service-icon';
 import { AppText } from '@/components/ui/app-text';
 import { Card } from '@/components/ui/card';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
+import { getProvider } from '@/lib/mock-data';
 import { estimatePrice, TIME_SLOTS, type ServiceDefinition } from '@/lib/services';
 import type { Address, BookingAnswer, TimeSlotId } from '@/lib/types';
 
@@ -21,6 +23,8 @@ interface ReviewStepProps {
   asap: boolean;
   scheduledDate: string | null;
   timeSlot: TimeSlotId | null;
+  /** Prestataire choisi ; null = attribution automatique. */
+  providerId: string | null;
 }
 
 function ReviewRow({ icon, children }: { icon: ReactNode; children: ReactNode }) {
@@ -41,12 +45,14 @@ export function ReviewStep({
   asap,
   scheduledDate,
   timeSlot,
+  providerId,
 }: ReviewStepProps) {
   const colors = useTheme();
   const { t } = useTranslation();
   const { formatDateLong, formatPriceRange } = useFormats();
   const estimate = estimatePrice(service.id);
   const slot = TIME_SLOTS.find((s) => s.id === timeSlot);
+  const provider = providerId ? getProvider(providerId) : undefined;
 
   const scheduleLabel = asap
     ? t('common.asap')
@@ -100,6 +106,15 @@ export function ReviewStep({
         </ReviewRow>
       </Card>
 
+      <Card style={styles.providerCard}>
+        <AppText variant="secondary">{t('common.provider')}</AppText>
+        {provider ? (
+          <ProviderRow provider={provider} />
+        ) : (
+          <AppText variant="label">{t('wizard.reviewProviderAuto')}</AppText>
+        )}
+      </Card>
+
       <View style={[styles.estimate, { backgroundColor: colors.primaryMuted }]}>
         <View style={styles.estimateTexts}>
           <AppText variant="label" color={colors.primary}>
@@ -121,6 +136,7 @@ const styles = StyleSheet.create({
   base: { gap: Spacing.three },
   titles: { gap: Spacing.two, marginBottom: Spacing.one },
   card: { gap: Spacing.two + 4 },
+  providerCard: { gap: Spacing.two + 2 },
   serviceRow: {
     flexDirection: 'row',
     alignItems: 'center',
