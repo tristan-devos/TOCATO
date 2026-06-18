@@ -238,7 +238,13 @@ que la démo reste crédible.
 
 ## Notes
 
-- Identité git du repo : `tristan-dev1 <2534117@etu.cchic.ca>` (compte GitHub réel :
-  `tristan-devos`). Laisser tel quel.
+- Identité git : `tristan-devos <tristan2003devos@gmail.com>` (config globale, compte GitHub
+  `tristan-devos`). Les commits antérieurs à juin 2026 portent l'ancienne identité
+  `tristan-dev1 <2534117@etu.cchic.ca>` ; ne pas réécrire l'historique.
+- **Branche `main` protégée** (côté GitHub) : push direct interdit — tout passe par une PR
+  (mergeable par soi-même, aucune review requise) ; force-push et suppression bloqués ;
+  résolution des conversations requise ; règle appliquée aux admins. Flux : brancher
+  (`feat/...`), pousser, `gh pr create`, puis merger. Réglage modifiable dans
+  *Settings → Branches* ou via `gh api repos/tristan-devos/TOCATO/branches/main/protection`.
 - L'ancien prototype web (export Figma Make) a été entièrement supprimé en juin 2026 —
   l'historique git le conserve si besoin.
