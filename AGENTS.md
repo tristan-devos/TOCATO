@@ -1,8 +1,9 @@
 # TOCATO — guide du repo
 
 Application mobile (côté client) de mise en relation entre clients et prestataires de services
-à domicile. Marché de lancement : **Montréal, QC**. Toute l'interface est en **français**.
-Services au lancement : plombier, déménageur, jardinier.
+à domicile. Marché de lancement : **Montréal, QC**. L'interface est **bilingue français/anglais**
+(i18n), **français par défaut** (Québec) — voir la section i18n. Services au lancement :
+plombier, déménageur, jardinier.
 
 > Expo évolue vite : avant toute modification non triviale, lire les docs versionnées
 > https://docs.expo.dev/versions/v54.0.0/ (ou https://docs.expo.dev/llms-full.txt).
@@ -24,6 +25,12 @@ Services au lancement : plombier, déménageur, jardinier.
 - **Zustand 5** + AsyncStorage (persistance) pour l'état global.
 - **lucide-react-native** pour les icônes (jamais `lucide-react`, DOM-only).
 - **expo-image** pour les images, **expo-image-picker** pour les photos du wizard.
+- **i18n bilingue FR/EN** — `i18next` + `react-i18next` + `expo-localization`. Trois
+  dépendances ajoutées, **justifiées** : l'UI bilingue (français par défaut, anglais
+  disponible) est un choix produit assumé pour un marché montréalais, et ce sont les
+  briques standard de l'i18n React Native — `expo-localization` détecte la langue de
+  l'appareil, `i18next`/`react-i18next` portent le catalogue et le hook `useTranslation`.
+  Détails en section i18n.
 - **Supabase** comme backend (auth email/mot de passe, Postgres + RLS, Realtime). Deux
   dépendances ajoutées, justifiées : `@supabase/supabase-js` (client officiel) et
   `react-native-url-polyfill` (fournit `URL`/`URLSearchParams` que Hermes n'expose pas
@@ -82,6 +89,8 @@ pas de build natif pour l'instant, et **pas de `eas.json`** à la racine.
 ```
 src/app/                    Routes expo-router
   _layout.tsx               Stack racine (thème nav + routes, modal booking, garde auth)
+  +not-found.tsx            Écran 404 (EmptyState, retour vers les onglets)
+  (auth)/_layout.tsx        Stack des écrans d'auth (sans header)
   (auth)/{login,signup}.tsx Connexion / inscription (Supabase Auth email + mot de passe)
   (tabs)/_layout.tsx        5 onglets : Accueil, Messages, Réserver (bouton central logo),
                             Réservations, Profil
@@ -98,7 +107,10 @@ src/components/             Composants métier (booking-card, provider-row, serv
 src/lib/
   types.ts                  Types du domaine = futurs contrats d'API
   services.ts               Catalogue des services + questions du wizard (config-driven :
-                            ajouter un service = ajouter une entrée ici)
+                            ajouter un service = ajouter une entrée ici). Les libellés
+                            affichés sont traduits via use-localized-service (clés i18n).
+  use-localized-service.ts  Hook : renvoie un ServiceDefinition entièrement traduit (nom,
+                            tagline, questions, options) selon la langue active.
   store.ts                  Store Zustand adossé à Supabase : réservations, conversations,
                             messages. Charge à la connexion (loadAll), écoute le Realtime,
                             réécrit via Supabase (create_booking RPC, updates, inserts).
@@ -107,26 +119,55 @@ src/lib/
   db-mappers.ts             Conversion lignes Supabase -> types du domaine (frontière DB/app)
   provider-reply.ts         Déclenche la simulation prestataire côté serveur (invoke de
                             l'Edge Function provider-reply) — fire-and-forget, Realtime.
-  mock-data.ts              Données de démo (prestataires montréalais, seed réservations)
-  format.ts                 Formatage fr-CA (prix CAD, dates)
+  mock-data.ts              Catalogue de prestataires de démo (montréalais) — seul mock
+                            restant. Ses IDs doivent refléter les prestataires seedés dans
+                            schema.sql (FK bookings.provider_id). Le reste vit dans Supabase.
+  format.ts                 createFormatters(locale) : formatage fr-CA / en-CA (prix CAD,
+                            dates). Consommé via le hook use-formats (langue active).
   booking-status.ts         Libellés/tons des statuts de réservation
   supabase.ts               Client Supabase (auth/DB/realtime) ; `isSupabaseConfigured`
                             reste false tant que .env est vide (app fonctionnelle sans).
   database.types.ts         Type `Database` du schéma Postgres, aligné sur types.ts
   auth-store.ts             Store Zustand auth (signUp/signIn/signOut, session), séparé du
                             store applicatif ; `initAuth()` appelé au montage racine.
+src/i18n/index.ts           Init i18next (FR/EN) : langue par défaut = langue de l'appareil
+                            (fallback fr), persistance AsyncStorage (`tocato-language`),
+                            loadSavedLanguage()/changeLanguage(). Monté dans app/_layout.tsx.
+src/locales/{fr,en}.ts      Catalogues de traduction (source de vérité des textes UI).
+                            Dépassent volontairement le plafond 300 lignes (voir anti-dérive).
 src/constants/theme.ts      Design tokens (couleurs light/dark, spacing, radius, fontsize)
+src/hooks/use-color-scheme.ts  Color scheme actif (variante .web.ts pour le rendu web)
 src/hooks/use-theme.ts      Accès au thème selon le color scheme
+src/hooks/use-formats.ts    Formatters (prix/dates) liés à la langue active (fr-CA / en-CA)
 src/hooks/use-auth-guard.ts Redirige login <-> app selon la session (inactif sans Supabase)
 supabase/schema.sql         Schéma Postgres : tables + RLS + Realtime + seed prestataires
-                            (idempotent, ré-exécutable). Miroir de lib/types.ts.
+                            (idempotent, ré-exécutable). Miroir de lib/types.ts. Les IDs
+                            prestataires doivent rester synchrones avec lib/mock-data.ts.
 supabase/rpc.sql            Fonctions/triggers (create_booking, seed_demo, trigger messages)
-                            — à exécuter APRÈS schema.sql.
+                            — à exécuter APRÈS schema.sql. seed_demo charge le scénario de
+                            démo (réservations/conversations/messages, dates relatives).
 supabase/functions/         Edge Functions (Deno). provider-reply : insère les réponses
                             prestataire (service_role) — exclu du tsconfig de l'app.
 ```
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).
+
+## i18n (bilingue FR/EN)
+
+L'UI est bilingue, **français par défaut**. Choix produit assumé (marché montréalais), d'où
+les dépendances `i18next` / `react-i18next` / `expo-localization`.
+
+- **Source de vérité des textes** : `src/locales/fr.ts` et `src/locales/en.ts`. Tout texte
+  affiché passe par une clé i18n — **jamais de chaîne UI en dur dans un écran ou composant**.
+  Les deux catalogues doivent rester **structurellement identiques** (mêmes clés).
+- **Accès** : hook `useTranslation()` (`const { t } = useTranslation()`), puis `t('cle.sous-cle')`.
+- **Catalogue de services** : ne pas dupliquer les libellés dans `services.ts` ; passer par
+  `useLocalizedService(id)` qui résout nom/tagline/questions/options via les clés i18n.
+- **Formatage** : utiliser le hook `useFormats()` (prix CAD, dates), pas `format.ts`
+  directement, pour que la locale suive la langue active (fr-CA / en-CA).
+- **Langue** : détectée depuis l'appareil au premier lancement, surchargée et persistée via
+  le sélecteur dans `profil.tsx` (`changeLanguage`), restaurée par `loadSavedLanguage()`.
+- **Ajouter un texte** : ajouter la clé dans `fr.ts` **et** `en.ts` (sinon fallback FR).
 
 ## Typage (priorité absolue)
 
@@ -150,6 +191,10 @@ Ces règles sont non négociables :
   même PR* (extraire des composants, déplacer la logique dans `lib/`). Le wizard de
   réservation montre le pattern : un orchestrateur + une étape par fichier dans
   `components/booking/`.
+  - **Seule exception : les catalogues de traduction** (`src/locales/fr.ts`, `en.ts`).
+    Ce sont des données plates (clé → texte), sans logique, et les découper fragmenterait
+    la source de vérité des textes sans gain de lisibilité. Exception **exceptionnelle et
+    nécessaire**, réservée aux catalogues i18n — elle ne s'étend à aucun fichier de code.
 - **Les écrans (`src/app/`) composent, ils ne calculent pas.** Toute logique métier
   (filtrage, formatage, règles) vit dans `src/lib/` ou descend dans un composant dédié.
 - **Chercher avant de créer.** Vérifier `components/ui/` et `components/` avant d'écrire un
@@ -160,7 +205,9 @@ Ces règles sont non négociables :
 
 ## Conventions
 
-- UI 100 % en français (Québec) ; montants en CAD via `lib/format.ts` (`Intl`, locale fr-CA).
+- UI bilingue FR/EN, **français par défaut** (Québec) : textes via clés i18n (`useTranslation`),
+  jamais de chaîne en dur (voir section i18n). Montants en CAD et dates via `useFormats()`
+  (locale liée à la langue active : fr-CA / en-CA).
 - Couleur de marque : `#1C6B3E` (clair) / `#3AB869` (sombre) — toujours passer par
   `useTheme()`, jamais de couleurs en dur dans les écrans (exception : avatars et logo).
 - Chaque composant : styles statiques dans `StyleSheet.create`, couleurs dynamiques inline
@@ -171,11 +218,17 @@ Ces règles sont non négociables :
 - Flux principal de l'app : demande (wizard) → réservation `pending` + conversation créée →
   devis du prestataire dans le chat → acceptation → réservation `confirmed`.
 
-## Données mock / démo
+## Données de démo
 
-Tout l'état vient de `lib/mock-data.ts` (seed) et vit dans le store persisté
-(`tocato-store-v1` dans AsyncStorage). « Profil → Réinitialiser la démo » restaure le seed.
-Les dates du seed sont relatives à aujourd'hui pour que la démo reste crédible.
+L'état applicatif (réservations, conversations, messages) vit dans **Supabase** — le store
+n'est **pas** persisté en AsyncStorage. Le seul mock restant est le **catalogue de
+prestataires** (`lib/mock-data.ts`), affiché et assigné côté client ; ses IDs doivent
+refléter les prestataires seedés dans `supabase/schema.sql` (FK `bookings.provider_id`).
+
+« Profil → Réinitialiser la démo » appelle la RPC **`seed_demo`** (côté serveur, dans
+`supabase/rpc.sql`) puis recharge depuis Supabase. C'est `seed_demo` qui contient le scénario
+de démo (réservations/conversations/messages), avec des dates relatives à aujourd'hui pour
+que la démo reste crédible.
 
 ## Notes
 
