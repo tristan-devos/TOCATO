@@ -56,6 +56,27 @@ Services au lancement : plombier, déménageur, jardinier.
 
 Pas de tests unitaires ni de linter au-delà d'`eslint-config-expo` pour l'instant.
 
+## Déploiement (EAS Update)
+
+Le projet **est déjà déployé** et se met à jour par **EAS Update (OTA, JS seulement)** —
+pas de build natif pour l'instant, et **pas de `eas.json`** à la racine.
+
+- **Projet EAS** : organisation `tocato`, slug `tocato`, projectId
+  `83c31465-c53d-4aac-b3be-615809d04420` (voir `app.json > owner`, `extra.eas`, `updates.url`).
+  Dashboard : https://expo.dev/accounts/tocato/projects/tocato
+- **Compte** : `tristanos` (propriétaire de l'org `tocato`). Vérifier avec
+  `npx eas-cli whoami` (le binaire s'appelle `eas-cli`, **pas** `eas`).
+- **Une seule branche : `preview`**, runtime `exposdk:54.0.0`. **Aucun channel** : l'app
+  consomme les updates **directement par branche**, et comme le runtime est `exposdk:54.0.0`
+  l'update s'ouvre dans **Expo Go SDK 54** (cohérent avec le workflow iPhone).
+- **Publier le code committé** (= « déployer sur Expo ») :
+  `npx eas-cli update --branch preview --message "<résumé>"`. Pas `--non-interactive`
+  (non supporté ici) ; utiliser `$CI=1` si besoin. L'iPhone récupère l'update au prochain
+  lancement d'Expo Go (fermer/rouvrir l'app).
+- **Avant tout build natif** (TestFlight, APK) il faudra d'abord créer un `eas.json`.
+- Rappel : un changement de **config Supabase** (ex. « Confirm email ») est côté serveur et
+  s'applique **sans redéploiement**.
+
 ## Architecture (`src/`)
 
 ```
