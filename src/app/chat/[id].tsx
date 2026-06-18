@@ -34,6 +34,7 @@ export default function ChatScreen() {
   const sendMessage = useAppStore((s) => s.sendMessage);
   const respondToQuote = useAppStore((s) => s.respondToQuote);
   const setActiveConversation = useAppStore((s) => s.setActiveConversation);
+  const markConversationRead = useAppStore((s) => s.markConversationRead);
 
   const [draft, setDraft] = useState('');
 
@@ -42,6 +43,14 @@ export default function ChatScreen() {
     setActiveConversation(id);
     return () => setActiveConversation(null);
   }, [id, setActiveConversation]);
+
+  // Un message reçu pendant que l'écran est ouvert ré-incrémente unread_count
+  // (trigger SQL) — on le remet à zéro tant que la conversation est visible.
+  useEffect(() => {
+    if (id && conversation && conversation.unreadCount > 0) {
+      void markConversationRead(id);
+    }
+  }, [id, conversation, markConversationRead]);
 
   const messages = useMemo(
     () => allMessages.filter((m) => m.conversationId === id).reverse(),
@@ -56,7 +65,7 @@ export default function ChatScreen() {
   const serviceName = booking ? t(`services.${booking.serviceId}.categoryName`) : '';
 
   const send = () => {
-    sendMessage(conversation.id, draft);
+    void sendMessage(conversation.id, draft);
     setDraft('');
   };
 

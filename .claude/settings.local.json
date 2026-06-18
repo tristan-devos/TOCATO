@@ -40,7 +40,9 @@
       "Bash(python -c \"import PIL; print\\('PIL', PIL.__version__\\)\")",
       "Bash(magick -version)",
       "Bash(py -3 --version)",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(git checkout *)",
+      "Bash(echo \"EXIT: $?\")"
     ]
   }
 }

@@ -305,12 +305,3 @@ export const SEED_MESSAGES: Message[] = [
     document: { name: 'Facture-TOCATO-0214.pdf', size: '86 Ko' },
   },
 ];
-
-/** Canned provider replies to simulate a conversation in the demo. */
-export const CANNED_REPLIES: string[] = [
-  "Parfait, c'est noté !",
-  'Très bonne question — oui, tout le matériel de base est inclus.',
-  "Je vous confirme ça d'ici la fin de la journée.",
-  "Pas de souci, je m'adapte à votre horaire.",
-  "Merci pour la précision, ça m'aide à bien préparer l'intervention.",
-];

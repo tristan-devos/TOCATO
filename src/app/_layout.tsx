@@ -6,8 +6,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
 import { Colors } from '@/constants/theme';
+import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { loadSavedLanguage } from '@/i18n';
+import { initAuth } from '@/lib/auth-store';
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -16,7 +18,10 @@ export default function RootLayout() {
 
   useEffect(() => {
     void loadSavedLanguage();
+    initAuth();
   }, []);
+
+  useAuthGuard();
 
   // Align the navigation theme (backgrounds, native headers) with our tokens.
   const navTheme = {
@@ -40,6 +45,7 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: palette.background },
         }}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(auth)" />
         <Stack.Screen
           name="booking/[service]"
           options={{ presentation: 'modal', gestureEnabled: false }}

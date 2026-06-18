@@ -24,6 +24,15 @@ Services au lancement : plombier, déménageur, jardinier.
 - **Zustand 5** + AsyncStorage (persistance) pour l'état global.
 - **lucide-react-native** pour les icônes (jamais `lucide-react`, DOM-only).
 - **expo-image** pour les images, **expo-image-picker** pour les photos du wizard.
+- **Supabase** comme backend (auth email/mot de passe, Postgres + RLS, Realtime). Deux
+  dépendances ajoutées, justifiées : `@supabase/supabase-js` (client officiel) et
+  `react-native-url-polyfill` (fournit `URL`/`URLSearchParams` que Hermes n'expose pas
+  complètement, requis par supabase-js sous React Native). État de la migration :
+  **migration store terminée** : auth, profil/adresses, et bookings/conversations/messages
+  passent tous par Supabase (lectures + Realtime + écritures). La simulation des réponses
+  prestataire vit désormais côté serveur (Edge Function `provider-reply` + service_role +
+  Realtime) ; l'app ne fait que la déclencher. Reste à faire : l'upload des photos du wizard
+  vers Supabase Storage.
 - React Compiler (expérimental) et typed routes activés (`app.json > experiments`).
 
 ## Commandes
@@ -35,6 +44,15 @@ Services au lancement : plombier, déménageur, jardinier.
 - `npx expo export --platform web` — build web de prod ; c'est aussi le **smoke test** de
   référence : si toutes les routes se bundlent, le pipeline est sain.
 - `npx expo-doctor` — validation de la config Expo.
+- **Supabase** : copier `.env.example` en `.env` et remplir `EXPO_PUBLIC_SUPABASE_URL` /
+  `EXPO_PUBLIC_SUPABASE_ANON_KEY` (Dashboard > Project Settings > API). Exécuter
+  `supabase/schema.sql` puis `supabase/rpc.sql` dans le SQL editor (tables + RLS + Realtime +
+  seed, puis fonctions/triggers ; les deux idempotents et ré-exécutables).
+  Types DB régénérables via `npx supabase gen types typescript --project-id <ref>`
+  (réimporter ensuite les unions de `lib/types.ts` dans `lib/database.types.ts`).
+- **Edge Functions** : `supabase functions deploy provider-reply --project-ref <ref>`
+  (déploiement seul, sans Docker ; `supabase login` requis). `SUPABASE_URL` /
+  `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` sont injectés automatiquement.
 
 Pas de tests unitaires ni de linter au-delà d'`eslint-config-expo` pour l'instant.
 
@@ -42,7 +60,8 @@ Pas de tests unitaires ni de linter au-delà d'`eslint-config-expo` pour l'insta
 
 ```
 src/app/                    Routes expo-router
-  _layout.tsx               Stack racine (thème nav + déclaration des routes, modal booking)
+  _layout.tsx               Stack racine (thème nav + routes, modal booking, garde auth)
+  (auth)/{login,signup}.tsx Connexion / inscription (Supabase Auth email + mot de passe)
   (tabs)/_layout.tsx        5 onglets : Accueil, Messages, Réserver (bouton central logo),
                             Réservations, Profil
   (tabs)/{index,chats,reserver,reservations,profil}.tsx
@@ -51,6 +70,7 @@ src/app/                    Routes expo-router
   reservation/[id].tsx      Détail réservation (timeline de statut, annulation)
   profile/{addresses,payments,help}.tsx
 src/components/             Composants métier (booking-card, provider-row, service-card…)
+  auth/                     auth-text-field (champ libellé des formulaires de connexion)
   booking/                  Étapes du wizard (question, details, address, schedule, review)
   chat/                     message-bubble (texte / devis / document / système)
   ui/                       Primitives (button, card, chip, badge, avatar, screen…)
@@ -58,14 +78,31 @@ src/lib/
   types.ts                  Types du domaine = futurs contrats d'API
   services.ts               Catalogue des services + questions du wizard (config-driven :
                             ajouter un service = ajouter une entrée ici)
-  store.ts                  Store Zustand persisté : réservations, conversations, messages,
-                            user. Les réponses prestataires sont simulées par setTimeout —
-                            c'est le point d'entrée du futur backend temps réel.
+  store.ts                  Store Zustand adossé à Supabase : réservations, conversations,
+                            messages. Charge à la connexion (loadAll), écoute le Realtime,
+                            réécrit via Supabase (create_booking RPC, updates, inserts).
+  profile-store.ts          Profil + adresses de l'utilisateur connecté, adossé à Supabase
+                            (chargé à la connexion). A remplacé le `user` mock du store.
+  db-mappers.ts             Conversion lignes Supabase -> types du domaine (frontière DB/app)
+  provider-reply.ts         Déclenche la simulation prestataire côté serveur (invoke de
+                            l'Edge Function provider-reply) — fire-and-forget, Realtime.
   mock-data.ts              Données de démo (prestataires montréalais, seed réservations)
   format.ts                 Formatage fr-CA (prix CAD, dates)
   booking-status.ts         Libellés/tons des statuts de réservation
+  supabase.ts               Client Supabase (auth/DB/realtime) ; `isSupabaseConfigured`
+                            reste false tant que .env est vide (app fonctionnelle sans).
+  database.types.ts         Type `Database` du schéma Postgres, aligné sur types.ts
+  auth-store.ts             Store Zustand auth (signUp/signIn/signOut, session), séparé du
+                            store applicatif ; `initAuth()` appelé au montage racine.
 src/constants/theme.ts      Design tokens (couleurs light/dark, spacing, radius, fontsize)
 src/hooks/use-theme.ts      Accès au thème selon le color scheme
+src/hooks/use-auth-guard.ts Redirige login <-> app selon la session (inactif sans Supabase)
+supabase/schema.sql         Schéma Postgres : tables + RLS + Realtime + seed prestataires
+                            (idempotent, ré-exécutable). Miroir de lib/types.ts.
+supabase/rpc.sql            Fonctions/triggers (create_booking, seed_demo, trigger messages)
+                            — à exécuter APRÈS schema.sql.
+supabase/functions/         Edge Functions (Deno). provider-reply : insère les réponses
+                            prestataire (service_role) — exclu du tsconfig de l'app.
 ```
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).
