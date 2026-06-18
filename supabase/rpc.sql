@@ -72,9 +72,14 @@ $$;
 -- ——— seed_demo : charge des réservations d'exemple dans le compte courant ——
 -- Remplace « Réinitialiser la démo ». Efface les bookings de l'utilisateur
 -- (cascade) puis insère deux scénarios datés relativement à aujourd'hui.
+-- security definer : le seed insère des messages 'provider' (interdits au client
+-- par la policy messages_insert_own). La fonction reste limitée au compte courant
+-- via auth.uid() (lecture du JWT, indépendante du rôle d'exécution).
 create or replace function public.seed_demo()
 returns void
 language plpgsql
+security definer
+set search_path = public
 as $$
 declare
   v_uid    uuid := auth.uid();

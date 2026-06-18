@@ -3,9 +3,9 @@
  *
  * Source de vérité = la base. Le store charge les données à la connexion
  * (`loadAll`, appelé depuis auth-store), écoute le Realtime et réécrit via
- * Supabase. La simulation des réponses prestataire vit dans `provider-sim.ts`
- * (vouée à devenir une Edge Function). Les sélecteurs exposés restent
- * identiques pour ne pas toucher les écrans.
+ * Supabase. La simulation des réponses prestataire vit côté serveur (Edge
+ * Function `provider-reply`), déclenchée via `provider-reply.ts`. Les sélecteurs
+ * exposés restent identiques pour ne pas toucher les écrans.
  */
 
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -13,8 +13,7 @@ import { create } from 'zustand';
 
 import { rowToBooking, rowToConversation, rowToMessage } from '@/lib/db-mappers';
 import { providersForService } from '@/lib/mock-data';
-import { useProfileStore } from '@/lib/profile-store';
-import { simulateCannedReply, simulateInitialReply } from '@/lib/provider-sim';
+import { triggerProviderReply } from '@/lib/provider-reply';
 import { estimatePrice } from '@/lib/services';
 import { supabase } from '@/lib/supabase';
 import type {
@@ -161,8 +160,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (error || !result) return null;
 
     await Promise.all([refreshBookings(), refreshConversations(), refreshMessages()]);
-    const firstName = (useProfileStore.getState().profile?.name ?? '').split(' ')[0] ?? '';
-    simulateInitialReply(result.conversation_id, provider.id, firstName, estimate);
+    triggerProviderReply(result.conversation_id, 'initial');
     return { bookingId: result.booking_id, conversationId: result.conversation_id };
   },
 
@@ -194,8 +192,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     await refreshMessages();
 
-    const replyIndex = get().messages.filter((m) => m.senderId === 'me').length;
-    simulateCannedReply(conversationId, conversation.providerId, replyIndex);
+    triggerProviderReply(conversationId, 'canned');
   },
 
   respondToQuote: async (messageId, accept) => {

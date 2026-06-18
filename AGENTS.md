@@ -29,10 +29,10 @@ Services au lancement : plombier, déménageur, jardinier.
   `react-native-url-polyfill` (fournit `URL`/`URLSearchParams` que Hermes n'expose pas
   complètement, requis par supabase-js sous React Native). État de la migration :
   **migration store terminée** : auth, profil/adresses, et bookings/conversations/messages
-  passent tous par Supabase (lectures + Realtime + écritures). Reste à faire : déplacer la
-  simulation prestataire de `provider-sim.ts` (client) vers une Edge Function serveur, et
-  l'upload des photos du wizard vers Supabase Storage. La simulation des réponses prestataires passera côté serveur (Edge Function +
-  Realtime).
+  passent tous par Supabase (lectures + Realtime + écritures). La simulation des réponses
+  prestataire vit désormais côté serveur (Edge Function `provider-reply` + service_role +
+  Realtime) ; l'app ne fait que la déclencher. Reste à faire : l'upload des photos du wizard
+  vers Supabase Storage.
 - React Compiler (expérimental) et typed routes activés (`app.json > experiments`).
 
 ## Commandes
@@ -50,6 +50,9 @@ Services au lancement : plombier, déménageur, jardinier.
   seed, puis fonctions/triggers ; les deux idempotents et ré-exécutables).
   Types DB régénérables via `npx supabase gen types typescript --project-id <ref>`
   (réimporter ensuite les unions de `lib/types.ts` dans `lib/database.types.ts`).
+- **Edge Functions** : `supabase functions deploy provider-reply --project-ref <ref>`
+  (déploiement seul, sans Docker ; `supabase login` requis). `SUPABASE_URL` /
+  `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` sont injectés automatiquement.
 
 Pas de tests unitaires ni de linter au-delà d'`eslint-config-expo` pour l'instant.
 
@@ -81,8 +84,8 @@ src/lib/
   profile-store.ts          Profil + adresses de l'utilisateur connecté, adossé à Supabase
                             (chargé à la connexion). A remplacé le `user` mock du store.
   db-mappers.ts             Conversion lignes Supabase -> types du domaine (frontière DB/app)
-  provider-sim.ts           Simulation TEMPORAIRE des réponses prestataire (insère dans
-                            Supabase après délai) — à remplacer par une Edge Function.
+  provider-reply.ts         Déclenche la simulation prestataire côté serveur (invoke de
+                            l'Edge Function provider-reply) — fire-and-forget, Realtime.
   mock-data.ts              Données de démo (prestataires montréalais, seed réservations)
   format.ts                 Formatage fr-CA (prix CAD, dates)
   booking-status.ts         Libellés/tons des statuts de réservation
@@ -98,6 +101,8 @@ supabase/schema.sql         Schéma Postgres : tables + RLS + Realtime + seed pr
                             (idempotent, ré-exécutable). Miroir de lib/types.ts.
 supabase/rpc.sql            Fonctions/triggers (create_booking, seed_demo, trigger messages)
                             — à exécuter APRÈS schema.sql.
+supabase/functions/         Edge Functions (Deno). provider-reply : insère les réponses
+                            prestataire (service_role) — exclu du tsconfig de l'app.
 ```
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).

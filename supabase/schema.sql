@@ -166,10 +166,15 @@ create policy "messages_select_own" on public.messages
       where c.id = messages.conversation_id and c.user_id = auth.uid()
     )
   );
+-- Le client n'insère que ses propres messages ('client') ou des messages
+-- 'system' issus de ses actions (annulation, réponse à un devis). Les messages
+-- 'provider' viennent du serveur (Edge Function provider-reply, service_role)
+-- et ne peuvent donc pas être forgés depuis l'app.
 drop policy if exists "messages_insert_own" on public.messages;
 create policy "messages_insert_own" on public.messages
   for insert with check (
-    exists (
+    messages.sender_kind in ('client', 'system')
+    and exists (
       select 1 from public.conversations c
       where c.id = messages.conversation_id and c.user_id = auth.uid()
     )
