@@ -32,7 +32,7 @@ create or replace function public.create_booking(
   p_address        jsonb,
   p_answers        jsonb,
   p_description    text,
-  p_photo_count    integer,
+  p_photos         text[],
   p_estimate_min   numeric,
   p_estimate_max   numeric,
   p_provider_id    text
@@ -50,11 +50,11 @@ begin
   -- bookings.conversation_id n'a pas de FK -> on peut insérer le booking d'abord.
   insert into public.bookings (
     id, user_id, service_id, status, scheduled_date, time_slot, address,
-    answers, description, photo_count, estimate_min, estimate_max,
+    answers, description, photos, estimate_min, estimate_max,
     provider_id, conversation_id
   ) values (
     v_booking, auth.uid(), p_service_id, 'pending', p_scheduled_date, p_time_slot,
-    p_address, p_answers, p_description, p_photo_count, p_estimate_min,
+    p_address, p_answers, p_description, p_photos, p_estimate_min,
     p_estimate_max, p_provider_id, v_conversation
   );
 
@@ -94,13 +94,13 @@ begin
 
   -- Scénario 1 : plomberie en attente, devis en attente dans le chat.
   insert into public.bookings (id, user_id, service_id, status, created_at,
-    scheduled_date, time_slot, address, answers, description, photo_count,
+    scheduled_date, time_slot, address, answers, description, photos,
     estimate_min, estimate_max, provider_id, conversation_id)
   values (v_plomb, v_uid, 'plumber', 'pending', now() - interval '2 days 3 hours',
     (now() + interval '3 days')::date, 'morning', v_addr,
     '[{"questionId":"issue","questionLabel":"Quel est le problème ?","values":["Fuite d''eau"]},{"questionId":"urgency","questionLabel":"C''est urgent ?","values":["Cette semaine"]},{"questionId":"housingType","questionLabel":"Type de logement ?","values":["Appartement / condo"]}]'::jsonb,
     'Fuite sous l''évier de la cuisine, le raccord du siphon goutte en continu. J''ai mis un seau en attendant.',
-    2, 170, 300, 'p-marc', v_cplomb);
+    '{}', 170, 300, 'p-marc', v_cplomb);
   insert into public.conversations (id, user_id, provider_id, booking_id)
   values (v_cplomb, v_uid, 'p-marc', v_plomb);
   insert into public.messages (conversation_id, sender_kind, provider_id, type, text, created_at, quote) values
@@ -112,13 +112,13 @@ begin
 
   -- Scénario 2 : jardinage terminé, facture dans le chat.
   insert into public.bookings (id, user_id, service_id, status, created_at,
-    scheduled_date, time_slot, address, answers, description, photo_count,
+    scheduled_date, time_slot, address, answers, description, photos,
     estimate_min, estimate_max, agreed_price, provider_id, conversation_id)
   values (v_jard, v_uid, 'gardener', 'completed', now() - interval '16 days',
     (now() - interval '12 days')::date, 'afternoon', v_addr,
     '[{"questionId":"work","questionLabel":"Quels travaux ?","values":["Tonte de pelouse","Taille de haies et arbustes"]},{"questionId":"area","questionLabel":"Quelle surface ?","values":["Petit terrain"]},{"questionId":"frequency","questionLabel":"À quelle fréquence ?","values":["Une seule fois"]}]'::jsonb,
     'Petite cour arrière, haie de cèdres à rafraîchir avant l''été.',
-    0, 135, 270, 160, 'p-sophie', v_cjard);
+    '{}', 135, 270, 160, 'p-sophie', v_cjard);
   insert into public.conversations (id, user_id, provider_id, booking_id)
   values (v_cjard, v_uid, 'p-sophie', v_jard);
   insert into public.messages (conversation_id, sender_kind, provider_id, type, text, created_at, document) values

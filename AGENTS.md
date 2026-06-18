@@ -38,8 +38,9 @@ plombier, déménageur, jardinier.
   **migration store terminée** : auth, profil/adresses, et bookings/conversations/messages
   passent tous par Supabase (lectures + Realtime + écritures). La simulation des réponses
   prestataire vit désormais côté serveur (Edge Function `provider-reply` + service_role +
-  Realtime) ; l'app ne fait que la déclencher. Reste à faire : l'upload des photos du wizard
-  vers Supabase Storage.
+  Realtime) ; l'app ne fait que la déclencher. Les photos du wizard sont téléversées dans
+  **Supabase Storage** (bucket privé `booking-photos`, RLS par dossier `{user}/{booking}/`,
+  affichées via URLs signées) — la migration store est désormais complète.
 - React Compiler (expérimental) et typed routes activés (`app.json > experiments`).
 
 ## Commandes
@@ -102,6 +103,7 @@ src/app/                    Routes expo-router
 src/components/             Composants métier (booking-card, provider-row, service-card…)
   auth/                     auth-text-field (champ libellé des formulaires de connexion)
   booking/                  Étapes du wizard (question, details, address, schedule, review)
+                            + booking-photos (galerie des photos d'une réservation, URLs signées)
   chat/                     message-bubble (texte / devis / document / système)
   ui/                       Primitives (button, card, chip, badge, avatar, screen…)
 src/lib/
@@ -117,6 +119,9 @@ src/lib/
   profile-store.ts          Profil + adresses de l'utilisateur connecté, adossé à Supabase
                             (chargé à la connexion). A remplacé le `user` mock du store.
   db-mappers.ts             Conversion lignes Supabase -> types du domaine (frontière DB/app)
+  photo-upload.ts           Upload des photos du wizard vers Storage (bucket privé
+                            booking-photos) + URLs signées pour l'affichage. Décodage base64
+                            inline (pas de dépendance ajoutée).
   provider-reply.ts         Déclenche la simulation prestataire côté serveur (invoke de
                             l'Edge Function provider-reply) — fire-and-forget, Realtime.
   mock-data.ts              Catalogue de prestataires de démo (montréalais) — seul mock
@@ -140,7 +145,8 @@ src/hooks/use-color-scheme.ts  Color scheme actif (variante .web.ts pour le rend
 src/hooks/use-theme.ts      Accès au thème selon le color scheme
 src/hooks/use-formats.ts    Formatters (prix/dates) liés à la langue active (fr-CA / en-CA)
 src/hooks/use-auth-guard.ts Redirige login <-> app selon la session (inactif sans Supabase)
-supabase/schema.sql         Schéma Postgres : tables + RLS + Realtime + seed prestataires
+supabase/schema.sql         Schéma Postgres : tables + RLS + Realtime + bucket Storage
+                            booking-photos (privé, RLS owner-only) + seed prestataires
                             (idempotent, ré-exécutable). Miroir de lib/types.ts. Les IDs
                             prestataires doivent rester synchrones avec lib/mock-data.ts.
 supabase/rpc.sql            Fonctions/triggers (create_booking, seed_demo, trigger messages)

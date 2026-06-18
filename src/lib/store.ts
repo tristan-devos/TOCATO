@@ -13,6 +13,7 @@ import { create } from 'zustand';
 
 import { rowToBooking, rowToConversation, rowToMessage } from '@/lib/db-mappers';
 import { providersForService } from '@/lib/mock-data';
+import { type LocalPhoto, uploadBookingPhotos } from '@/lib/photo-upload';
 import { triggerProviderReply } from '@/lib/provider-reply';
 import { estimatePrice } from '@/lib/services';
 import { supabase } from '@/lib/supabase';
@@ -30,7 +31,7 @@ export interface BookingDraft {
   serviceId: ServiceId;
   answers: BookingAnswer[];
   description: string;
-  photoCount: number;
+  photos: LocalPhoto[];
   address: Address;
   scheduledDate?: string;
   timeSlot?: TimeSlotId;
@@ -151,13 +152,27 @@ export const useAppStore = create<AppState>((set, get) => ({
       p_address: draft.address,
       p_answers: draft.answers,
       p_description: draft.description,
-      p_photo_count: draft.photoCount,
+      p_photos: [],
       p_estimate_min: estimate.min,
       p_estimate_max: estimate.max,
       p_provider_id: provider.id,
     });
     const result = data?.[0];
     if (error || !result) return null;
+
+    // Upload des photos après création (le booking_id sert de dossier Storage),
+    // puis on rattache les chemins à la réservation. Best-effort : un échec
+    // d'upload n'invalide pas la réservation déjà créée.
+    if (draft.photos.length > 0) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const userId = sessionData.session?.user.id;
+      if (userId) {
+        const paths = await uploadBookingPhotos(userId, result.booking_id, draft.photos);
+        if (paths.length > 0) {
+          await supabase.from('bookings').update({ photos: paths }).eq('id', result.booking_id);
+        }
+      }
+    }
 
     await Promise.all([refreshBookings(), refreshConversations(), refreshMessages()]);
     triggerProviderReply(result.conversation_id, 'initial');
