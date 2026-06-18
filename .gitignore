@@ -40,6 +40,9 @@ supabase/.temp/
 # typescript
 *.tsbuildinfo
 
+# Claude Code (config locale)
+.claude/settings.local.json
+
 example
 
 # generated native folders
