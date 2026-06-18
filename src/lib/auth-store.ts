@@ -107,6 +107,8 @@ export const useAuthStore = create<AuthState>(() => ({
     });
     if (error) return { error: toFrenchError(error) };
     if (!data.url) return { error: 'Connexion impossible : URL OAuth manquante.' };
+    // TODO(diagnostic OAuth) : montre le ref du projet + le redirect_to envoyé.
+    if (__DEV__) console.log('[oauth] authorize url =', data.url);
 
     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
     // Deux retours possibles selon la plateforme : soit le navigateur rend la
