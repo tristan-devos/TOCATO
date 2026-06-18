@@ -86,9 +86,17 @@ const fr = {
     scheduleOrPickDate: 'ou choisissez une date',
     schedulePreferredSlot: 'Créneau souhaité',
     scheduleUrgentNote: 'Les demandes urgentes peuvent entraîner une majoration.',
+    providerTitle: 'Choisissez votre prestataire',
+    providerSubtitle:
+      'Sélectionnez un prestataire, ou laissez TOCATO vous proposer le plus adapté.',
+    providerAuto: 'Laisser TOCATO choisir',
+    providerAutoHint: 'Nous vous assignons le prestataire le plus adapté à votre demande.',
+    providerHourlyRate: '{{price}}/h',
+    providerJobs: '{{count}} prestations réalisées',
     reviewTitle: 'Récapitulatif',
     reviewSubtitle:
       'Vérifiez votre demande — elle sera envoyée au prestataire le plus adapté.',
+    reviewProviderAuto: 'TOCATO choisit le prestataire le plus adapté.',
     estimate: 'Estimation',
     estimateNote: 'Le prix final sera confirmé par devis dans le chat.',
   },

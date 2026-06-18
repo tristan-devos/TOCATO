@@ -102,9 +102,11 @@ src/app/                    Routes expo-router
   profile/{addresses,payments,help}.tsx
 src/components/             Composants métier (booking-card, provider-row, service-card…)
   auth/                     auth-text-field (champ libellé des formulaires de connexion)
-  booking/                  Étapes du wizard (question, details, address, schedule, review)
+  booking/                  Étapes du wizard (question, details, address, schedule,
+                            provider, review)
                             + booking-photos (galerie des photos d'une réservation, URLs signées)
                             + booking-success (écran de confirmation post-envoi)
+                            provider-step : choix du prestataire (ou attribution auto)
   reservation/              status-timeline (frise verticale de progression d'une réservation)
   chat/                     message-bubble (texte / devis / document / système)
   ui/                       Primitives (button, card, chip, badge, avatar, screen…)
@@ -127,8 +129,10 @@ src/lib/
   provider-reply.ts         Déclenche la simulation prestataire côté serveur (invoke de
                             l'Edge Function provider-reply) — fire-and-forget, Realtime.
   mock-data.ts              Catalogue de prestataires de démo (montréalais) — seul mock
-                            restant. Ses IDs doivent refléter les prestataires seedés dans
-                            schema.sql (FK bookings.provider_id). Le reste vit dans Supabase.
+                            restant. Affiché dans provider-step (le client choisit) et
+                            assigné via create_booking ; à défaut de choix, rotation auto.
+                            Ses IDs doivent refléter les prestataires seedés dans schema.sql
+                            (FK bookings.provider_id). Le reste vit dans Supabase.
   format.ts                 createFormatters(locale) : formatage fr-CA / en-CA (prix CAD,
                             dates). Consommé via le hook use-formats (langue active).
   booking-status.ts         Libellés/tons des statuts de réservation
@@ -223,14 +227,16 @@ Ces règles sont non négociables :
 - Sélecteurs Zustand : ne jamais retourner un objet/tableau neuf dans le sélecteur
   (boucle de re-render avec Zustand v5) — sélectionner le tableau brut et filtrer en
   `useMemo` dans le composant.
-- Flux principal de l'app : demande (wizard) → réservation `pending` + conversation créée →
-  devis du prestataire dans le chat → acceptation → réservation `confirmed`.
+- Flux principal de l'app : demande (wizard, dont choix du prestataire ou attribution auto)
+  → réservation `pending` + conversation créée → devis du prestataire dans le chat →
+  acceptation → réservation `confirmed`.
 
 ## Données de démo
 
 L'état applicatif (réservations, conversations, messages) vit dans **Supabase** — le store
 n'est **pas** persisté en AsyncStorage. Le seul mock restant est le **catalogue de
-prestataires** (`lib/mock-data.ts`), affiché et assigné côté client ; ses IDs doivent
+prestataires** (`lib/mock-data.ts`) : le client en choisit un à l'étape `provider` du
+wizard (sinon attribution auto par rotation côté `createBooking`). Ses IDs doivent
 refléter les prestataires seedés dans `supabase/schema.sql` (FK `bookings.provider_id`).
 
 « Profil → Réinitialiser la démo » appelle la RPC **`seed_demo`** (côté serveur, dans

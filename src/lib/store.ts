@@ -35,6 +35,8 @@ export interface BookingDraft {
   address: Address;
   scheduledDate?: string;
   timeSlot?: TimeSlotId;
+  /** Prestataire choisi par le client ; absent = attribution automatique. */
+  providerId?: string;
 }
 
 interface AppState {
@@ -139,9 +141,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   createBooking: async (draft) => {
-    // Demo: assign a provider for the service, cycling to vary the demo.
+    // Le client choisit un prestataire ; sinon attribution auto (rotation démo).
     const candidates = providersForService(draft.serviceId);
-    const provider = candidates[get().bookings.length % candidates.length];
+    const chosen = draft.providerId
+      ? candidates.find((p) => p.id === draft.providerId)
+      : undefined;
+    const provider = chosen ?? candidates[get().bookings.length % candidates.length];
     if (!provider) return null;
 
     const estimate = estimatePrice(draft.serviceId);
