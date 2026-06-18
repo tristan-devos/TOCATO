@@ -28,6 +28,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { getProvider } from '@/lib/mock-data';
 import { useAddresses } from '@/lib/profile-store';
+import type { LocalPhoto } from '@/lib/photo-upload';
 import { isServiceId } from '@/lib/services';
 import { useLocalizedService } from '@/lib/use-localized-service';
 import { useAppStore } from '@/lib/store';
@@ -52,7 +53,7 @@ export default function BookingWizardScreen() {
   const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [description, setDescription] = useState('');
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<LocalPhoto[]>([]);
   const [addressId, setAddressId] = useState<string | null>(addresses[0]?.id ?? null);
   const [asap, setAsap] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<string | null>(null);
@@ -106,7 +107,7 @@ export default function BookingWizardScreen() {
       serviceId: service.id,
       answers: buildAnswers(),
       description: description.trim(),
-      photoCount: photos.length,
+      photos,
       address: selectedAddress,
       scheduledDate: asap ? undefined : (scheduledDate ?? undefined),
       timeSlot: asap ? undefined : (timeSlot ?? undefined),

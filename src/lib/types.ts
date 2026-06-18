@@ -56,7 +56,8 @@ export interface Booking {
   address: Address;
   answers: BookingAnswer[];
   description: string;
-  photoCount: number;
+  /** Storage paths of attached photos (bucket booking-photos) — viewed via signed URLs */
+  photos: string[];
   estimate: PriceRange;
   /** Final price when a quote has been accepted */
   agreedPrice?: number;

@@ -12,6 +12,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
+import { BookingPhotos } from '@/components/booking/booking-photos';
 import { ProviderRow } from '@/components/provider-row';
 import { ServiceIcon } from '@/components/service-icon';
 import { AppText } from '@/components/ui/app-text';
@@ -192,12 +193,15 @@ export default function ReservationDetailScreen() {
                 {booking.description}
               </AppText>
             </View>
-            {booking.photoCount > 0 ? (
+            {booking.photos.length > 0 ? (
               <View style={styles.iconRow}>
                 <Images size={16} color={colors.textSecondary} />
-                <AppText variant="secondary" style={styles.iconRowText}>
-                  {t('reservationDetail.photos', { count: booking.photoCount })}
-                </AppText>
+                <View style={styles.iconRowText}>
+                  <AppText variant="secondary" style={styles.photosLabel}>
+                    {t('reservationDetail.photos', { count: booking.photos.length })}
+                  </AppText>
+                  <BookingPhotos photos={booking.photos} />
+                </View>
               </View>
             ) : null}
             <View style={styles.iconRow}>
@@ -293,6 +297,7 @@ const styles = StyleSheet.create({
   dividerLine: { height: StyleSheet.hairlineWidth, marginVertical: Spacing.one },
   iconRow: { flexDirection: 'row', gap: Spacing.two + 2 },
   iconRowText: { flex: 1, marginTop: -1 },
+  photosLabel: { marginBottom: Spacing.two },
   priceBanner: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -22,7 +22,7 @@ export function rowToBooking(row: BookingRow): Booking {
     address: row.address,
     answers: row.answers,
     description: row.description,
-    photoCount: row.photo_count,
+    photos: row.photos,
     estimate: { min: row.estimate_min, max: row.estimate_max },
     agreedPrice: row.agreed_price ?? undefined,
     providerId: row.provider_id,

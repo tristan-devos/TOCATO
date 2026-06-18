@@ -7,14 +7,15 @@ import { useTranslation } from 'react-i18next';
 import { AppText } from '@/components/ui/app-text';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import type { LocalPhoto } from '@/lib/photo-upload';
 
 const MAX_PHOTOS = 4;
 
 interface DetailsStepProps {
   description: string;
   onDescriptionChange: (text: string) => void;
-  photos: string[];
-  onPhotosChange: (uris: string[]) => void;
+  photos: LocalPhoto[];
+  onPhotosChange: (photos: LocalPhoto[]) => void;
 }
 
 export function DetailsStep({
@@ -32,14 +33,18 @@ export function DetailsStep({
       allowsMultipleSelection: true,
       selectionLimit: MAX_PHOTOS - photos.length,
       quality: 0.7,
+      base64: true,
     });
     if (!result.canceled) {
-      const uris = result.assets.map((asset) => asset.uri);
-      onPhotosChange([...photos, ...uris].slice(0, MAX_PHOTOS));
+      const picked: LocalPhoto[] = result.assets
+        .filter((asset) => asset.base64)
+        .map((asset) => ({ uri: asset.uri, base64: asset.base64 ?? '' }));
+      onPhotosChange([...photos, ...picked].slice(0, MAX_PHOTOS));
     }
   };
 
-  const removePhoto = (uri: string) => onPhotosChange(photos.filter((p) => p !== uri));
+  const removePhoto = (uri: string) =>
+    onPhotosChange(photos.filter((photo) => photo.uri !== uri));
 
   return (
     <View style={styles.base}>
@@ -62,11 +67,11 @@ export function DetailsStep({
       />
 
       <View style={styles.photosRow}>
-        {photos.map((uri) => (
-          <View key={uri} style={styles.photoBox}>
-            <Image source={{ uri }} style={styles.photo} contentFit="cover" />
+        {photos.map((photo) => (
+          <View key={photo.uri} style={styles.photoBox}>
+            <Image source={{ uri: photo.uri }} style={styles.photo} contentFit="cover" />
             <Pressable
-              onPress={() => removePhoto(uri)}
+              onPress={() => removePhoto(photo.uri)}
               hitSlop={8}
               style={[styles.removePhoto, { backgroundColor: colors.text }]}>
               <X size={12} color={colors.card} />

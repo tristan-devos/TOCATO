@@ -99,7 +99,7 @@ export interface Database {
           address: Address;
           answers: BookingAnswer[];
           description: string;
-          photo_count: number;
+          photos: string[];
           estimate_min: number;
           estimate_max: number;
           agreed_price: number | null;
@@ -117,7 +117,7 @@ export interface Database {
           address: Address;
           answers: BookingAnswer[];
           description: string;
-          photo_count?: number;
+          photos?: string[];
           estimate_min: number;
           estimate_max: number;
           agreed_price?: number | null;
@@ -184,7 +184,7 @@ export interface Database {
           p_address: Address;
           p_answers: BookingAnswer[];
           p_description: string;
-          p_photo_count: number;
+          p_photos: string[];
           p_estimate_min: number;
           p_estimate_max: number;
           p_provider_id: string;

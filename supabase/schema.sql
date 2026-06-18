@@ -84,7 +84,8 @@ create table if not exists public.bookings (
   address         jsonb not null,
   answers         jsonb not null default '[]'::jsonb,
   description     text not null default '',
-  photo_count     integer not null default 0,
+  -- Chemins Storage des photos jointes (bucket booking-photos), {user}/{booking}/{n}.jpg.
+  photos          text[] not null default '{}',
   estimate_min    numeric(10, 2) not null,
   estimate_max    numeric(10, 2) not null,
   agreed_price    numeric(10, 2),
@@ -92,6 +93,9 @@ create table if not exists public.bookings (
   conversation_id uuid not null
 );
 create index if not exists bookings_user_id_idx on public.bookings (user_id);
+-- Migration des bases déjà déployées : photo_count (entier) -> photos (chemins Storage).
+alter table public.bookings add column if not exists photos text[] not null default '{}';
+alter table public.bookings drop column if exists photo_count;
 
 -- ——— conversations ———————————————————————————————————————————————————————
 create table if not exists public.conversations (
@@ -205,6 +209,31 @@ begin
     end if;
   end loop;
 end $$;
+
+-- =============================================================================
+-- Storage : photos jointes aux demandes de réservation (bucket privé).
+-- Chemin : {user_id}/{booking_id}/{n}.jpg — le 1er segment porte le RLS owner-only.
+-- L'app lit via URLs signées (createSignedUrls), jamais en accès public.
+-- =============================================================================
+insert into storage.buckets (id, name, public)
+values ('booking-photos', 'booking-photos', false)
+on conflict (id) do nothing;
+
+drop policy if exists "booking_photos_select_own" on storage.objects;
+create policy "booking_photos_select_own" on storage.objects
+  for select to authenticated using (
+    bucket_id = 'booking-photos' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+drop policy if exists "booking_photos_insert_own" on storage.objects;
+create policy "booking_photos_insert_own" on storage.objects
+  for insert to authenticated with check (
+    bucket_id = 'booking-photos' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+drop policy if exists "booking_photos_delete_own" on storage.objects;
+create policy "booking_photos_delete_own" on storage.objects
+  for delete to authenticated using (
+    bucket_id = 'booking-photos' and (storage.foldername(name))[1] = auth.uid()::text
+  );
 
 -- =============================================================================
 -- Seed du catalogue prestataires (miroir de src/lib/mock-data.ts)
