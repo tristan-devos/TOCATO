@@ -1,39 +1,24 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import {
-  ArrowLeft,
-  Calendar,
-  Check,
-  FileText,
-  Images,
-  MapPin,
-  XCircle,
-} from 'lucide-react-native';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ArrowLeft, Calendar, FileText, Images, MapPin, XCircle } from 'lucide-react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { BookingPhotos } from '@/components/booking/booking-photos';
 import { ProviderRow } from '@/components/provider-row';
+import { StatusTimeline } from '@/components/reservation/status-timeline';
 import { ServiceIcon } from '@/components/service-icon';
 import { AppText } from '@/components/ui/app-text';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
 import { BOOKING_STATUS, isActiveStatus } from '@/lib/booking-status';
 import { getProvider } from '@/lib/mock-data';
 import { TIME_SLOTS } from '@/lib/services';
 import { useAppStore, useBooking } from '@/lib/store';
-import type { BookingStatus } from '@/lib/types';
-
-const STATUS_ORDER: Record<Exclude<BookingStatus, 'cancelled'>, number> = {
-  pending: 0,
-  confirmed: 1,
-  in_progress: 2,
-  completed: 3,
-};
 
 export default function ReservationDetailScreen() {
   const colors = useTheme();
@@ -53,14 +38,6 @@ export default function ReservationDetailScreen() {
   const status = BOOKING_STATUS[booking.status];
   const slot = TIME_SLOTS.find((s) => s.id === booking.timeSlot);
   const cancelled = booking.status === 'cancelled';
-  const reachedIndex = booking.status === 'cancelled' ? 0 : STATUS_ORDER[booking.status];
-
-  const TIMELINE: { status: BookingStatus; label: string }[] = [
-    { status: 'pending', label: t('reservationDetail.timelinePending') },
-    { status: 'confirmed', label: t('reservationDetail.timelineConfirmed') },
-    { status: 'in_progress', label: t('reservationDetail.timelineInProgress') },
-    { status: 'completed', label: t('reservationDetail.timelineCompleted') },
-  ];
 
   const openChat = () =>
     router.push({ pathname: '/chat/[id]', params: { id: booking.conversationId } });
@@ -116,49 +93,7 @@ export default function ReservationDetailScreen() {
             </AppText>
           </Card>
         ) : (
-          <Card>
-            <View style={styles.timeline}>
-              {TIMELINE.map((step, index) => {
-                const done = index <= reachedIndex;
-                const isLast = index === TIMELINE.length - 1;
-                return (
-                  <View key={step.status} style={styles.timelineRow}>
-                    <View style={styles.timelineRail}>
-                      <View
-                        style={[
-                          styles.timelineDot,
-                          {
-                            backgroundColor: done ? colors.primary : colors.backgroundElement,
-                            borderColor: done ? colors.primary : colors.border,
-                          },
-                        ]}>
-                        {done ? <Check size={11} color={colors.onPrimary} /> : null}
-                      </View>
-                      {!isLast ? (
-                        <View
-                          style={[
-                            styles.timelineLine,
-                            {
-                              backgroundColor:
-                                index < reachedIndex ? colors.primary : colors.border,
-                            },
-                          ]}
-                        />
-                      ) : null}
-                    </View>
-                    <Text
-                      style={[
-                        styles.timelineLabel,
-                        { color: done ? colors.text : colors.textSecondary },
-                        index === reachedIndex && styles.timelineLabelCurrent,
-                      ]}>
-                      {step.label}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          </Card>
+          <StatusTimeline status={booking.status} />
         )}
 
         {provider ? (
@@ -276,20 +211,6 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   cancelledText: { flex: 1 },
-  timeline: { gap: 0 },
-  timelineRow: { flexDirection: 'row', gap: Spacing.three },
-  timelineRail: { alignItems: 'center', width: 20 },
-  timelineDot: {
-    width: 20,
-    height: 20,
-    borderRadius: Radius.full,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  timelineLine: { width: 2, flex: 1, minHeight: 18, marginVertical: 2 },
-  timelineLabel: { fontSize: FontSize.sm, flex: 1, paddingBottom: Spacing.three, marginTop: 2 },
-  timelineLabelCurrent: { fontWeight: '700' },
   sectionLabel: { marginBottom: Spacing.two, marginLeft: Spacing.one },
   providerCard: { gap: Spacing.three },
   detailsCard: { gap: Spacing.two + 4 },

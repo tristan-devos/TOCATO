@@ -104,6 +104,8 @@ src/components/             Composants métier (booking-card, provider-row, serv
   auth/                     auth-text-field (champ libellé des formulaires de connexion)
   booking/                  Étapes du wizard (question, details, address, schedule, review)
                             + booking-photos (galerie des photos d'une réservation, URLs signées)
+                            + booking-success (écran de confirmation post-envoi)
+  reservation/              status-timeline (frise verticale de progression d'une réservation)
   chat/                     message-bubble (texte / devis / document / système)
   ui/                       Primitives (button, card, chip, badge, avatar, screen…)
 src/lib/

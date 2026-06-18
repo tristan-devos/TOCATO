@@ -1,6 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, CheckCircle2, X } from 'lucide-react-native';
+import { ArrowLeft, X } from 'lucide-react-native';
 import { useState } from 'react';
 import {
   Alert,
@@ -15,18 +15,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { AddressStep } from '@/components/booking/address-step';
+import { BookingSuccess } from '@/components/booking/booking-success';
 import { DetailsStep } from '@/components/booking/details-step';
 import { QuestionStep } from '@/components/booking/question-step';
 import { ReviewStep } from '@/components/booking/review-step';
 import { ScheduleStep } from '@/components/booking/schedule-step';
-import { ProviderRow } from '@/components/provider-row';
-import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { ProgressBar } from '@/components/ui/progress-bar';
-import { Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { getProvider } from '@/lib/mock-data';
 import { useAddresses } from '@/lib/profile-store';
 import type { LocalPhoto } from '@/lib/photo-upload';
 import { isServiceId } from '@/lib/services';
@@ -148,47 +145,12 @@ export default function BookingWizardScreen() {
   };
 
   if (submittedIds) {
-    const booking = useAppStore
-      .getState()
-      .bookings.find((b) => b.id === submittedIds.bookingId);
-    const provider = booking ? getProvider(booking.providerId) : undefined;
     return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
-        <View style={styles.success}>
-          <CheckCircle2 size={64} color={colors.success} />
-          <AppText variant="heading" style={styles.centered}>
-            {t('wizard.successTitle')}
-          </AppText>
-          <AppText variant="secondary" style={styles.centered}>
-            {t('wizard.successMessage', { service: service.categoryName.toLowerCase() })}
-          </AppText>
-          {provider ? (
-            <Card style={styles.successProvider}>
-              <ProviderRow provider={provider} />
-            </Card>
-          ) : null}
-        </View>
-        <View style={styles.footer}>
-          <Button
-            title={t('common.openChat')}
-            size="lg"
-            onPress={() =>
-              router.replace({
-                pathname: '/chat/[id]',
-                params: { id: submittedIds.conversationId },
-              })
-            }
-          />
-          <Button
-            title={t('wizard.viewBookings')}
-            variant="ghost"
-            onPress={() => {
-              router.back();
-              router.push('/(tabs)/reservations');
-            }}
-          />
-        </View>
-      </SafeAreaView>
+      <BookingSuccess
+        bookingId={submittedIds.bookingId}
+        conversationId={submittedIds.conversationId}
+        serviceName={service.categoryName}
+      />
     );
   }
 
@@ -300,13 +262,4 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     gap: Spacing.two,
   },
-  success: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.three,
-    padding: Spacing.five,
-  },
-  successProvider: { alignSelf: 'stretch', marginTop: Spacing.three, borderRadius: Radius.lg },
-  centered: { textAlign: 'center' },
 });
