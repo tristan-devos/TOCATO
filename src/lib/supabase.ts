@@ -44,7 +44,11 @@ export const supabase = createClient<Database>(
       ...(Platform.OS === 'web' ? {} : { storage: AsyncStorage }),
       autoRefreshToken: true,
       persistSession: true,
-      // Pas de redirection OAuth dans une app native : on n'analyse pas l'URL.
+      // PKCE : flux OAuth sécurisé pour le natif. signInWithOAuth génère un
+      // code_verifier (stocké ci-dessus), puis exchangeCodeForSession finalise
+      // au retour du navigateur (voir auth-store.signInWithOAuth).
+      flowType: 'pkce',
+      // On gère nous-mêmes le retour OAuth (deep link), pas via l'URL de page.
       detectSessionInUrl: false,
     },
   },

@@ -25,13 +25,19 @@ plombier, déménageur, jardinier.
 - **Zustand 5** + AsyncStorage (persistance) pour l'état global.
 - **lucide-react-native** pour les icônes (jamais `lucide-react`, DOM-only).
 - **expo-image** pour les images, **expo-image-picker** pour les photos du wizard.
+- **expo-web-browser** pour le login social (OAuth Google). Dépendance ajoutée, justifiée :
+  le flux OAuth via navigateur (`signInWithOAuth` + `openAuthSessionAsync`) est la seule
+  voie **compatible Expo Go** (les boutons natifs `expo-apple-authentication` /
+  google-signin imposeraient un dev build et l'abandon d'Expo Go). `expo-linking` (déjà
+  présent) fournit le redirect deep link. Détails en section Login social.
 - **i18n bilingue FR/EN** — `i18next` + `react-i18next` + `expo-localization`. Trois
   dépendances ajoutées, **justifiées** : l'UI bilingue (français par défaut, anglais
   disponible) est un choix produit assumé pour un marché montréalais, et ce sont les
   briques standard de l'i18n React Native — `expo-localization` détecte la langue de
   l'appareil, `i18next`/`react-i18next` portent le catalogue et le hook `useTranslation`.
   Détails en section i18n.
-- **Supabase** comme backend (auth email/mot de passe, Postgres + RLS, Realtime). Deux
+- **Supabase** comme backend (auth email/mot de passe **et OAuth Google**, Postgres + RLS,
+  Realtime). Deux
   dépendances ajoutées, justifiées : `@supabase/supabase-js` (client officiel) et
   `react-native-url-polyfill` (fournit `URL`/`URLSearchParams` que Hermes n'expose pas
   complètement, requis par supabase-js sous React Native). État de la migration :
@@ -92,7 +98,7 @@ src/app/                    Routes expo-router
   _layout.tsx               Stack racine (thème nav + routes, modal booking, garde auth)
   +not-found.tsx            Écran 404 (EmptyState, retour vers les onglets)
   (auth)/_layout.tsx        Stack des écrans d'auth (sans header)
-  (auth)/{login,signup}.tsx Connexion / inscription (Supabase Auth email + mot de passe)
+  (auth)/{login,signup}.tsx Connexion / inscription (email + mot de passe, + Google OAuth)
   (tabs)/_layout.tsx        5 onglets : Accueil, Messages, Réserver (bouton central logo),
                             Réservations, Profil
   (tabs)/{index,chats,reserver,reservations,profil}.tsx
@@ -102,6 +108,7 @@ src/app/                    Routes expo-router
   profile/{addresses,payments,help}.tsx
 src/components/             Composants métier (booking-card, provider-row, service-card…)
   auth/                     auth-text-field (champ libellé des formulaires de connexion)
+                            + social-auth (séparateur « ou » + bouton Google, OAuth navigateur)
   booking/                  Étapes du wizard (question, details, address, schedule,
                             provider, review)
                             + booking-photos (galerie des photos d'une réservation, URLs signées)
@@ -138,9 +145,12 @@ src/lib/
   booking-status.ts         Libellés/tons des statuts de réservation
   supabase.ts               Client Supabase (auth/DB/realtime) ; `isSupabaseConfigured`
                             reste false tant que .env est vide (app fonctionnelle sans).
+                            flowType 'pkce' (échange de code OAuth), detectSessionInUrl false.
   database.types.ts         Type `Database` du schéma Postgres, aligné sur types.ts
-  auth-store.ts             Store Zustand auth (signUp/signIn/signOut, session), séparé du
-                            store applicatif ; `initAuth()` appelé au montage racine.
+  auth-store.ts             Store Zustand auth (signUp/signIn/signInWithOAuth/signOut,
+                            session), séparé du store applicatif ; `initAuth()` au montage.
+                            signInWithOAuth : flux navigateur (expo-web-browser) + échange
+                            du code sur le deep link (Linking.createURL('auth-callback')).
 src/i18n/index.ts           Init i18next (FR/EN) : langue par défaut = langue de l'appareil
                             (fallback fr), persistance AsyncStorage (`tocato-language`),
                             loadSavedLanguage()/changeLanguage(). Monté dans app/_layout.tsx.
@@ -180,6 +190,28 @@ les dépendances `i18next` / `react-i18next` / `expo-localization`.
 - **Langue** : détectée depuis l'appareil au premier lancement, surchargée et persistée via
   le sélecteur dans `profil.tsx` (`changeLanguage`), restaurée par `loadSavedLanguage()`.
 - **Ajouter un texte** : ajouter la clé dans `fr.ts` **et** `en.ts` (sinon fallback FR).
+
+## Login social (OAuth Google)
+
+Login via **navigateur** (pas de boutons natifs), seul flux compatible **Expo Go**. Le code
+est dans `auth-store.signInWithOAuth` + `components/auth/social-auth.tsx`. Côté UI : bouton
+« Continuer avec Google » sur les écrans login **et** signup.
+
+Le code seul ne suffit pas : il faut une **config console** (non versionnable, à faire une
+fois). Checklist :
+
+1. **Google Cloud Console** → API & Services → Credentials → *OAuth client ID* (type
+   *Web application*). Dans *Authorized redirect URIs*, ajouter l'URL de callback Supabase :
+   `https://<ref>.supabase.co/auth/v1/callback`. Récupérer *Client ID* et *Client secret*.
+2. **Supabase Dashboard** → Authentication → Providers → **Google** : activer, coller
+   Client ID + secret.
+3. **Supabase Dashboard** → Authentication → URL Configuration → *Redirect URLs* : ajouter
+   `tocato://**` (build) **et** `exp://**` (test en Expo Go ; l'URL est basée sur l'IP/port
+   Metro). Le deep link de retour est `Linking.createURL('auth-callback')`.
+
+Le profil est créé par le trigger `handle_new_user` (schema.sql), qui lit `name` /
+`full_name` des métadonnées Google. **Ré-exécuter `schema.sql`** après ce changement de
+trigger. Tant que l'étape 1-2 n'est pas faite, le bouton renvoie une erreur Supabase.
 
 ## Typage (priorité absolue)
 

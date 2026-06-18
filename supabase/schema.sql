@@ -19,6 +19,8 @@ create table if not exists public.profiles (
 );
 
 -- Crée automatiquement le profil à l'inscription (nom lu dans les métadonnées).
+-- Email/mot de passe fournit 'name' ; les fournisseurs OAuth (Google) renseignent
+-- 'name' ou 'full_name'. À défaut, on retombe sur la partie locale du courriel.
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -29,7 +31,12 @@ begin
   insert into public.profiles (id, name, email)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data ->> 'name', ''),
+    coalesce(
+      nullif(new.raw_user_meta_data ->> 'name', ''),
+      nullif(new.raw_user_meta_data ->> 'full_name', ''),
+      split_part(coalesce(new.email, ''), '@', 1),
+      ''
+    ),
     coalesce(new.email, '')
   )
   on conflict (id) do nothing;

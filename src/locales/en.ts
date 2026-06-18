@@ -162,6 +162,8 @@ const en = {
     goToSignup: 'Create account',
     haveAccount: 'Already have an account?',
     goToLogin: 'Sign in',
+    orDivider: 'or',
+    continueWithGoogle: 'Continue with Google',
     missingFields: 'Please fill in all fields.',
     passwordTooShort: 'Password must be at least 6 characters.',
     confirmEmailTitle: 'Check your email',

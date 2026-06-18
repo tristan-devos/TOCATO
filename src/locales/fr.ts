@@ -169,6 +169,8 @@ const fr = {
     goToSignup: 'Créer un compte',
     haveAccount: 'Déjà un compte ?',
     goToLogin: 'Se connecter',
+    orDivider: 'ou',
+    continueWithGoogle: 'Continuer avec Google',
     missingFields: 'Veuillez remplir tous les champs.',
     passwordTooShort: 'Le mot de passe doit contenir au moins 6 caractères.',
     confirmEmailTitle: 'Vérifiez votre courriel',

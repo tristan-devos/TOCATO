@@ -7,6 +7,8 @@
  */
 
 import type { AuthError, Session } from '@supabase/supabase-js';
+import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { create } from 'zustand';
 
 import { useProfileStore } from '@/lib/profile-store';
@@ -14,6 +16,9 @@ import { useAppStore } from '@/lib/store';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'anonymous';
+
+/** Fournisseurs OAuth câblés (login via navigateur, compatible Expo Go). */
+export type OAuthProvider = 'google';
 
 export interface AuthResult {
   error: string | null;
@@ -29,6 +34,7 @@ interface AuthState {
   status: AuthStatus;
   signUp: (email: string, password: string, name: string) => Promise<SignUpResult>;
   signIn: (email: string, password: string) => Promise<AuthResult>;
+  signInWithOAuth: (provider: OAuthProvider) => Promise<AuthResult>;
   signOut: () => Promise<AuthResult>;
 }
 
@@ -66,6 +72,31 @@ export const useAuthStore = create<AuthState>(() => ({
   signIn: async (email, password) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error: toFrenchError(error) };
+  },
+
+  // Flux OAuth via navigateur (compatible Expo Go) : on récupère l'URL d'auth
+  // de Supabase, on l'ouvre dans une session navigateur, puis on échange le
+  // code renvoyé sur le deep link contre une session. La session établie
+  // déclenche onAuthStateChange -> apply() (chargement profil + données).
+  signInWithOAuth: async (provider) => {
+    const redirectTo = Linking.createURL('auth-callback');
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo, skipBrowserRedirect: true },
+    });
+    if (error) return { error: toFrenchError(error) };
+    if (!data.url) return { error: 'Connexion impossible : URL OAuth manquante.' };
+
+    const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+    // L'utilisateur a fermé le navigateur sans terminer : pas une erreur.
+    if (result.type !== 'success') return { error: null };
+
+    const code = Linking.parse(result.url).queryParams?.code;
+    if (typeof code !== 'string') {
+      return { error: "Connexion interrompue : code d'autorisation introuvable." };
+    }
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+    return { error: toFrenchError(exchangeError) };
   },
 
   signOut: async () => {
