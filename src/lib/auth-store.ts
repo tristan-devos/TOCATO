@@ -64,7 +64,7 @@ const handledOAuthCodes = new Set<string>();
  * Idempotent par code. Renvoie un message d'erreur, ou null (succès, ou URL sans
  * code OAuth — un deep link ordinaire est alors simplement ignoré).
  */
-export async function completeOAuthSession(url: string): Promise<string | null> {
+async function completeOAuthSession(url: string): Promise<string | null> {
   const code = Linking.parse(url).queryParams?.code;
   if (typeof code !== 'string' || handledOAuthCodes.has(code)) return null;
   handledOAuthCodes.add(code);
