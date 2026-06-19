@@ -4,6 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AuthTextField } from '@/components/auth/auth-text-field';
+import { SocialAuth } from '@/components/auth/social-auth';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
@@ -69,6 +70,8 @@ export default function LoginScreen() {
         ) : null}
 
         <Button title={t('auth.signIn')} onPress={submit} loading={loading} size="lg" />
+
+        <SocialAuth />
       </View>
 
       <View style={styles.footer}>
