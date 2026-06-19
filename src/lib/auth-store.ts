@@ -99,16 +99,12 @@ export const useAuthStore = create<AuthState>(() => ({
   // déclenche onAuthStateChange -> apply() (chargement profil + données).
   signInWithOAuth: async (provider) => {
     const redirectTo = Linking.createURL('auth-callback');
-    // TODO(diagnostic OAuth) : à retirer une fois l'allowlist Supabase réglée.
-    if (__DEV__) console.log('[oauth] redirectTo =', redirectTo);
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider,
       options: { redirectTo, skipBrowserRedirect: true },
     });
     if (error) return { error: toFrenchError(error) };
     if (!data.url) return { error: 'Connexion impossible : URL OAuth manquante.' };
-    // TODO(diagnostic OAuth) : montre le ref du projet + le redirect_to envoyé.
-    if (__DEV__) console.log('[oauth] authorize url =', data.url);
 
     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
     // Deux retours possibles selon la plateforme : soit le navigateur rend la

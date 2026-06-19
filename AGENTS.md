@@ -206,8 +206,15 @@ fois). Checklist :
 2. **Supabase Dashboard** → Authentication → Providers → **Google** : activer, coller
    Client ID + secret.
 3. **Supabase Dashboard** → Authentication → URL Configuration → *Redirect URLs* : ajouter
-   `tocato://**` (build) **et** `exp://**` (test en Expo Go ; l'URL est basée sur l'IP/port
-   Metro). Le deep link de retour est `Linking.createURL('auth-callback')`.
+   `tocato://**` (build standalone) **et** `exp://**` (Expo Go). Le deep link de retour est
+   `Linking.createURL('auth-callback')`.
+4. **Piège vérifié (Expo Go)** : Supabase **ne matche pas** les schemes custom `exp://`
+   dans l'allowlist *Redirect URLs* — le `redirect_to` est alors **ignoré** et il retombe
+   sur la **Site URL** (par défaut `http://localhost:3000`, d'où la page blanche). En dev,
+   mettre la **Site URL** au deep link Expo Go exact, ex. `exp://192.168.1.4:8081/--/auth-callback`
+   (l'IP/port viennent de Metro ; un `console.log(Linking.createURL('auth-callback'))` la
+   donne). En build standalone, le scheme `tocato://` est matché normalement par l'allowlist,
+   donc la Site URL peut rester une vraie URL https.
 
 Le profil est créé par le trigger `handle_new_user` (schema.sql), qui lit `name` /
 `full_name` des métadonnées Google. **Ré-exécuter `schema.sql`** après ce changement de
