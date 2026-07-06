@@ -79,6 +79,9 @@ create table if not exists public.providers (
 );
 
 -- ——— bookings ————————————————————————————————————————————————————————————
+-- provider_id est null tant que la demande n'a pas de devis accepté : ce sont
+-- les prestataires qui contactent le client (une conversation chacun, voir
+-- conversations.booking_id), et l'acceptation d'un devis fixe le prestataire.
 create table if not exists public.bookings (
   id              uuid primary key default gen_random_uuid(),
   user_id         uuid not null references public.profiles (id) on delete cascade,
@@ -96,13 +99,17 @@ create table if not exists public.bookings (
   estimate_min    numeric(10, 2) not null,
   estimate_max    numeric(10, 2) not null,
   agreed_price    numeric(10, 2),
-  provider_id     text not null references public.providers (id),
-  conversation_id uuid not null
+  provider_id     text references public.providers (id)
 );
 create index if not exists bookings_user_id_idx on public.bookings (user_id);
 -- Migration des bases déjà déployées : photo_count (entier) -> photos (chemins Storage).
 alter table public.bookings add column if not exists photos text[] not null default '{}';
 alter table public.bookings drop column if exists photo_count;
+-- Migration des bases déjà déployées : demandes multi-prestataires — le
+-- prestataire n'est plus fixé à la création, et une réservation a N
+-- conversations (conversations.booking_id) au lieu d'une seule.
+alter table public.bookings alter column provider_id drop not null;
+alter table public.bookings drop column if exists conversation_id;
 
 -- ——— conversations ———————————————————————————————————————————————————————
 create table if not exists public.conversations (
@@ -114,6 +121,9 @@ create table if not exists public.conversations (
   last_message_at timestamptz not null default now()
 );
 create index if not exists conversations_user_id_idx on public.conversations (user_id);
+-- Un prestataire n'ouvre qu'une conversation par demande.
+create unique index if not exists conversations_booking_provider_key
+  on public.conversations (booking_id, provider_id);
 
 -- ——— messages ————————————————————————————————————————————————————————————
 -- sender_kind remplace le `senderId` magique ('me') du domaine.

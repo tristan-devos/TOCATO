@@ -103,8 +103,7 @@ export interface Database {
           estimate_min: number;
           estimate_max: number;
           agreed_price: number | null;
-          provider_id: string;
-          conversation_id: string;
+          provider_id: string | null;
         };
         Insert: {
           id?: string;
@@ -121,8 +120,7 @@ export interface Database {
           estimate_min: number;
           estimate_max: number;
           agreed_price?: number | null;
-          provider_id: string;
-          conversation_id: string;
+          provider_id?: string | null;
         };
         Update: Partial<Database['public']['Tables']['bookings']['Insert']>;
         Relationships: [];
@@ -176,21 +174,6 @@ export interface Database {
     };
     Views: Record<never, never>;
     Functions: {
-      create_booking: {
-        Args: {
-          p_service_id: ServiceId;
-          p_scheduled_date: string | null;
-          p_time_slot: TimeSlotId | null;
-          p_address: Address;
-          p_answers: BookingAnswer[];
-          p_description: string;
-          p_photos: string[];
-          p_estimate_min: number;
-          p_estimate_max: number;
-          p_provider_id: string;
-        };
-        Returns: { booking_id: string; conversation_id: string }[];
-      };
       seed_demo: {
         Args: Record<string, never>;
         Returns: undefined;

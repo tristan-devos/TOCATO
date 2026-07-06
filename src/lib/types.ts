@@ -61,8 +61,12 @@ export interface Booking {
   estimate: PriceRange;
   /** Final price when a quote has been accepted */
   agreedPrice?: number;
-  providerId: string;
-  conversationId: string;
+  /**
+   * Provider confirmed for the job — set when the client accepts a quote.
+   * While the request is open, interested providers each open a conversation
+   * (see Conversation.bookingId); there is no assigned provider yet.
+   */
+  providerId?: string;
 }
 
 export type MessageType = 'text' | 'quote' | 'document' | 'system';

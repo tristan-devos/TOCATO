@@ -33,16 +33,10 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="chats"
+        name="reservations"
         options={{
-          title: t('tabs.messages'),
-          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
-          tabBarBadge: unread > 0 ? unread : undefined,
-          tabBarBadgeStyle: {
-            backgroundColor: colors.destructive,
-            color: '#FFFFFF',
-            fontSize: FontSize.xs,
-          },
+          title: t('tabs.reservations'),
+          tabBarIcon: ({ color, size }) => <CalendarDays color={color} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -65,10 +59,16 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="reservations"
+        name="chats"
         options={{
-          title: t('tabs.reservations'),
-          tabBarIcon: ({ color, size }) => <CalendarDays color={color} size={size} />,
+          title: t('tabs.messages'),
+          tabBarIcon: ({ color, size }) => <MessageCircle color={color} size={size} />,
+          tabBarBadge: unread > 0 ? unread : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: colors.destructive,
+            color: '#FFFFFF',
+            fontSize: FontSize.xs,
+          },
         }}
       />
       <Tabs.Screen

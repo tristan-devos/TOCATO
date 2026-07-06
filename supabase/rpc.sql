@@ -23,51 +23,13 @@ create trigger on_message_created
   after insert on public.messages
   for each row execute function public.handle_new_message();
 
--- ——— create_booking : création atomique booking + conversation + 1er message —
--- Évite le FK circulaire et tout uuid côté client. Renvoie les deux ids.
-create or replace function public.create_booking(
-  p_service_id     text,
-  p_scheduled_date date,
-  p_time_slot      text,
-  p_address        jsonb,
-  p_answers        jsonb,
-  p_description    text,
-  p_photos         text[],
-  p_estimate_min   numeric,
-  p_estimate_max   numeric,
-  p_provider_id    text
-)
-returns table (booking_id uuid, conversation_id uuid)
-language plpgsql
-as $$
-declare
-  v_booking      uuid := gen_random_uuid();
-  v_conversation uuid := gen_random_uuid();
-  v_provider     text;
-begin
-  select name into v_provider from public.providers where id = p_provider_id;
-
-  -- bookings.conversation_id n'a pas de FK -> on peut insérer le booking d'abord.
-  insert into public.bookings (
-    id, user_id, service_id, status, scheduled_date, time_slot, address,
-    answers, description, photos, estimate_min, estimate_max,
-    provider_id, conversation_id
-  ) values (
-    v_booking, auth.uid(), p_service_id, 'pending', p_scheduled_date, p_time_slot,
-    p_address, p_answers, p_description, p_photos, p_estimate_min,
-    p_estimate_max, p_provider_id, v_conversation
-  );
-
-  insert into public.conversations (id, user_id, provider_id, booking_id)
-  values (v_conversation, auth.uid(), p_provider_id, v_booking);
-
-  insert into public.messages (conversation_id, sender_kind, type, text)
-  values (v_conversation, 'system', 'system',
-          'Votre demande a été envoyée à ' || coalesce(v_provider, '') || '.');
-
-  return query select v_booking, v_conversation;
-end;
-$$;
+-- ——— create_booking : supprimée (demandes multi-prestataires) ————————————
+-- La RPC ne servait qu'à créer booking + conversation atomiquement. Le client
+-- insère désormais directement dans bookings (RLS owner-only) ; les
+-- conversations sont ouvertes par les prestataires (Edge Function provider-reply).
+drop function if exists public.create_booking(
+  text, date, text, jsonb, jsonb, text, text[], numeric, numeric, text
+);
 
 -- ——— seed_demo : charge des réservations d'exemple dans le compte courant ——
 -- Remplace « Réinitialiser la démo ». Efface les bookings de l'utilisateur
@@ -82,47 +44,51 @@ security definer
 set search_path = public
 as $$
 declare
-  v_uid    uuid := auth.uid();
-  v_addr   jsonb := '{"id":"addr-home","label":"Maison","street":"4521, rue Saint-Denis, app. 3","city":"Montréal","postalCode":"H2J 2L2"}'::jsonb;
-  v_plomb  uuid := gen_random_uuid();
-  v_cplomb uuid := gen_random_uuid();
-  v_jard   uuid := gen_random_uuid();
-  v_cjard  uuid := gen_random_uuid();
+  v_uid     uuid := auth.uid();
+  v_addr    jsonb := '{"id":"addr-home","label":"Maison","street":"4521, rue Saint-Denis, app. 3","city":"Montréal","postalCode":"H2J 2L2"}'::jsonb;
+  v_plomb   uuid := gen_random_uuid();
+  v_cmarc   uuid := gen_random_uuid();
+  v_camadou uuid := gen_random_uuid();
+  v_jard    uuid := gen_random_uuid();
+  v_cjard   uuid := gen_random_uuid();
 begin
   if v_uid is null then return; end if;
   delete from public.bookings where user_id = v_uid;
 
-  -- Scénario 1 : plomberie en attente, devis en attente dans le chat.
+  -- Scénario 1 : plomberie en attente, sans prestataire attribué — deux
+  -- prestataires ont répondu, chacun avec un devis en attente (multi-offres).
   insert into public.bookings (id, user_id, service_id, status, created_at,
     scheduled_date, time_slot, address, answers, description, photos,
-    estimate_min, estimate_max, provider_id, conversation_id)
+    estimate_min, estimate_max, provider_id)
   values (v_plomb, v_uid, 'plumber', 'pending', now() - interval '2 days 3 hours',
     (now() + interval '3 days')::date, 'morning', v_addr,
     '[{"questionId":"issue","questionLabel":"Quel est le problème ?","values":["Fuite d''eau"]},{"questionId":"urgency","questionLabel":"C''est urgent ?","values":["Cette semaine"]},{"questionId":"housingType","questionLabel":"Type de logement ?","values":["Appartement / condo"]}]'::jsonb,
     'Fuite sous l''évier de la cuisine, le raccord du siphon goutte en continu. J''ai mis un seau en attendant.',
-    '{}', 170, 300, 'p-marc', v_cplomb);
-  insert into public.conversations (id, user_id, provider_id, booking_id)
-  values (v_cplomb, v_uid, 'p-marc', v_plomb);
+    '{}', 170, 300, null);
+  insert into public.conversations (id, user_id, provider_id, booking_id) values
+    (v_cmarc, v_uid, 'p-marc', v_plomb),
+    (v_camadou, v_uid, 'p-amadou', v_plomb);
   insert into public.messages (conversation_id, sender_kind, provider_id, type, text, created_at, quote) values
-    (v_cplomb, 'system', null, 'system', 'Votre demande a été envoyée à Marc Tremblay.', now() - interval '2 days 3 hours', null),
-    (v_cplomb, 'provider', 'p-marc', 'text', 'Bonjour ! J''ai bien vu votre demande pour la fuite sous l''évier. Les photos sont claires, c''est fort probablement le joint du siphon.', now() - interval '2 days 1 hour', null),
-    (v_cplomb, 'client', null, 'text', 'Bonjour ! Oui c''est ça, ça goutte surtout quand on fait couler l''eau. Vous pouvez passer cette semaine ?', now() - interval '1 day 6 hours', null),
-    (v_cplomb, 'provider', 'p-marc', 'quote', 'Voici mon devis pour l''intervention. Je peux passer comme prévu en matinée.', now() - interval '2 hours',
-     '{"amount":185,"details":"Remplacement du siphon et des joints, main-d''œuvre et déplacement inclus. Garantie 6 mois.","status":"pending"}'::jsonb);
+    (v_cmarc, 'provider', 'p-marc', 'text', 'Bonjour ! J''ai bien vu votre demande pour la fuite sous l''évier. Les photos sont claires, c''est fort probablement le joint du siphon.', now() - interval '2 days 1 hour', null),
+    (v_cmarc, 'client', null, 'text', 'Bonjour ! Oui c''est ça, ça goutte surtout quand on fait couler l''eau. Vous pouvez passer cette semaine ?', now() - interval '1 day 6 hours', null),
+    (v_cmarc, 'provider', 'p-marc', 'quote', 'Voici mon devis pour l''intervention. Je peux passer comme prévu en matinée.', now() - interval '2 hours',
+     '{"amount":185,"details":"Remplacement du siphon et des joints, main-d''œuvre et déplacement inclus. Garantie 6 mois.","status":"pending"}'::jsonb),
+    (v_camadou, 'provider', 'p-amadou', 'text', 'Bonjour, je suis disponible cette semaine pour votre fuite sous l''évier. Je me déplace avec les pièces courantes.', now() - interval '1 day 20 hours', null),
+    (v_camadou, 'provider', 'p-amadou', 'quote', 'Voici ma proposition, déplacement inclus.', now() - interval '1 day 4 hours',
+     '{"amount":170,"details":"Diagnostic et remplacement du joint ou du siphon selon l''état. Pièces standard incluses.","status":"pending"}'::jsonb);
 
-  -- Scénario 2 : jardinage terminé, facture dans le chat.
+  -- Scénario 2 : jardinage terminé (prestataire confirmé), facture dans le chat.
   insert into public.bookings (id, user_id, service_id, status, created_at,
     scheduled_date, time_slot, address, answers, description, photos,
-    estimate_min, estimate_max, agreed_price, provider_id, conversation_id)
+    estimate_min, estimate_max, agreed_price, provider_id)
   values (v_jard, v_uid, 'gardener', 'completed', now() - interval '16 days',
     (now() - interval '12 days')::date, 'afternoon', v_addr,
     '[{"questionId":"work","questionLabel":"Quels travaux ?","values":["Tonte de pelouse","Taille de haies et arbustes"]},{"questionId":"area","questionLabel":"Quelle surface ?","values":["Petit terrain"]},{"questionId":"frequency","questionLabel":"À quelle fréquence ?","values":["Une seule fois"]}]'::jsonb,
     'Petite cour arrière, haie de cèdres à rafraîchir avant l''été.',
-    '{}', 135, 270, 160, 'p-sophie', v_cjard);
+    '{}', 135, 270, 160, 'p-sophie');
   insert into public.conversations (id, user_id, provider_id, booking_id)
   values (v_cjard, v_uid, 'p-sophie', v_jard);
   insert into public.messages (conversation_id, sender_kind, provider_id, type, text, created_at, document) values
-    (v_cjard, 'system', null, 'system', 'Votre demande a été envoyée à Sophie Gagnon.', now() - interval '16 days', null),
     (v_cjard, 'provider', 'p-sophie', 'text', 'Bonjour ! Merci pour votre demande. Pour une petite cour avec haie de cèdres, je propose 160 $ tout inclus.', now() - interval '15 days', null),
     (v_cjard, 'client', null, 'text', 'Parfait pour moi, on confirme !', now() - interval '15 days' + interval '2 hours', null),
     (v_cjard, 'provider', 'p-sophie', 'text', 'C''est fait ! La haie est taillée et la pelouse tondue. Merci pour votre confiance.', now() - interval '12 days' + interval '5 hours', null),
@@ -130,7 +96,8 @@ begin
      '{"name":"Facture-TOCATO-0214.pdf","size":"86 Ko"}'::jsonb);
 
   -- Le trigger a recalculé unread_count/last_message_at ; on fixe l'état voulu.
-  update public.conversations set unread_count = 1, last_message_at = now() - interval '2 hours' where id = v_cplomb;
+  update public.conversations set unread_count = 1, last_message_at = now() - interval '2 hours' where id = v_cmarc;
+  update public.conversations set unread_count = 1, last_message_at = now() - interval '1 day 4 hours' where id = v_camadou;
   update public.conversations set unread_count = 0, last_message_at = now() - interval '11 days' where id = v_cjard;
 end;
 $$;

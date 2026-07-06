@@ -1,4 +1,5 @@
 import { Calendar, MapPin } from 'lucide-react-native';
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -12,6 +13,7 @@ import { useFormats } from '@/hooks/use-formats';
 import { BOOKING_STATUS } from '@/lib/booking-status';
 import { getProvider } from '@/lib/mock-data';
 import { TIME_SLOTS } from '@/lib/services';
+import { useAppStore } from '@/lib/store';
 import type { Booking } from '@/lib/types';
 
 interface BookingCardProps {
@@ -23,9 +25,23 @@ export function BookingCard({ booking, onPress }: BookingCardProps) {
   const colors = useTheme();
   const { t } = useTranslation();
   const { formatDateLong, formatPrice, formatPriceRange } = useFormats();
-  const provider = getProvider(booking.providerId);
+  const conversations = useAppStore((s) => s.conversations);
+  const provider = booking.providerId ? getProvider(booking.providerId) : undefined;
   const status = BOOKING_STATUS[booking.status];
   const slot = TIME_SLOTS.find((s) => s.id === booking.timeSlot);
+
+  // Demande encore ouverte : on affiche l'avancement côté prestataires.
+  const offerCount = useMemo(
+    () => conversations.filter((c) => c.bookingId === booking.id).length,
+    [conversations, booking.id],
+  );
+  const subtitle = provider
+    ? provider.name
+    : booking.status === 'pending'
+      ? offerCount > 0
+        ? t('providerOffers.interested', { count: offerCount })
+        : t('providerOffers.waitingShort')
+      : null;
 
   return (
     <Card onPress={onPress}>
@@ -36,9 +52,9 @@ export function BookingCard({ booking, onPress }: BookingCardProps) {
             <Text style={[styles.title, { color: colors.text }]}>
               {t(`services.${booking.serviceId}.categoryName`)}
             </Text>
-            {provider ? (
+            {subtitle ? (
               <Text style={[styles.provider, { color: colors.textSecondary }]}>
-                {provider.name}
+                {subtitle}
               </Text>
             ) : null}
           </View>

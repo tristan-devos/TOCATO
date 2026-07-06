@@ -44,7 +44,9 @@ plombier, déménageur, jardinier.
   **migration store terminée** : auth, profil/adresses, et bookings/conversations/messages
   passent tous par Supabase (lectures + Realtime + écritures). La simulation des réponses
   prestataire vit désormais côté serveur (Edge Function `provider-reply` + service_role +
-  Realtime) ; l'app ne fait que la déclencher. Les photos du wizard sont téléversées dans
+  Realtime) ; l'app ne fait que la déclencher. Flux multi-prestataires : la demande est
+  créée sans prestataire, chaque prestataire intéressé ouvre sa conversation (côté
+  serveur), et l'acceptation d'un devis fixe le prestataire. Les photos du wizard sont téléversées dans
   **Supabase Storage** (bucket privé `booking-photos`, RLS par dossier `{user}/{booking}/`,
   affichées via URLs signées) — la migration store est désormais complète.
 - React Compiler (expérimental) et typed routes activés (`app.json > experiments`).
@@ -99,22 +101,26 @@ src/app/                    Routes expo-router
   +not-found.tsx            Écran 404 (EmptyState, retour vers les onglets)
   (auth)/_layout.tsx        Stack des écrans d'auth (sans header)
   (auth)/{login,signup}.tsx Connexion / inscription (email + mot de passe, + Google OAuth)
-  (tabs)/_layout.tsx        5 onglets : Accueil, Messages, Réserver (bouton central logo),
-                            Réservations, Profil
+  (tabs)/_layout.tsx        5 onglets : Accueil, Réservations, Réserver (bouton central
+                            logo), Messages, Profil
   (tabs)/{index,chats,reserver,reservations,profil}.tsx
   booking/[service].tsx     Wizard de réservation multi-étapes (modal)
-  chat/[id].tsx             Conversation (messages, devis acceptables, documents)
-  reservation/[id].tsx      Détail réservation (timeline de statut, annulation)
+  chat/[id].tsx             Conversation (messages, devis acceptables, documents ;
+                            header cliquable vers le profil du prestataire)
+  reservation/[id].tsx      Détail réservation (timeline de statut, offres reçues ou
+                            prestataire confirmé, annulation)
+  provider/[id].tsx         Profil public d'un prestataire (fiche, stats, services)
   profile/{addresses,payments,help}.tsx
 src/components/             Composants métier (booking-card, provider-row, service-card…)
   auth/                     auth-text-field (champ libellé des formulaires de connexion)
                             + social-auth (séparateur « ou » + bouton Google, OAuth navigateur)
-  booking/                  Étapes du wizard (question, details, address, schedule,
-                            provider, review)
+  booking/                  Étapes du wizard (question, details, address, schedule, review)
                             + booking-photos (galerie des photos d'une réservation, URLs signées)
-                            + booking-success (écran de confirmation post-envoi)
-                            provider-step : choix du prestataire (ou attribution auto)
+                            + booking-success (écran de confirmation post-envoi — les
+                            prestataires contacteront le client dans Messages)
   reservation/              status-timeline (frise verticale de progression d'une réservation)
+                            + provider-offers (offres reçues sur une demande ouverte :
+                            une carte par prestataire intéressé, tap = ouvrir le chat)
   chat/                     message-bubble (texte / devis / document / système)
   ui/                       Primitives (button, card, chip, badge, avatar, screen…)
 src/lib/
@@ -126,7 +132,8 @@ src/lib/
                             tagline, questions, options) selon la langue active.
   store.ts                  Store Zustand adossé à Supabase : réservations, conversations,
                             messages. Charge à la connexion (loadAll), écoute le Realtime,
-                            réécrit via Supabase (create_booking RPC, updates, inserts).
+                            réécrit via Supabase (inserts/updates directs, RLS). Accepter
+                            un devis fixe le prestataire et notifie les autres conversations.
   profile-store.ts          Profil + adresses de l'utilisateur connecté, adossé à Supabase
                             (chargé à la connexion). A remplacé le `user` mock du store.
   db-mappers.ts             Conversion lignes Supabase -> types du domaine (frontière DB/app)
@@ -135,11 +142,13 @@ src/lib/
                             inline (pas de dépendance ajoutée).
   provider-reply.ts         Déclenche la simulation prestataire côté serveur (invoke de
                             l'Edge Function provider-reply) — fire-and-forget, Realtime.
+                            `initial` (bookingId) : les prestataires du service viennent
+                            vers le client ; `canned` (conversationId) : réponse au chat.
   mock-data.ts              Catalogue de prestataires de démo (montréalais) — seul mock
-                            restant. Affiché dans provider-step (le client choisit) et
-                            assigné via create_booking ; à défaut de choix, rotation auto.
-                            Ses IDs doivent refléter les prestataires seedés dans schema.sql
-                            (FK bookings.provider_id). Le reste vit dans Supabase.
+                            restant. Fiches affichées côté client (conversations, offres,
+                            profil prestataire). Ses IDs doivent refléter les prestataires
+                            seedés dans schema.sql (provider_id des conversations et
+                            réservations). Le reste vit dans Supabase.
   format.ts                 createFormatters(locale) : formatage fr-CA / en-CA (prix CAD,
                             dates). Consommé via le hook use-formats (langue active).
   booking-status.ts         Libellés/tons des statuts de réservation
@@ -165,11 +174,14 @@ supabase/schema.sql         Schéma Postgres : tables + RLS + Realtime + bucket 
                             booking-photos (privé, RLS owner-only) + seed prestataires
                             (idempotent, ré-exécutable). Miroir de lib/types.ts. Les IDs
                             prestataires doivent rester synchrones avec lib/mock-data.ts.
-supabase/rpc.sql            Fonctions/triggers (create_booking, seed_demo, trigger messages)
-                            — à exécuter APRÈS schema.sql. seed_demo charge le scénario de
-                            démo (réservations/conversations/messages, dates relatives).
-supabase/functions/         Edge Functions (Deno). provider-reply : insère les réponses
-                            prestataire (service_role) — exclu du tsconfig de l'app.
+supabase/rpc.sql            Fonctions/triggers (seed_demo, trigger messages ; drop de
+                            l'ancienne RPC create_booking) — à exécuter APRÈS schema.sql.
+                            seed_demo charge le scénario de démo (réservations/
+                            conversations/messages, dates relatives, multi-offres).
+supabase/functions/         Edge Functions (Deno). provider-reply : simulation côté
+                            serveur (service_role) — `initial` crée une conversation par
+                            prestataire du service (intro + devis, délais échelonnés),
+                            `canned` répond dans une conversation. Exclu du tsconfig.
 ```
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).
@@ -266,17 +278,21 @@ Ces règles sont non négociables :
 - Sélecteurs Zustand : ne jamais retourner un objet/tableau neuf dans le sélecteur
   (boucle de re-render avec Zustand v5) — sélectionner le tableau brut et filtrer en
   `useMemo` dans le composant.
-- Flux principal de l'app : demande (wizard, dont choix du prestataire ou attribution auto)
-  → réservation `pending` + conversation créée → devis du prestataire dans le chat →
-  acceptation → réservation `confirmed`.
+- Flux principal de l'app : demande (wizard, sans choix de prestataire) → réservation
+  `pending` sans prestataire → les prestataires intéressés ouvrent chacun une conversation
+  avec un devis (autant d'offres que de prestataires tant que rien n'est accepté) →
+  acceptation d'un devis → réservation `confirmed` avec ce prestataire (les autres
+  conversations sont notifiées et leurs devis retirés).
 
 ## Données de démo
 
 L'état applicatif (réservations, conversations, messages) vit dans **Supabase** — le store
 n'est **pas** persisté en AsyncStorage. Le seul mock restant est le **catalogue de
-prestataires** (`lib/mock-data.ts`) : le client en choisit un à l'étape `provider` du
-wizard (sinon attribution auto par rotation côté `createBooking`). Ses IDs doivent
-refléter les prestataires seedés dans `supabase/schema.sql` (FK `bookings.provider_id`).
+prestataires** (`lib/mock-data.ts`) : les fiches affichées côté client (conversations,
+offres reçues, profil prestataire). Les prestataires « répondent » aux demandes via
+l'Edge Function `provider-reply` (une conversation par prestataire du service, table
+`providers`). Les IDs du mock doivent refléter les prestataires seedés dans
+`supabase/schema.sql` (FK `provider_id` des conversations et réservations).
 
 « Profil → Réinitialiser la démo » appelle la RPC **`seed_demo`** (côté serveur, dans
 `supabase/rpc.sql`) puis recharge depuis Supabase. C'est `seed_demo` qui contient le scénario

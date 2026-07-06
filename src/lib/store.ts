@@ -3,16 +3,16 @@
  *
  * Source de vérité = la base. Le store charge les données à la connexion
  * (`loadAll`, appelé depuis auth-store), écoute le Realtime et réécrit via
- * Supabase. La simulation des réponses prestataire vit côté serveur (Edge
- * Function `provider-reply`), déclenchée via `provider-reply.ts`. Les sélecteurs
- * exposés restent identiques pour ne pas toucher les écrans.
+ * Supabase. Flux multi-prestataires : la demande est créée sans prestataire ;
+ * ce sont les prestataires qui ouvrent chacun une conversation (simulation côté
+ * serveur, Edge Function `provider-reply` déclenchée via `provider-reply.ts`),
+ * et l'acceptation d'un devis fixe le prestataire de la réservation.
  */
 
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { create } from 'zustand';
 
 import { rowToBooking, rowToConversation, rowToMessage } from '@/lib/db-mappers';
-import { providersForService } from '@/lib/mock-data';
 import { type LocalPhoto, uploadBookingPhotos } from '@/lib/photo-upload';
 import { triggerProviderReply } from '@/lib/provider-reply';
 import { estimatePrice } from '@/lib/services';
@@ -35,8 +35,6 @@ export interface BookingDraft {
   address: Address;
   scheduledDate?: string;
   timeSlot?: TimeSlotId;
-  /** Prestataire choisi par le client ; absent = attribution automatique. */
-  providerId?: string;
 }
 
 interface AppState {
@@ -48,9 +46,7 @@ interface AppState {
 
   loadAll: () => Promise<void>;
   clearAll: () => void;
-  createBooking: (
-    draft: BookingDraft,
-  ) => Promise<{ bookingId: string; conversationId: string } | null>;
+  createBooking: (draft: BookingDraft) => Promise<{ bookingId: string } | null>;
   cancelBooking: (bookingId: string) => Promise<void>;
   sendMessage: (conversationId: string, text: string) => Promise<void>;
   respondToQuote: (messageId: string, accept: boolean) => Promise<void>;
@@ -141,47 +137,44 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   createBooking: async (draft) => {
-    // Le client choisit un prestataire ; sinon attribution auto (rotation démo).
-    const candidates = providersForService(draft.serviceId);
-    const chosen = draft.providerId
-      ? candidates.find((p) => p.id === draft.providerId)
-      : undefined;
-    const provider = chosen ?? candidates[get().bookings.length % candidates.length];
-    if (!provider) return null;
+    // La demande est créée sans prestataire : les prestataires intéressés
+    // ouvriront chacun leur conversation (Edge Function provider-reply).
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user.id;
+    if (!userId) return null;
 
     const estimate = estimatePrice(draft.serviceId);
-    const { data, error } = await supabase.rpc('create_booking', {
-      p_service_id: draft.serviceId,
-      p_scheduled_date: draft.scheduledDate ?? null,
-      p_time_slot: draft.timeSlot ?? null,
-      p_address: draft.address,
-      p_answers: draft.answers,
-      p_description: draft.description,
-      p_photos: [],
-      p_estimate_min: estimate.min,
-      p_estimate_max: estimate.max,
-      p_provider_id: provider.id,
-    });
-    const result = data?.[0];
-    if (error || !result) return null;
+    const { data, error } = await supabase
+      .from('bookings')
+      .insert({
+        user_id: userId,
+        service_id: draft.serviceId,
+        scheduled_date: draft.scheduledDate ?? null,
+        time_slot: draft.timeSlot ?? null,
+        address: draft.address,
+        answers: draft.answers,
+        description: draft.description,
+        estimate_min: estimate.min,
+        estimate_max: estimate.max,
+      })
+      .select('id')
+      .single();
+    if (error || !data) return null;
+    const bookingId = data.id;
 
     // Upload des photos après création (le booking_id sert de dossier Storage),
     // puis on rattache les chemins à la réservation. Best-effort : un échec
     // d'upload n'invalide pas la réservation déjà créée.
     if (draft.photos.length > 0) {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData.session?.user.id;
-      if (userId) {
-        const paths = await uploadBookingPhotos(userId, result.booking_id, draft.photos);
-        if (paths.length > 0) {
-          await supabase.from('bookings').update({ photos: paths }).eq('id', result.booking_id);
-        }
+      const paths = await uploadBookingPhotos(userId, bookingId, draft.photos);
+      if (paths.length > 0) {
+        await supabase.from('bookings').update({ photos: paths }).eq('id', bookingId);
       }
     }
 
-    await Promise.all([refreshBookings(), refreshConversations(), refreshMessages()]);
-    triggerProviderReply(result.conversation_id, 'initial');
-    return { bookingId: result.booking_id, conversationId: result.conversation_id };
+    await refreshBookings();
+    triggerProviderReply({ kind: 'initial', bookingId });
+    return { bookingId };
   },
 
   cancelBooking: async (bookingId) => {
@@ -189,12 +182,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!booking || booking.status === 'cancelled' || booking.status === 'completed') return;
 
     await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId);
-    await supabase.from('messages').insert({
-      conversation_id: booking.conversationId,
-      sender_kind: 'system',
-      type: 'system',
-      text: 'Vous avez annulé cette réservation.',
-    });
+    // Tous les prestataires en conversation sur cette demande sont prévenus.
+    const conversations = get().conversations.filter((c) => c.bookingId === bookingId);
+    if (conversations.length > 0) {
+      await supabase.from('messages').insert(
+        conversations.map((c) => ({
+          conversation_id: c.id,
+          sender_kind: 'system' as const,
+          type: 'system' as const,
+          text: 'Vous avez annulé cette réservation.',
+        })),
+      );
+    }
     await Promise.all([refreshBookings(), refreshMessages()]);
   },
 
@@ -212,7 +211,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     await refreshMessages();
 
-    triggerProviderReply(conversationId, 'canned');
+    triggerProviderReply({ kind: 'canned', conversationId });
   },
 
   respondToQuote: async (messageId, accept) => {
@@ -220,18 +219,55 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (!message?.quote || message.quote.status !== 'pending') return;
     const conversation = get().conversations.find((c) => c.id === message.conversationId);
     if (!conversation) return;
+    const booking = get().bookings.find((b) => b.id === conversation.bookingId);
+    if (!booking) return;
+    // Garde : un devis ne s'accepte que sur une demande encore ouverte
+    // (pas déjà pourvue par un autre prestataire, ni annulée).
+    if (accept && (booking.status !== 'pending' || booking.providerId != null)) return;
 
     const status = accept ? 'accepted' : 'declined';
     await supabase
       .from('messages')
       .update({ quote: { ...message.quote, status } })
       .eq('id', messageId);
+
     if (accept) {
+      // L'acceptation fixe le prestataire de la réservation.
       await supabase
         .from('bookings')
-        .update({ status: 'confirmed', agreed_price: message.quote.amount })
-        .eq('id', conversation.bookingId);
+        .update({
+          status: 'confirmed',
+          agreed_price: message.quote.amount,
+          provider_id: conversation.providerId,
+        })
+        .eq('id', booking.id);
+
+      // Les autres prestataires de la demande : devis en attente retirés,
+      // et un message système les prévient (leurs conversations restent lisibles).
+      const others = get().conversations.filter(
+        (c) => c.bookingId === booking.id && c.id !== conversation.id,
+      );
+      const otherIds = new Set(others.map((c) => c.id));
+      for (const pending of get().messages) {
+        if (!pending.quote || pending.quote.status !== 'pending') continue;
+        if (pending.id === messageId || !otherIds.has(pending.conversationId)) continue;
+        await supabase
+          .from('messages')
+          .update({ quote: { ...pending.quote, status: 'declined' } })
+          .eq('id', pending.id);
+      }
+      if (others.length > 0) {
+        await supabase.from('messages').insert(
+          others.map((c) => ({
+            conversation_id: c.id,
+            sender_kind: 'system' as const,
+            type: 'system' as const,
+            text: 'Vous avez confirmé un autre prestataire pour cette demande.',
+          })),
+        );
+      }
     }
+
     await supabase.from('messages').insert({
       conversation_id: message.conversationId,
       sender_kind: 'system',

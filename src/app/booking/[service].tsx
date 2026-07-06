@@ -17,7 +17,6 @@ import { useTranslation } from 'react-i18next';
 import { AddressStep } from '@/components/booking/address-step';
 import { BookingSuccess } from '@/components/booking/booking-success';
 import { DetailsStep } from '@/components/booking/details-step';
-import { ProviderStep } from '@/components/booking/provider-step';
 import { QuestionStep } from '@/components/booking/question-step';
 import { ReviewStep } from '@/components/booking/review-step';
 import { ScheduleStep } from '@/components/booking/schedule-step';
@@ -32,7 +31,7 @@ import { useLocalizedService } from '@/lib/use-localized-service';
 import { useAppStore } from '@/lib/store';
 import type { BookingAnswer, ServiceId, TimeSlotId } from '@/lib/types';
 
-const EXTRA_STEPS = ['details', 'address', 'schedule', 'provider', 'review'] as const;
+const EXTRA_STEPS = ['details', 'address', 'schedule', 'review'] as const;
 
 export default function BookingWizardScreen() {
   const colors = useTheme();
@@ -56,12 +55,7 @@ export default function BookingWizardScreen() {
   const [asap, setAsap] = useState(false);
   const [scheduledDate, setScheduledDate] = useState<string | null>(null);
   const [timeSlot, setTimeSlot] = useState<TimeSlotId | null>(null);
-  // null = laisser TOCATO choisir (attribution automatique).
-  const [providerId, setProviderId] = useState<string | null>(null);
-  const [submittedIds, setSubmittedIds] = useState<{
-    bookingId: string;
-    conversationId: string;
-  } | null>(null);
+  const [submittedBookingId, setSubmittedBookingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   if (!serviceParam || !isServiceId(serviceParam)) {
@@ -103,7 +97,7 @@ export default function BookingWizardScreen() {
   const submit = async () => {
     if (!selectedAddress || submitting) return;
     setSubmitting(true);
-    const ids = await createBooking({
+    const result = await createBooking({
       serviceId: service.id,
       answers: buildAnswers(),
       description: description.trim(),
@@ -111,14 +105,13 @@ export default function BookingWizardScreen() {
       address: selectedAddress,
       scheduledDate: asap ? undefined : (scheduledDate ?? undefined),
       timeSlot: asap ? undefined : (timeSlot ?? undefined),
-      providerId: providerId ?? undefined,
     });
     setSubmitting(false);
-    if (!ids) return;
+    if (!result) return;
     if (Platform.OS !== 'web') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    setSubmittedIds(ids);
+    setSubmittedBookingId(result.bookingId);
   };
 
   const goNext = () => {
@@ -148,13 +141,9 @@ export default function BookingWizardScreen() {
     ]);
   };
 
-  if (submittedIds) {
+  if (submittedBookingId) {
     return (
-      <BookingSuccess
-        bookingId={submittedIds.bookingId}
-        conversationId={submittedIds.conversationId}
-        serviceName={service.categoryName}
-      />
+      <BookingSuccess bookingId={submittedBookingId} serviceName={service.categoryName} />
     );
   }
 
@@ -219,14 +208,6 @@ export default function BookingWizardScreen() {
             />
           ) : null}
 
-          {currentStep === 'provider' ? (
-            <ProviderStep
-              serviceId={service.id}
-              selectedId={providerId}
-              onSelect={setProviderId}
-            />
-          ) : null}
-
           {currentStep === 'review' && selectedAddress ? (
             <ReviewStep
               service={service}
@@ -237,7 +218,6 @@ export default function BookingWizardScreen() {
               asap={asap}
               scheduledDate={scheduledDate}
               timeSlot={timeSlot}
-              providerId={providerId}
             />
           ) : null}
         </ScrollView>
