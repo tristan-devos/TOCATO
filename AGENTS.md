@@ -6,20 +6,24 @@ Application mobile (côté client) de mise en relation entre clients et prestata
 plombier, déménageur, jardinier.
 
 > Expo évolue vite : avant toute modification non triviale, lire les docs versionnées
-> https://docs.expo.dev/versions/v54.0.0/ (ou https://docs.expo.dev/llms-full.txt).
+> https://docs.expo.dev/versions/v57.0.0/ (ou https://docs.expo.dev/llms-full.txt).
 
 ## Stack
 
-- **Expo SDK 54** (React Native 0.81, React 19.1). **Pin volontaire — ne pas bumper.**
-  Le dev sur Windows se fait via **Expo Go** sur un iPhone physique, et l'app Expo Go de
-  l'App Store iOS est restée en **54.0.2 (SDK 54 uniquement)** — les SDK 55/56 n'y sont pas
-  disponibles (vérifié juin 2026 : un projet SDK 56 affiche « Project is incompatible with
-  this version of Expo Go » sans mise à jour possible). Avant tout bump de SDK, vérifier la
-  version réellement publiée sur https://apps.apple.com/app/expo-go/id982107779.
-- **expo-router v6** — file-based routing, basé sur react-navigation : `Stack` et `Tabs`
-  s'importent depuis `'expo-router'`, et `ThemeProvider`/`DarkTheme`/`DefaultTheme` depuis
-  `'@react-navigation/native'`. (Au SDK 56, le router se découple de react-navigation et les
-  imports changent — points à revoir le jour du bump.)
+- **Expo SDK 57** (React Native 0.86, React 19.2). **Pin volontaire — ne pas bumper.**
+  Le dev sur Windows se fait via **Expo Go** sur un iPhone physique. Avant tout futur bump
+  de SDK, vérifier que la version publiée de l'app Expo Go supporte bien la nouvelle
+  version sur https://apps.apple.com/app/expo-go/id982107779 (SDK 54 posait ce problème :
+  Expo Go iOS était resté bloqué en 54.0.2, incompatible avec les projets SDK 55/56 — la
+  mise à jour vers 57 a confirmé qu'Expo Go supporte de nouveau la dernière version).
+- **expo-router** (version alignée sur le SDK, `57.0.19`) — file-based routing. Depuis le
+  **SDK 56**, le router s'est découplé
+  de react-navigation : imports interdits depuis `@react-navigation/*` en code applicatif.
+  `Stack`/`Tabs` s'importent depuis `'expo-router'`, `ThemeProvider`/`DarkTheme`/
+  `DefaultTheme` depuis `'expo-router/react-navigation'` (plus depuis
+  `'@react-navigation/native'`, retiré des dépendances). Voir
+  https://docs.expo.dev/router/migrate/sdk-55-to-56/ pour la table de correspondance
+  complète des imports si d'autres écrans venaient à en avoir besoin.
 - **Styling : StyleSheet + design tokens** (`src/constants/theme.ts`). Pas de NativeWind —
   choix délibéré pour limiter les couches fragiles au-dessus de Metro/Babel.
 - **Zustand 5** + AsyncStorage (persistance) pour l'état global.
@@ -80,9 +84,11 @@ pas de build natif pour l'instant, et **pas de `eas.json`** à la racine.
   Dashboard : https://expo.dev/accounts/tocato/projects/tocato
 - **Compte** : `tristanos` (propriétaire de l'org `tocato`). Vérifier avec
   `npx eas-cli whoami` (le binaire s'appelle `eas-cli`, **pas** `eas`).
-- **Une seule branche : `preview`**, runtime `exposdk:54.0.0`. **Aucun channel** : l'app
-  consomme les updates **directement par branche**, et comme le runtime est `exposdk:54.0.0`
-  l'update s'ouvre dans **Expo Go SDK 54** (cohérent avec le workflow iPhone).
+- **Une seule branche : `preview`**, runtime `exposdk:57.0.0` (dérivé automatiquement du SDK
+  installé — `runtimeVersion.policy: "sdkVersion"` dans `app.json`, se met donc à jour
+  seul à chaque bump de SDK). **Aucun channel** : l'app consomme les updates **directement
+  par branche**, et le runtime détermine dans quelle version d'**Expo Go** l'update s'ouvre
+  (cohérent avec le workflow iPhone tant que le SDK pinné et Expo Go restent alignés).
 - **Publier le code committé** (= « déployer sur Expo ») :
   `npx eas-cli update --branch preview --message "<résumé>"`. Pas `--non-interactive`
   (non supporté ici) ; utiliser `$CI=1` si besoin. L'iPhone récupère l'update au prochain
