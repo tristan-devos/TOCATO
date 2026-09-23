@@ -77,12 +77,26 @@ plombier, déménageur, jardinier.
   dashboard, Supabase répond du HTML et l'app affiche `JSON parse error: Unexpected
   character: <` à l'inscription/connexion. Vérif rapide :
   `curl https://<ref>.supabase.co/auth/v1/health` doit répondre du **JSON** (401 sans clé).
-  Exécuter dans le SQL editor, **dans cet ordre** : `supabase/schema.sql` (tables,
+  **Appliquer le SQL** : `supabase/apply.sh` (depuis `main` à jour), qui joue dans cet
+  ordre : `supabase/schema.sql` (tables,
   migrations, Realtime, seed) → `rpc.sql` (trigger, create_booking, seed_demo) →
   `transitions.sql` (transitions côté client) → `providers.sql` (comptes et actions
   prestataire) → `policies.sql` (RLS + Storage, **en dernier** : les policies appellent
   les fonctions des fichiers précédents). Tous idempotents et ré-exécutables. **Après
-  toute PR qui touche `supabase/`**, ré-exécuter les cinq fichiers dans cet ordre.
+  toute PR qui touche `supabase/`** : `git checkout main && git pull && supabase/apply.sh`.
+  Le script remplace le copier-coller dans le SQL editor : psql via Docker (image
+  `postgres:16-alpine`, rien à installer), les cinq fichiers dans **une seule
+  transaction** (à la première erreur, rien n'est appliqué), confirmation `[o/N]` après
+  affichage de l'hôte visé. Il **refuse** de tourner hors de `main`, avec des
+  modifications dans `supabase/`, ou si `main` n'est pas à jour avec `origin/main`.
+  Connexion : `SUPABASE_DB_URL` dans `.env` = Dashboard → **Connect** → **Session
+  pooler** (`postgresql://postgres.<ref>:<mot de passe>@aws-…pooler.supabase.com:5432/postgres`).
+  **Pas** la *Direct connection* (IPv6 seulement, injoignable depuis la plupart des
+  réseaux) ni le *Transaction pooler* (port 6543). Mot de passe perdu : Project
+  Settings → Database → *Reset database password* (caractères spéciaux du mot de passe
+  à encoder dans l'URL, ex. `@` → `%40`). Sans préfixe `EXPO_PUBLIC_`, Metro
+  ne l'inclut jamais dans le bundle. Le SQL editor reste possible (mêmes fichiers, même
+  ordre) si Docker n'est pas disponible.
   **Règle : la base Supabase partagée reflète toujours `main`.** Ne jamais y exécuter le
   SQL d'une branche non mergée (tester avec `supabase/tests/run.sh`). **Piège vérifié** : le
   SQL de la PR #8 (jamais mergée) y avait été exécuté et avait supprimé
@@ -267,6 +281,7 @@ supabase/providers.sql      Comptes prestataires : current_provider_id, list_ope
                             provider_conversation_clients, admin_link_provider (admin).
 supabase/policies.sql       Toutes les policies RLS + Storage (client et prestataire), en
                             dernier. Voir section Sécurité des données.
+supabase/apply.sh           Applique les cinq fichiers à la base partagée (main uniquement)
 supabase/tests/             Tests SQL hors projet réel : run.sh (Postgres Docker),
                             supabase-stubs.sql (auth.uid, rôles, storage simulés),
                             scenarios.sql (client), scenarios-provider.sql (prestataire).

@@ -2,7 +2,7 @@
 -- TOCATO — schéma Postgres (Supabase)
 -- =============================================================================
 -- Miroir de src/lib/types.ts (source de vérité du domaine) et de
--- src/lib/database.types.ts. À exécuter dans le SQL editor d'un projet Supabase.
+-- src/lib/database.types.ts. Appliqué par supabase/apply.sh (ou le SQL editor).
 -- Idempotent autant que possible (IF NOT EXISTS / ON CONFLICT).
 --
 -- Ordre d'exécution (tous idempotents) : schema.sql (tables, migrations, seed)
