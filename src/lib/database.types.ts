@@ -195,6 +195,28 @@ export interface Database {
         Args: Record<string, never>;
         Returns: undefined;
       };
+      // Transitions d'état (supabase/transitions.sql) — lèvent une exception si
+      // l'appelant n'a pas le droit ou si la transition n'est pas permise.
+      accept_quote: {
+        Args: { p_message_id: string };
+        Returns: undefined;
+      };
+      decline_quote: {
+        Args: { p_message_id: string };
+        Returns: undefined;
+      };
+      cancel_booking: {
+        Args: { p_booking_id: string };
+        Returns: undefined;
+      };
+      set_booking_photos: {
+        Args: { p_booking_id: string; p_photos: string[] };
+        Returns: undefined;
+      };
+      mark_conversation_read: {
+        Args: { p_conversation_id: string };
+        Returns: undefined;
+      };
     };
     Enums: Record<never, never>;
   };

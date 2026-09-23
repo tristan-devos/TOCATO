@@ -78,8 +78,15 @@ plombier, déménageur, jardinier.
   character: <` à l'inscription/connexion. Vérif rapide :
   `curl https://<ref>.supabase.co/auth/v1/health` doit répondre du **JSON** (401 sans clé).
   Exécuter
-  `supabase/schema.sql` puis `supabase/rpc.sql` dans le SQL editor (tables + RLS + Realtime +
-  seed, puis fonctions/triggers ; les deux idempotents et ré-exécutables).
+  `supabase/schema.sql`, puis `supabase/rpc.sql`, puis `supabase/transitions.sql` dans le
+  SQL editor (tables + RLS + Realtime + seed, puis fonctions/triggers, puis transitions
+  d'état ; tous idempotents et ré-exécutables). **Après toute PR qui touche `supabase/`**,
+  ré-exécuter les trois fichiers dans cet ordre.
+- **Tests SQL** : `supabase/tests/run.sh` (Docker requis, ne touche pas au projet réel).
+  Joue les trois fichiers dans un Postgres jetable (install neuve + ré-exécution + mise à
+  jour depuis `main`), puis les scénarios RLS/RPC de `supabase/tests/scenarios.sql`
+  (chaque bloc annonce le résultat attendu). **À lancer avant de conclure toute modif SQL** ;
+  ajouter un scénario pour chaque nouvelle policy ou RPC.
   Types DB régénérables via `npx supabase gen types typescript --project-id <ref>`
   (réimporter ensuite les unions de `lib/types.ts` dans `lib/database.types.ts`).
 - **Edge Functions** : `supabase functions deploy provider-reply --project-ref <ref>`
@@ -146,7 +153,8 @@ src/lib/
                             tagline, questions, options) selon la langue active.
   store.ts                  Store Zustand adossé à Supabase : réservations, conversations,
                             messages. Charge à la connexion (loadAll), écoute le Realtime,
-                            réécrit via Supabase (create_booking RPC, updates, inserts).
+                            écrit via RPC (create_booking, accept/decline_quote,
+                            cancel_booking…) ; seul l'envoi d'un message texte est un insert.
   profile-store.ts          Profil + adresses de l'utilisateur connecté, adossé à Supabase
                             (chargé à la connexion). A remplacé le `user` mock du store.
   db-mappers.ts             Conversion lignes Supabase -> types du domaine (frontière DB/app)
@@ -188,6 +196,12 @@ supabase/schema.sql         Schéma Postgres : tables + RLS + Realtime + bucket 
 supabase/rpc.sql            Fonctions/triggers (create_booking, seed_demo, trigger messages)
                             — à exécuter APRÈS schema.sql. seed_demo charge le scénario de
                             démo (réservations/conversations/messages, dates relatives).
+supabase/transitions.sql    Transitions d'état (security definer, à exécuter APRÈS rpc.sql) :
+                            accept_quote, decline_quote, cancel_booking, set_booking_photos,
+                            mark_conversation_read. Voir section Sécurité des données.
+supabase/tests/             Tests SQL hors projet réel : run.sh (Postgres Docker),
+                            supabase-stubs.sql (auth.uid, rôles, storage simulés),
+                            scenarios.sql (scénarios RLS/RPC).
 supabase/functions/         Edge Functions (Deno). provider-reply : insère les réponses
                             prestataire (service_role) — exclu du tsconfig de l'app.
 ```
@@ -252,6 +266,27 @@ Le typage strict est une exigence forte de Tristan. Le projet compile avec `stri
 - Un accès indexé (`array[i]`, `record[key]`) retourne `T | undefined` : toujours gérer le
   cas `undefined` explicitement.
 - `npx tsc --noEmit` doit passer à zéro erreur avant de conclure toute modification.
+
+## Sécurité des données (RLS + RPC)
+
+La clé anon est publique : **tout ce que la RLS permet, n'importe qui peut le faire**
+depuis un client modifié, pas seulement depuis l'app. D'où la règle :
+
+- **Lecture** : policies RLS `select` (owner-only aujourd'hui).
+- **Écriture** : **aucune policy `update`** sur `bookings`, `conversations`, `messages`,
+  et pas d'`insert` direct sur `bookings` / `conversations`. Toute transition d'état
+  passe par une fonction `security definer` (`rpc.sql`, `transitions.sql`) qui vérifie
+  **qui** appelle (`auth.uid()`) et **si** la transition est permise, puis l'applique
+  atomiquement. Seule exception : le client insère ses messages **texte** (`sender_kind =
+  'client'`, `type = 'text'`). Les messages `system` viennent des RPC, les `provider` du
+  serveur.
+- Chaque nouvelle RPC : `security definer` + `set search_path = public`, vérification
+  explicite d'`auth.uid()`, `revoke execute ... from public, anon` + `grant ... to
+  authenticated`, type ajouté dans `database.types.ts > Functions`, scénario ajouté dans
+  `supabase/tests/scenarios.sql`.
+- Historique : avant septembre 2026, `bookings_all_own` et `messages_update_own` laissaient
+  le client écrire `status` / `agreed_price` et modifier le montant d'un devis. Corrigé
+  (lot 1 de `docs/interface-prestataire.md`).
 
 ## Règles anti-dérive (importantes)
 

@@ -5,9 +5,13 @@
 -- ——— Trigger : tenir conversations à jour à chaque message ————————————————
 -- Met à jour last_message_at et incrémente unread_count pour les messages
 -- entrants (prestataire). Évite de gérer ces champs côté client.
+-- security definer : le client n'a plus de policy d'update sur conversations
+-- (transitions via RPC, voir transitions.sql) ; le trigger doit pouvoir écrire.
 create or replace function public.handle_new_message()
 returns trigger
 language plpgsql
+security definer
+set search_path = public
 as $$
 begin
   update public.conversations
@@ -25,6 +29,9 @@ create trigger on_message_created
 
 -- ——— create_booking : création atomique booking + conversation + 1er message —
 -- Évite le FK circulaire et tout uuid côté client. Renvoie les deux ids.
+-- security definer : le client n'a plus de policy d'insert sur bookings /
+-- conversations ni le droit d'insérer des messages 'system'. La fonction force
+-- user_id = auth.uid() et status = 'pending'.
 create or replace function public.create_booking(
   p_service_id     text,
   p_scheduled_date date,
@@ -39,12 +46,15 @@ create or replace function public.create_booking(
 )
 returns table (booking_id uuid, conversation_id uuid)
 language plpgsql
+security definer
+set search_path = public
 as $$
 declare
   v_booking      uuid := gen_random_uuid();
   v_conversation uuid := gen_random_uuid();
   v_provider     text;
 begin
+  if auth.uid() is null then raise exception 'not_authenticated'; end if;
   select name into v_provider from public.providers where id = p_provider_id;
 
   -- bookings.conversation_id n'a pas de FK -> on peut insérer le booking d'abord.
