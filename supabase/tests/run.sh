@@ -15,7 +15,15 @@ docker run -d --rm --name "$NAME" -e POSTGRES_PASSWORD=pw postgres:16-alpine >/d
 trap 'docker stop "$NAME" >/dev/null' EXIT
 until docker exec "$NAME" pg_isready -U postgres -q; do sleep 1; done
 sleep 2
-psql_db() { docker exec -i "$NAME" psql -U postgres -d "$1" -v ON_ERROR_STOP=1 -q 2>&1 | grep -v -e NOTICE -e wal_level -e 'Set wal_level' || true; }
+# Échoue (et arrête le script) à la moindre erreur SQL : l'installation doit être propre.
+psql_db() {
+  local out
+  if ! out=$(docker exec -i "$NAME" psql -U postgres -d "$1" -v ON_ERROR_STOP=1 -q 2>&1); then
+    echo "$out" | grep -v -e NOTICE -e wal_level -e 'Set wal_level'
+    echo "ÉCHEC : erreur SQL ci-dessus" >&2
+    exit 1
+  fi
+}
 docker exec "$NAME" psql -U postgres -q -c 'create database mig' >/dev/null
 
 echo '== 1. Installation neuve + ré-exécution'

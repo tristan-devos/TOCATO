@@ -116,6 +116,22 @@ create table if not exists public.conversations (
   last_message_at timestamptz not null default now()
 );
 create index if not exists conversations_user_id_idx on public.conversations (user_id);
+-- Réparation (2026-09-23, temporaire — le lot 2 remplace ce bloc) : le SQL de la PR #8,
+-- jamais mergée, avait supprimé conversation_id sur la base partagée. NOT NULL remis
+-- seulement si aucune ligne ne le viole (pas de suppression silencieuse de données).
+alter table public.bookings add column if not exists conversation_id uuid;
+update public.bookings b set conversation_id = (select c.id from public.conversations c
+  where c.booking_id = b.id order by c.last_message_at desc limit 1)
+where b.conversation_id is null;
+do $$
+begin
+  if not exists (select 1 from public.bookings where conversation_id is null) then
+    alter table public.bookings alter column conversation_id set not null;
+  end if;
+  if not exists (select 1 from public.bookings where provider_id is null) then
+    alter table public.bookings alter column provider_id set not null;
+  end if;
+end $$;
 
 -- ——— messages ————————————————————————————————————————————————————————————
 -- sender_kind remplace le `senderId` magique ('me') du domaine.

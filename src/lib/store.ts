@@ -242,7 +242,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   resetDemo: async () => {
-    await supabase.rpc('seed_demo');
+    const { error } = await supabase.rpc('seed_demo');
+    if (error && __DEV__) console.warn('[seed_demo]', error.message);
     await Promise.all([refreshBookings(), refreshConversations(), refreshMessages()]);
   },
 }));

@@ -82,6 +82,15 @@ plombier, déménageur, jardinier.
   SQL editor (tables + RLS + Realtime + seed, puis fonctions/triggers, puis transitions
   d'état ; tous idempotents et ré-exécutables). **Après toute PR qui touche `supabase/`**,
   ré-exécuter les trois fichiers dans cet ordre.
+  **Règle : la base Supabase partagée reflète toujours `main`.** Ne jamais y exécuter le
+  SQL d'une branche non mergée (tester avec `supabase/tests/run.sh`). **Piège vérifié** : le
+  SQL de la PR #8 (jamais mergée) y avait été exécuté et avait supprimé
+  `bookings.conversation_id` ; `seed_demo` / `create_booking` échouaient alors en silence
+  (« Réinitialiser la démo » ne montrait rien). Réparé par `schema.sql`. Réservations
+  orphelines laissées par cette époque (sans conversation ni prestataire, inutilisables par
+  l'app) : `select id, user_id from bookings where conversation_id is null or provider_id
+  is null;` — à supprimer à la main si besoin, puis ré-exécuter `schema.sql` pour remettre
+  les `NOT NULL`. Idem Edge Function : ne déployer `provider-reply` que depuis `main`.
 - **Tests SQL** : `supabase/tests/run.sh` (Docker requis, ne touche pas au projet réel).
   Joue les trois fichiers dans un Postgres jetable (install neuve + ré-exécution + mise à
   jour depuis `main`), puis les scénarios RLS/RPC de `supabase/tests/scenarios.sql`
