@@ -117,6 +117,19 @@ select submit_provider_application('Déménagements Eve', array['mover'], '77777
   110, 'Camion 20 pieds', :'eve' || '/id2.jpg', :'eve' || '/ass2.jpg') is not null as renvoyee;
 select status, rejection_reason, decided_at is null as decision_effacee from provider_applications;
 
+\echo '--- Pièce d''identité d''Eve effacée (purge) : renvoi sans nouvelle pièce (doit échouer), avec (doit réussir)'
+reset role;
+update provider_applications set status = 'rejected', id_document_path = null,
+  id_document_purged_at = now() where user_id = :'eve';
+set role authenticated;
+select set_config('request.jwt.claim.sub', :'eve', false) \g /dev/null
+select submit_provider_application('Déménagements Eve', array['mover'], '7777777777', null,
+  110, '', null, :'eve' || '/ass2.jpg');
+select submit_provider_application('Déménagements Eve', array['mover'], '7777777777', null,
+  110, '', :'eve' || '/id3.jpg', :'eve' || '/ass2.jpg') is not null as renvoyee;
+select id_document_path is not null as piece, id_document_purged_at is null as purge_effacee
+  from provider_applications;
+
 \echo '--- Anon : ne lit aucune demande, pas d''erreur (0) ; is_admin interdit (doit échouer)'
 reset role; set role anon;
 select set_config('request.jwt.claim.sub', '', false) \g /dev/null

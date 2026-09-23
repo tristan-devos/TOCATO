@@ -130,13 +130,21 @@ plombier, déménageur, jardinier.
   (adhésion) : chaque bloc annonce le résultat
   attendu ; le script échoue à la moindre erreur SQL d'installation. **À lancer avant de conclure toute modif SQL** ;
   ajouter un scénario pour chaque nouvelle policy ou RPC.
-- **Edge Functions** : aucune depuis le lot 5 (`provider-reply`, la simulation des
-  prestataires de démo, est supprimée). La retirer du projet :
-  `npx supabase functions delete provider-reply --project-ref <ref>` (`supabase login`
-  requis). Pour une future fonction : déployer **toujours depuis `main` à jour**
-  (`supabase functions deploy <nom> --project-ref <ref>`) et vérifier la version déployée
-  (`supabase functions download … --use-api` puis `diff`). **Piège vérifié** : une version
-  déployée depuis la PR #8, jamais mergée, a tourné en production.
+- **Edge Functions** : une seule, `purge-documents` (Loi 25) : efface la pièce d'identité
+  d'une demande d'adhésion 30 jours après la décision, et les fichiers orphelins du bucket
+  `provider-documents` (plus de 24 h). Passe par l'API Storage avec la clé service_role
+  (injectée) : Supabase interdit de supprimer en SQL dans `storage.objects`, et le fichier
+  resterait stocké. Appelée chaque nuit par `.github/workflows/purge-documents.yml` avec la
+  clé anon (fonction idempotente, sans paramètre : un appel en trop ne fait rien de plus),
+  ce qui demande les **variables** GitHub `SUPABASE_URL` et `SUPABASE_ANON_KEY` (Settings →
+  Secrets and variables → Actions → Variables ; valeurs publiques du `.env`).
+  Déployer **toujours depuis `main` à jour** :
+  `npx supabase functions deploy purge-documents --project-ref <ref>` (`supabase login`
+  requis), puis vérifier la version déployée (`supabase functions download … --use-api`
+  puis `diff`). Vérifier le typage avant : `docker run --rm -v "$PWD/supabase/functions:/fn:ro"
+  -w /fn denoland/deno deno check purge-documents/index.ts`. **Piège vérifié** : une version
+  déployée depuis la PR #8, jamais mergée, a tourné en production (ancienne `provider-reply`,
+  supprimée au lot 5 de l'interface prestataire).
 
 Pas de tests unitaires ni de linter au-delà d'`eslint-config-expo` pour l'instant.
 
@@ -156,7 +164,7 @@ pas de build natif pour l'instant, et **pas de `eas.json`** à la racine.
   `exp://u.expo.dev/83c31465-c53d-4aac-b3be-615809d04420?runtime-version=exposdk%3A57.0.0&channel-name=preview`).
   Scanner avec l'appareil photo de l'iPhone (Expo Go installé) ; ensuite le projet reste
   dans « Recently opened » d'Expo Go. Il sert **toujours la dernière publication** de la
-  branche `preview` (rouvrir Expo Go pour la récupérer). Si le runtime change (bump de
+  branche `preview` (rouvrir Expo Go deux fois pour l'appliquer, voir plus bas). Si le runtime change (bump de
   SDK), `runtimeVersion` change aussi dans ce lien : le mettre à jour ici et dans le README.
 - **Canal `preview` → branche `preview`** (créé le 2026-09-23 : `eas channel:create
   preview`). **Piège vérifié** : sans canal, le serveur de mises à jour répond 404 à Expo Go
@@ -182,8 +190,11 @@ pas de build natif pour l'instant, et **pas de `eas.json`** à la racine.
   garde de connexion, déconnexion impossible). Le choix dans le menu interactif, lui,
   garde le `.env`. Si l'URL ou la clé change : `eas env:update` dans les trois
   environnements **et** le `.env` local (utilisé par `npx expo start`).
-  Pas `--non-interactive` (non supporté ici) ; utiliser `$CI=1` si besoin. L'iPhone récupère l'update au prochain
-  lancement d'Expo Go (fermer/rouvrir l'app).
+  Pas `--non-interactive` (non supporté ici) ; utiliser `$CI=1` si besoin.
+  **Piège vérifié** : Expo Go **télécharge** l'update à l'ouverture mais ne l'**applique**
+  qu'au lancement suivant. Il faut donc fermer complètement Expo Go et le rouvrir **deux
+  fois**. Symptôme : « la nouvelle fonctionnalité n'apparaît pas » alors que la publication
+  a réussi.
 - **Avant tout build natif** (TestFlight, APK) il faudra d'abord créer un `eas.json`.
 - Rappel : un changement de **config Supabase** (ex. « Confirm email ») est côté serveur et
   s'applique **sans redéploiement**.
@@ -332,7 +343,10 @@ supabase/policies.sql       Toutes les policies RLS + Storage (client et prestat
                             dernier. Voir section Sécurité des données.
 supabase/apply.sh           Applique les six fichiers à la base partagée (main uniquement)
 supabase/rbq-import.sh      Importe le registre des licences RBQ (nocturne via GitHub Action)
-.github/workflows/          rbq-import.yml : import RBQ chaque nuit (secret SUPABASE_DB_URL)
+.github/workflows/          rbq-import.yml : import RBQ chaque nuit (secret SUPABASE_DB_URL) ;
+                            purge-documents.yml : appelle purge-documents chaque nuit
+                            (variables SUPABASE_URL, SUPABASE_ANON_KEY)
+supabase/functions/         Edge Functions (Deno, exclues du tsconfig) : purge-documents.
 supabase/tests/             Tests SQL hors projet réel : run.sh (Postgres Docker),
                             supabase-stubs.sql (auth.uid, rôles, storage simulés),
                             scenarios.sql (client), scenarios-provider.sql (prestataire),

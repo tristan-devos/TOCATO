@@ -66,7 +66,17 @@ export default function AdminApplicationScreen() {
 
         <Card style={styles.card}>
           <AppText variant="label">{t('admin.documents')}</AppText>
-          <DocumentImage label={t('apply.idDocument')} path={application.idDocumentPath} />
+          {application.idDocumentPath ? (
+            <DocumentImage label={t('apply.idDocument')} path={application.idDocumentPath} />
+          ) : (
+            <AppText variant="secondary">
+              {t('admin.idPurged', {
+                date: application.idDocumentPurgedAt
+                  ? formatDateLong(application.idDocumentPurgedAt)
+                  : '',
+              })}
+            </AppText>
+          )}
           <DocumentImage label={t('apply.insurance')} path={application.insurancePath} />
         </Card>
 

@@ -428,6 +428,8 @@ const fr = {
     },
     documents: 'Pièces justificatives',
     documentUnavailable: 'Pièce indisponible',
+    idPurged:
+      'Pièce d’identité supprimée le {{date}}, 30 jours après la décision (Loi 25).',
     approve: 'Approuver',
     approveTitle: 'Approuver cette demande ?',
     approveMessage: 'Une fiche vérifiée sera créée pour {{name}} et reliée à son compte.',

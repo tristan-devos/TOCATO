@@ -417,6 +417,7 @@ const en = {
     },
     documents: 'Supporting documents',
     documentUnavailable: 'Document unavailable',
+    idPurged: 'ID document deleted on {{date}}, 30 days after the decision (Quebec privacy law).',
     approve: 'Approve',
     approveTitle: 'Approve this application?',
     approveMessage: 'A verified profile will be created for {{name}} and linked to their account.',
