@@ -1,6 +1,6 @@
 # Conception : adhésion des prestataires (inscription et vérification)
 
-> **Statut : proposé**, à valider en PR avant tout code.
+> **Statut : validé** (2026-09-24), en cours de réalisation (voir §9).
 > Rédigé le 2026-09-24. Chaque lot (§9) devient une PR, et `AGENTS.md` est mis à jour
 > dans la PR qui change le comportement décrit. Les écarts au plan seront notés
 > « **Réalisé :** » dans la section concernée.
