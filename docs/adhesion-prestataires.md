@@ -92,12 +92,19 @@ Le résultat est **indicatif** : l'admin décide. Le détail (nom au registre, d
 l'import) est gardé dans `rbq_check` pour la trace. L'écran admin affiche l'attribution
 « Source : Régie du bâtiment du Québec, Données Québec (CC-BY 4.0) ».
 
-**Import quotidien** : une GitHub Action planifiée (chaque nuit) télécharge le zip,
-filtre en streaming les lignes utiles et remplace le contenu de `rbq_licences` dans une
-transaction (`supabase/rbq-import.sh`, lançable aussi à la main). Elle a besoin de
-`SUPABASE_DB_URL` dans les secrets GitHub : c'est la seule nouvelle chose sensible.
-Alternative écartée : une Edge Function planifiée (340 Mo de CSV à parser, limites
-mémoire et durée).
+**Import manuel** (décision du 2026-09-24, pas d'automatisation pour l'instant) :
+l'équipe lance `supabase/rbq-import.sh` depuis son poste, sur le modèle de `apply.sh`
+(Docker, `SUPABASE_DB_URL` lu dans `.env`, rien dans les secrets GitHub). Le script
+télécharge le zip, filtre en streaming les lignes utiles et remplace le contenu de
+`rbq_licences` dans une transaction. Le lancer **avant d'examiner des demandes** de
+plombiers, idéalement chaque semaine.
+
+Conséquence : le registre local peut dater. Une licence révoquée depuis le dernier
+import passerait encore pour `ok`. D'où deux garde-fous : `rbq_check` garde la date de
+l'import utilisé, et l'écran admin affiche « Registre importé il y a N jours » (en
+alerte au-delà de 7 jours) avec le lien de vérification en ligne de la RBQ.
+Écartés pour l'instant : une GitHub Action nocturne (mot de passe de la base dans les
+secrets GitHub) et une Edge Function planifiée (340 Mo de CSV, limites mémoire et durée).
 
 ## 7. Sécurité (règles de `AGENTS.md` appliquées)
 
@@ -142,7 +149,7 @@ par … », pas l'image). À refléter dans la politique de confidentialité.
 ## 9. Découpage en PR (lots)
 
 1. **Serveur** : tables, `is_admin`, RPC, policies, bucket, scénarios SQL.
-2. **Registre RBQ** : `rbq-import.sh`, GitHub Action nocturne, doc du secret.
+2. **Registre RBQ** : `rbq-import.sh` (import manuel) et sa doc dans `AGENTS.md`.
 3. **App, côté demandeur** : choix à l'inscription, formulaire, écran de statut, rôle
    `applicant`.
 4. **App, côté admin** : liste et détail des adhésions, approbation, refus.
