@@ -17,7 +17,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 FILES="schema rpc transitions providers policies"
 
-# ——— Garde-fou : main propre et à jour ———
+# --- Garde-fou : main propre et à jour ---
 branch=$(git rev-parse --abbrev-ref HEAD)
 if [ "$branch" != main ]; then
   echo "Refusé : branche '$branch'. La base partagée reflète main (git checkout main && git pull)." >&2
@@ -33,7 +33,7 @@ if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/main)" ]; then
   exit 1
 fi
 
-# ——— Connexion ———
+# --- Connexion ---
 url=${SUPABASE_DB_URL:-}
 if [ -z "$url" ] && [ -f .env ]; then
   url=$(sed -n 's/^SUPABASE_DB_URL=//p' .env | tail -n 1 | tr -d "\"'")

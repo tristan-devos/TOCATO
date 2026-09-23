@@ -3,8 +3,8 @@
  *
  * Hermes n'expose pas `crypto` : supabase-js retombe alors sur un code_verifier PKCE
  * tiré de Math.random() et une méthode `plain` (warning « WebCrypto API is not
- * supported »). On fournit les deux seules API qu'il utilise — `getRandomValues` et
- * `subtle.digest` — adossées à expo-crypto (compatible Expo Go). Sur web, le
+ * supported »). On fournit les deux seules API qu'il utilise : `getRandomValues` et
+ * `subtle.digest`, adossées à expo-crypto (compatible Expo Go). Sur web, le
  * navigateur fournit déjà WebCrypto : rien n'est installé.
  */
 

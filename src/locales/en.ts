@@ -86,9 +86,9 @@ const en = {
     schedulePreferredSlot: 'Preferred time slot',
     scheduleUrgentNote: 'Urgent requests may incur a surcharge.',
     reviewTitle: 'Summary',
-    reviewSubtitle: 'Review your request — it will be sent to available providers.',
+    reviewSubtitle: 'Review your request. It will be sent to available providers.',
     reviewProvidersNote:
-      'Your request will be sent to available {{service}} providers — they will contact you in Messages with their offers.',
+      'Your request will be sent to available {{service}} providers. They will contact you in Messages with their offers.',
     estimate: 'Estimate',
     estimateNote: 'The final price will be confirmed by quote in the chat.',
   },
@@ -209,9 +209,9 @@ const en = {
     contactPrompt: "Can't find your answer?",
     contactButton: 'Contact support',
     faq0q: 'How does a booking work?',
-    faq0a: 'You describe your need by answering a few questions, then a verified provider sends you a quote in the chat. You accept the quote when it suits you — the booking is then confirmed.',
+    faq0a: 'You describe your need by answering a few questions, then a verified provider sends you a quote in the chat. You accept the quote when it suits you, and the booking is then confirmed.',
     faq1q: 'When do I pay?',
-    faq1a: 'Always after accepting the quote, never before. The price agreed in the chat is the final price — no hidden fees.',
+    faq1a: 'Always after accepting the quote, never before. The price agreed in the chat is the final price, with no hidden fees.',
     faq2q: 'Can I cancel a booking?',
     faq2a: 'Yes, from the booking page, as long as the service has not started. The provider is automatically notified in the chat.',
     faq3q: 'Are the providers verified?',
@@ -303,8 +303,8 @@ const en = {
   },
   systemMessages: {
     quoteAccepted: {
-      client: 'Quote accepted — your booking is confirmed.',
-      provider: 'The client accepted your quote — the job is confirmed.',
+      client: 'Quote accepted. Your booking is confirmed.',
+      provider: 'The client accepted your quote. The job is confirmed.',
     },
     otherProviderChosen: {
       client: 'You confirmed another provider for this request.',
@@ -369,7 +369,7 @@ const en = {
       questions: {
         housingSize: {
           title: 'What size is the housing?',
-          subtitle: 'Quebec format — count rooms and halves.',
+          subtitle: 'Quebec format: count rooms and halves.',
           options: {
             studio: { label: 'Studio / 1½ – 2½' },
             threeToFour: { label: '3½ – 4½' },

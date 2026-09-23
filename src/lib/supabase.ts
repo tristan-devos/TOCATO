@@ -3,7 +3,7 @@
  *
  * La session est persistée via AsyncStorage et rafraîchie automatiquement.
  * Les variables d'env (préfixe EXPO_PUBLIC_) sont inlinées par Metro au build ;
- * la clé anon est publique par design — la sécurité repose sur les politiques RLS.
+ * la clé anon est publique par design : la sécurité repose sur les politiques RLS.
  *
  * Tant que `.env` n'est pas rempli, `isSupabaseConfigured` vaut false : la
  * construction reste inoffensive (placeholder) et `initAuth` (auth-store.ts)

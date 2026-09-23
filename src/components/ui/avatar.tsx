@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-/** Palette de fonds d'avatar — choisie par hachage du nom pour rester stable. */
+/** Palette de fonds d'avatar : choisie par hachage du nom pour rester stable. */
 const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#0D9488', '#D97706', '#DB2777', '#475569'];
 
 interface AvatarProps {

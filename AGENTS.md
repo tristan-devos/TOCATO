@@ -1,8 +1,8 @@
-# TOCATO — guide du repo
+# TOCATO : guide du repo
 
 Application mobile (côté client) de mise en relation entre clients et prestataires de services
 à domicile. Marché de lancement : **Montréal, QC**. L'interface est **bilingue français/anglais**
-(i18n), **français par défaut** (Québec) — voir la section i18n. Services au lancement :
+(i18n), **français par défaut** (Québec) : voir la section i18n. Services au lancement :
 plombier, déménageur, jardinier.
 
 > Expo évolue vite : avant toute modification non triviale, lire les docs versionnées
@@ -10,14 +10,14 @@ plombier, déménageur, jardinier.
 
 ## Stack
 
-- **Expo SDK 57** (React Native 0.86, React 19.2). **Pin volontaire — ne pas bumper.**
+- **Expo SDK 57** (React Native 0.86, React 19.2). **Pin volontaire : ne pas bumper.**
   L'app se teste via **Expo Go** sur iPhone physique (le collègue au Canada) ; le dev se
   fait sous Linux (Fedora), sans simulateur iOS. Avant tout futur bump
   de SDK, vérifier que la version publiée de l'app Expo Go supporte bien la nouvelle
   version sur https://apps.apple.com/app/expo-go/id982107779 (SDK 54 posait ce problème :
-  Expo Go iOS était resté bloqué en 54.0.2, incompatible avec les projets SDK 55/56 — la
+  Expo Go iOS était resté bloqué en 54.0.2, incompatible avec les projets SDK 55/56 : la
   mise à jour vers 57 a confirmé qu'Expo Go supporte de nouveau la dernière version).
-- **expo-router** (version alignée sur le SDK, `~57.0.22`) — file-based routing. Depuis le
+- **expo-router** (version alignée sur le SDK, `~57.0.22`) : file-based routing. Depuis le
   **SDK 56**, le router s'est découplé
   de react-navigation : imports interdits depuis `@react-navigation/*` en code applicatif.
   `Stack`/`Tabs` s'importent depuis `'expo-router'`, `ThemeProvider`/`DarkTheme`/
@@ -25,7 +25,7 @@ plombier, déménageur, jardinier.
   `'@react-navigation/native'`, retiré des dépendances). Voir
   https://docs.expo.dev/router/migrate/sdk-55-to-56/ pour la table de correspondance
   complète des imports si d'autres écrans venaient à en avoir besoin.
-- **Styling : StyleSheet + design tokens** (`src/constants/theme.ts`). Pas de NativeWind —
+- **Styling : StyleSheet + design tokens** (`src/constants/theme.ts`). Pas de NativeWind :
   choix délibéré pour limiter les couches fragiles au-dessus de Metro/Babel.
 - **Zustand 5** + AsyncStorage (persistance) pour l'état global.
 - **lucide-react-native** pour les icônes (jamais `lucide-react`, DOM-only).
@@ -35,10 +35,10 @@ plombier, déménageur, jardinier.
   voie **compatible Expo Go** (les boutons natifs `expo-apple-authentication` /
   google-signin imposeraient un dev build et l'abandon d'Expo Go). `expo-linking` (déjà
   présent) fournit le redirect deep link. Détails en section Login social.
-- **i18n bilingue FR/EN** — `i18next` + `react-i18next` + `expo-localization`. Trois
+- **i18n bilingue FR/EN** : `i18next` + `react-i18next` + `expo-localization`. Trois
   dépendances ajoutées, **justifiées** : l'UI bilingue (français par défaut, anglais
   disponible) est un choix produit assumé pour un marché montréalais, et ce sont les
-  briques standard de l'i18n React Native — `expo-localization` détecte la langue de
+  briques standard de l'i18n React Native : `expo-localization` détecte la langue de
   l'appareil, `i18next`/`react-i18next` portent le catalogue et le hook `useTranslation`.
   Détails en section i18n.
 - **Supabase** comme backend (auth email/mot de passe **et OAuth Google**, Postgres + RLS,
@@ -54,24 +54,24 @@ plombier, déménageur, jardinier.
   passent tous par Supabase (lectures + Realtime + écritures). Plus de simulation : les
   devis viennent de vrais comptes prestataires (lot 5, voir Données de test). Les photos du wizard sont téléversées dans
   **Supabase Storage** (bucket privé `booking-photos`, RLS par dossier `{user}/{booking}/`,
-  affichées via URLs signées) — la migration store est désormais complète.
+  affichées via URLs signées) : la migration store est désormais complète.
 - React Compiler (expérimental) et typed routes activés (`app.json > experiments`).
 
 ## Commandes
 
-- `npm install` — dépendances.
-- `npx expo start` — serveur Metro. `w` pour le web, ou scanner le QR avec **Expo Go** sur
+- `npm install` : dépendances.
+- `npx expo start` : serveur Metro. `w` pour le web, ou scanner le QR avec **Expo Go** sur
   iPhone (pas de simulateur Xcode hors macOS). Après une modif de `.env` : `npx expo start -c`
   (Metro inline les `EXPO_PUBLIC_*` au bundle, le cache garderait l'ancienne valeur).
-- `npx tsc --noEmit` — type-check (à lancer avant de conclure une modif).
-- `npx expo export --platform web` — build web de prod ; c'est aussi le **smoke test** de
+- `npx tsc --noEmit` : type-check (à lancer avant de conclure une modif).
+- `npx expo export --platform web` : build web de prod ; c'est aussi le **smoke test** de
   référence : si toutes les routes se bundlent, le pipeline est sain.
-- `npx expo-doctor` — validation de la config Expo ; doit passer (21/21). Si des paquets
+- `npx expo-doctor` : validation de la config Expo ; doit passer (21/21). Si des paquets
   sont signalés en retard de patch : `npx expo install --fix` (reste dans le SDK pinné,
   runtime EAS inchangé), puis relancer tsc + export web.
 - **Supabase** : copier `.env.example` en `.env` et remplir `EXPO_PUBLIC_SUPABASE_URL` /
   `EXPO_PUBLIC_SUPABASE_ANON_KEY` (Dashboard > Project Settings > API).
-  **Piège vérifié** : l'URL est celle de l'**API**, `https://<ref>.supabase.co` — **pas**
+  **Piège vérifié** : l'URL est celle de l'**API**, `https://<ref>.supabase.co`, **pas**
   l'URL du dashboard (`https://supabase.com/dashboard/project/<ref>`). Avec l'URL du
   dashboard, Supabase répond du HTML et l'app affiche `JSON parse error: Unexpected
   character: <` à l'inscription/connexion. Vérif rapide :
@@ -103,7 +103,7 @@ plombier, déménageur, jardinier.
   (« Réinitialiser la démo » ne montrait rien). Réparé par `schema.sql`. Réservations
   orphelines laissées par cette époque (sans conversation ni prestataire, inutilisables par
   l'app) : `select id, user_id from bookings where conversation_id is null or provider_id
-  is null;` — à supprimer à la main si besoin, puis ré-exécuter `schema.sql` pour remettre
+  is null;` : à supprimer à la main si besoin, puis ré-exécuter `schema.sql` pour remettre
   les `NOT NULL` (réparation remplacée depuis par la migration vers l'appel d'offres,
   qui supprime `conversation_id` proprement).
   Types DB régénérables via `npx supabase gen types typescript --project-id <ref>`
@@ -111,7 +111,7 @@ plombier, déménageur, jardinier.
 - **Tests SQL** : `supabase/tests/run.sh` (Docker requis, ne touche pas au projet réel).
   Joue les cinq fichiers dans un Postgres jetable (install neuve + ré-exécution + mise à
   jour depuis `main`), puis les scénarios RLS/RPC de `supabase/tests/scenarios.sql`
-  (client) et `scenarios-provider.sql` (prestataire) — chaque bloc annonce le résultat
+  (client) et `scenarios-provider.sql` (prestataire) : chaque bloc annonce le résultat
   attendu ; le script échoue à la moindre erreur SQL d'installation. **À lancer avant de conclure toute modif SQL** ;
   ajouter un scénario pour chaque nouvelle policy ou RPC.
 - **Edge Functions** : aucune depuis le lot 5 (`provider-reply`, la simulation des
@@ -126,7 +126,7 @@ Pas de tests unitaires ni de linter au-delà d'`eslint-config-expo` pour l'insta
 
 ## Déploiement (EAS Update)
 
-Le projet **est déjà déployé** et se met à jour par **EAS Update (OTA, JS seulement)** —
+Le projet **est déjà déployé** et se met à jour par **EAS Update (OTA, JS seulement)** :
 pas de build natif pour l'instant, et **pas de `eas.json`** à la racine.
 
 - **Projet EAS** : organisation `tocato`, slug `tocato`, projectId
@@ -141,15 +141,15 @@ pas de build natif pour l'instant, et **pas de `eas.json`** à la racine.
   Scanner avec l'appareil photo de l'iPhone (Expo Go installé) ; ensuite le projet reste
   dans « Recently opened » d'Expo Go. Il sert **toujours la dernière publication** de la
   branche `preview` (rouvrir Expo Go pour la récupérer). Si le runtime change (bump de
-  SDK), `runtimeVersion` change aussi dans ce lien — le mettre à jour ici et dans le README.
+  SDK), `runtimeVersion` change aussi dans ce lien : le mettre à jour ici et dans le README.
 - **Canal `preview` → branche `preview`** (créé le 2026-09-23 : `eas channel:create
   preview`). **Piège vérifié** : sans canal, le serveur de mises à jour répond 404 à Expo Go
-  (`u.expo.dev` résout par canal, pas par branche) — il n'existait pas de lien stable.
+  (`u.expo.dev` résout par canal, pas par branche) : il n'existait pas de lien stable.
   Vérif rapide : `curl -H "expo-platform: ios" -H "expo-runtime-version: exposdk:57.0.0"
   -H "expo-channel-name: preview" -H "accept: multipart/mixed" https://u.expo.dev/<projectId>`
   doit répondre **200**.
 - **Une seule branche : `preview`**, runtime `exposdk:57.0.0` (dérivé automatiquement du SDK
-  installé — `runtimeVersion.policy: "sdkVersion"` dans `app.json`, se met donc à jour
+  installé : `runtimeVersion.policy: "sdkVersion"` dans `app.json`, se met donc à jour
   seul à chaque bump de SDK). L'app consomme les updates **par le canal `preview`** (relié
   à la branche du même nom), et le runtime détermine dans quelle version d'**Expo Go**
   l'update s'ouvre (cohérent avec le workflow iPhone tant que le SDK pinné et Expo Go
@@ -158,7 +158,7 @@ pas de build natif pour l'instant, et **pas de `eas.json`** à la racine.
   `npx eas-cli update --branch preview --environment preview --message "<résumé>"`.
   **Variables d'environnement** : `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY`
   sont **stockées sur EAS** (environnements `preview`, `development` et `production`,
-  visibilité plaintext — la clé anon est publique par design). La publication ne dépend
+  visibilité plaintext : la clé anon est publique par design). La publication ne dépend
   donc plus du `.env` de la personne qui publie. Vérifier : `npx eas-cli env:list
   --environment preview`. **Piège vérifié** (eas-cli 24.7) : avec l'option
   `--environment`, eas-cli pose `EXPO_NO_DOTENV=1` et **ignore le `.env` local** ; sans
@@ -200,14 +200,14 @@ src/app/                    Routes expo-router
 src/components/             Composants métier (booking-card, provider-row, service-card…)
   auth/                     social-auth (séparateur « ou » + bouton Google, OAuth navigateur)
   booking/                  Étapes du wizard (question, details, address, schedule,
-                            review) — pas de choix de prestataire (appel d'offres)
+                            review) : pas de choix de prestataire (appel d'offres)
                             + booking-photos (galerie des photos d'une réservation, URLs signées)
                             + booking-success (écran de confirmation post-envoi)
   reservation/              status-timeline (frise verticale de progression d'une réservation)
                             + provider-offers (offres reçues : une carte par prestataire
                             intéressé, montant du devis en attente, tap = conversation)
                             + booking-summary (en-tête service/date/statut) + request-details
-                            (réponses, description, photos, lieu, date) — partagés client,
+                            (réponses, description, photos, lieu, date) : partagés client,
                             demande ouverte et mission prestataire
   provider/                 request-card (demande ouverte) + quote-form (devis, send_quote)
   profile/                  account-actions (Langue + Se déconnecter, profils client et
@@ -271,7 +271,7 @@ supabase/schema.sql         Schéma Postgres : tables + migrations + Realtime + 
                             booking-photos. Miroir de lib/types.ts. Pas de policies (voir
                             policies.sql).
 supabase/rpc.sql            Fonctions/triggers (create_booking = demande ouverte sans
-                            prestataire, trigger messages) — à exécuter APRÈS schema.sql.
+                            prestataire, trigger messages) : à exécuter APRÈS schema.sql.
 supabase/transitions.sql    Transitions d'état (security definer, à exécuter APRÈS rpc.sql) :
                             accept_quote, decline_quote, cancel_booking, set_booking_photos,
                             mark_conversation_read. Voir section Sécurité des données.
@@ -296,7 +296,7 @@ L'UI est bilingue, **français par défaut**. Choix produit assumé (marché mon
 les dépendances `i18next` / `react-i18next` / `expo-localization`.
 
 - **Source de vérité des textes** : `src/locales/fr.ts` et `src/locales/en.ts`. Tout texte
-  affiché passe par une clé i18n — **jamais de chaîne UI en dur dans un écran ou composant**.
+  affiché passe par une clé i18n : **jamais de chaîne UI en dur dans un écran ou composant**.
   Les deux catalogues doivent rester **structurellement identiques** (mêmes clés).
 - **Accès** : hook `useTranslation()` (`const { t } = useTranslation()`), puis `t('cle.sous-cle')`.
 - **Catalogue de services** : ne pas dupliquer les libellés dans `services.ts` ; passer par
@@ -332,7 +332,7 @@ fois). Checklist :
    `tocato://**` (build standalone) **et** `exp://**` (Expo Go). Le deep link de retour est
    `Linking.createURL('auth-callback')`.
 4. **Piège vérifié (Expo Go)** : Supabase **ne matche pas** les schemes custom `exp://`
-   dans l'allowlist *Redirect URLs* — le `redirect_to` est alors **ignoré** et il retombe
+   dans l'allowlist *Redirect URLs* : le `redirect_to` est alors **ignoré** et il retombe
    sur la **Site URL** (par défaut `http://localhost:3000`, d'où la page blanche). En dev,
    mettre la **Site URL** au deep link Expo Go exact, ex. `exp://192.168.1.4:8081/--/auth-callback`
    (l'IP/port viennent de Metro ; un `console.log(Linking.createURL('auth-callback'))` la
@@ -349,8 +349,8 @@ Le typage strict est une exigence forte de Tristan. Le projet compile avec `stri
 `noUncheckedIndexedAccess`, `noUnusedLocals` et `noUnusedParameters` :
 
 - **Jamais de `any`**, jamais de `as` pour faire taire le compilateur, jamais de `!`
-  (non-null assertion) — prouver l'existence avec une garde (`if (!x) return/throw`).
-- Tous les types du domaine vivent dans `src/lib/types.ts` — c'est la source de vérité,
+  (non-null assertion) : prouver l'existence avec une garde (`if (!x) return/throw`).
+- Tous les types du domaine vivent dans `src/lib/types.ts` : c'est la source de vérité,
   et le futur contrat d'API du backend. Pas de types métier redéfinis dans les écrans.
 - Un accès indexé (`array[i]`, `record[key]`) retourne `T | undefined` : toujours gérer le
   cas `undefined` explicitement.
@@ -372,7 +372,7 @@ depuis un client modifié, pas seulement depuis l'app. D'où la règle :
   policies de lecture sont `to authenticated`. Une policy qui appelle une fonction
   réservée à `authenticated` (ex. `current_provider_id()`) **doit** être `to
   authenticated`, sinon une requête anon échoue (« permission denied for function »)
-  au lieu de renvoyer une liste vide — **piège vérifié** sur la base réelle après le lot 3.
+  au lieu de renvoyer une liste vide : **piège vérifié** sur la base réelle après le lot 3.
 - **Écriture** : **aucune policy `update`** sur `bookings`, `conversations`, `messages`,
   et pas d'`insert` direct sur `bookings` / `conversations`. Toute transition d'état
   passe par une fonction `security definer` (`rpc.sql`, `transitions.sql`) qui vérifie
@@ -405,7 +405,7 @@ Ces règles sont non négociables :
   - **Seule exception : les catalogues de traduction** (`src/locales/fr.ts`, `en.ts`).
     Ce sont des données plates (clé → texte), sans logique, et les découper fragmenterait
     la source de vérité des textes sans gain de lisibilité. Exception **exceptionnelle et
-    nécessaire**, réservée aux catalogues i18n — elle ne s'étend à aucun fichier de code.
+    nécessaire**, réservée aux catalogues i18n : elle ne s'étend à aucun fichier de code.
 - **Les écrans (`src/app/`) composent, ils ne calculent pas.** Toute logique métier
   (filtrage, formatage, règles) vit dans `src/lib/` ou descend dans un composant dédié.
 - **Chercher avant de créer.** Vérifier `components/ui/` et `components/` avant d'écrire un
@@ -419,12 +419,12 @@ Ces règles sont non négociables :
 - UI bilingue FR/EN, **français par défaut** (Québec) : textes via clés i18n (`useTranslation`),
   jamais de chaîne en dur (voir section i18n). Montants en CAD et dates via `useFormats()`
   (locale liée à la langue active : fr-CA / en-CA).
-- Couleur de marque : `#1C6B3E` (clair) / `#3AB869` (sombre) — toujours passer par
+- Couleur de marque : `#1C6B3E` (clair) / `#3AB869` (sombre) : toujours passer par
   `useTheme()`, jamais de couleurs en dur dans les écrans (exception : avatars et logo).
 - Chaque composant : styles statiques dans `StyleSheet.create`, couleurs dynamiques inline
   depuis `useTheme()`.
 - Sélecteurs Zustand : ne jamais retourner un objet/tableau neuf dans le sélecteur
-  (boucle de re-render avec Zustand v5) — sélectionner le tableau brut et filtrer en
+  (boucle de re-render avec Zustand v5) : sélectionner le tableau brut et filtrer en
   `useMemo` dans le composant.
 - Flux principal de l'app (**appel d'offres**) : demande (wizard, sans choix de
   prestataire) → réservation `pending` sans prestataire → chaque prestataire intéressé
@@ -434,7 +434,7 @@ Ces règles sont non négociables :
 
 ## Données de test
 
-L'état applicatif (réservations, conversations, messages) vit dans **Supabase** — le store
+L'état applicatif (réservations, conversations, messages) vit dans **Supabase** : le store
 n'est **pas** persisté en AsyncStorage. Aucun mock ni aucune donnée de démo : les fiches
 prestataires sont lues depuis la table `providers` (`lib/providers-store.ts`).
 
@@ -471,10 +471,10 @@ connexion suivante (ou relance de l'app), il bascule sur l'**interface prestatai
 - Identité git : `tristan-devos <tristan2003devos@gmail.com>` (config globale, compte GitHub
   `tristan-devos`). Les commits antérieurs à juin 2026 portent l'ancienne identité
   `tristan-dev1 <2534117@etu.cchic.ca>` ; ne pas réécrire l'historique.
-- **Branche `main` protégée** (côté GitHub) : push direct interdit — tout passe par une PR
+- **Branche `main` protégée** (côté GitHub) : push direct interdit, tout passe par une PR
   (mergeable par soi-même, aucune review requise) ; force-push et suppression bloqués ;
   résolution des conversations requise ; règle appliquée aux admins. Flux : brancher
   (`feat/...`), pousser, `gh pr create`, puis merger. Réglage modifiable dans
   *Settings → Branches* ou via `gh api repos/tristan-devos/TOCATO/branches/main/protection`.
-- L'ancien prototype web (export Figma Make) a été entièrement supprimé en juin 2026 —
+- L'ancien prototype web (export Figma Make) a été entièrement supprimé en juin 2026 :
   l'historique git le conserve si besoin.

@@ -9,7 +9,7 @@ import type { Provider } from '@/lib/types';
 
 interface ProviderRowProps {
   provider: Provider;
-  /** Ligne secondaire — par défaut le temps de réponse */
+  /** Ligne secondaire : par défaut le temps de réponse */
   subtitle?: string;
 }
 

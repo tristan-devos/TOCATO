@@ -3,7 +3,7 @@
 # sans toucher au projet Supabase réel :
 #   1. installation neuve, puis ré-exécution (idempotence) ;
 #   2. mise à jour depuis la version de main (fichiers SQL de main puis ceux de
-#      la branche) — c'est le chemin que suit la vraie base ;
+#      la branche) : c'est le chemin que suit la vraie base ;
 #   3. scénarios RLS / RPC (scenarios*.sql), à relire : chaque bloc annonce le
 #      résultat attendu.
 # supabase-stubs.sql simule le strict nécessaire de Supabase (auth.uid(), rôles

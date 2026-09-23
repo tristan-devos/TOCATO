@@ -54,7 +54,7 @@ export default function ChatScreen() {
   }, [id, setActiveConversation]);
 
   // Un message reçu pendant que l'écran est ouvert ré-incrémente unread_count
-  // (trigger SQL) — on le remet à zéro tant que la conversation est visible.
+  // (trigger SQL) : on le remet à zéro tant que la conversation est visible.
   useEffect(() => {
     if (id && conversation && conversation.unreadCount > 0) {
       void markConversationRead(id);

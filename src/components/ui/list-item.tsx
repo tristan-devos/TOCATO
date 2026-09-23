@@ -10,7 +10,7 @@ interface ListItemProps {
   subtitle?: string;
   /** Icône (ou avatar) affichée à gauche */
   leading?: ReactNode;
-  /** Élément à droite — par défaut un chevron si onPress est fourni */
+  /** Élément à droite : par défaut un chevron si onPress est fourni */
   trailing?: ReactNode;
   onPress?: () => void;
   destructive?: boolean;

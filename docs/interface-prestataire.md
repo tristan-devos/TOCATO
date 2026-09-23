@@ -1,6 +1,6 @@
-# Conception — interface prestataire (appel d'offres)
+# Conception : interface prestataire (appel d'offres)
 
-> **Statut : validé**, en cours de réalisation — lots 1 à 4 faits (voir §9).
+> **Statut : validé**, lots 1 à 5 faits (voir §9).
 > Rédigé le 2026-09-23. Chaque lot ci-dessous devient une PR, et `AGENTS.md` est mis à
 > jour dans la PR qui change le comportement décrit. Les écarts au plan sont notés
 > « **Réalisé :** » dans la section concernée.
@@ -21,7 +21,7 @@ Client                                   Prestataire (service = plombier)
 Wizard (sans choix de prestataire)
   → demande `pending`, provider_id = null
                                          Onglet « Demandes » : voit la demande
-                                         (quartier, date, réponses, photos —
+                                         (quartier, date, réponses, photos,
                                           PAS l'adresse exacte ni le nom complet)
                                          « Envoyer un devis » (montant + détails)
                                            → crée SA conversation + message devis
@@ -47,11 +47,11 @@ Chaque conversation de la demande reçoit un message système.
 1. **Les prestataires ne sont pas des utilisateurs.** `providers` est un catalogue
    (`p-marc`…) sans lien avec `auth.users`.
 2. **RLS 100 % côté client.** Un prestataire connecté ne verrait aucune demande.
-3. **Trou de sécurité — réservations.** `bookings_all_own` permet au client d'écrire
+3. **Trou de sécurité : réservations.** `bookings_all_own` permet au client d'écrire
    directement `status` et `agreed_price` : il peut se confirmer une réservation au
    prix de son choix. Aujourd'hui `respondToQuote` et `cancelBooking` font ces
    `update` depuis l'app.
-4. **Trou de sécurité — messages.** `messages_update_own` permet au client de
+4. **Trou de sécurité : messages.** `messages_update_own` permet au client de
    modifier **n'importe quel** message de sa conversation, y compris le montant d'un
    devis du prestataire.
 5. **Un seul compteur de non-lus** (`conversations.unread_count`), pensé pour le
@@ -89,7 +89,7 @@ prestataire du compte connecté, ou `null`. Utilisée dans toutes les policies.
 | Table | Client | Prestataire |
 |---|---|---|
 | `bookings` select | ses demandes | celles où il est `provider_id`, ou où il a une conversation |
-| `bookings` insert | ses demandes, `status = 'pending'`, `provider_id` null | — |
+| `bookings` insert | ses demandes, `status = 'pending'`, `provider_id` null | aucune |
 | `bookings` update | **aucun** (RPC) | **aucun** (RPC) |
 | `conversations` select | les siennes | les siennes (`provider_id = current_provider_id()`) |
 | `messages` select | ses conversations | ses conversations |
@@ -107,9 +107,9 @@ le nom du client ne sont visibles qu'**après acceptation du devis**.
 Le prénom du client doit s'afficher dans le chat côté prestataire : exposé via
 `list_provider_conversations()` (prénom seul), `profiles` restant owner-only.
 
-**Réalisé (lot 3) — écarts :**
+**Réalisé (lot 3), écarts :**
 - `bookings` select prestataire : **seulement** les réservations où il est retenu, pas
-  celles « où il a une conversation » (le tableau ci-dessus) — sinon la ligne entière,
+  celles « où il a une conversation » (le tableau ci-dessus), sinon la ligne entière,
   adresse exacte comprise, serait lisible dès son offre, contrairement à la règle
   ci-dessus. Tant que la demande est ouverte, il la voit via `list_open_requests`, qui
   renvoie aussi `my_conversation_id` / `my_quote_status` (sa propre offre).
@@ -151,17 +151,17 @@ vers `(tabs)/`. Pas de bascule client ↔ prestataire en v1.
 
 ### Écrans prestataire (nouveaux)
 
-- `(provider)/_layout.tsx` — onglets : **Demandes**, **Mes travaux**, **Messages**,
+- `(provider)/_layout.tsx` : onglets : **Demandes**, **Mes travaux**, **Messages**,
   **Profil**.
-- `(provider)/index.tsx` — demandes ouvertes de ses services (`list_open_requests`).
-- `request/[id].tsx` — détail d'une demande ouverte + formulaire de devis.
-- `(provider)/jobs.tsx` — ses réservations `confirmed` / `in_progress` /
+- `(provider)/index.tsx` : demandes ouvertes de ses services (`list_open_requests`).
+- `request/[id].tsx` : détail d'une demande ouverte + formulaire de devis.
+- `(provider)/jobs.tsx` : ses réservations `confirmed` / `in_progress` /
   historique, boutons « Commencer » / « Terminer ».
-- `(provider)/profile.tsx` — sa fiche (lecture seule en v1 : modif via l'admin).
+- `(provider)/profile.tsx` : sa fiche (lecture seule en v1 : modif via l'admin).
 - **Réutilisés** : `chat/[id].tsx`, `message-bubble`, `ui/*`. Le côté « moi » d'une
   bulle dépend du rôle de l'utilisateur (voir `db-mappers.toSenderId`).
 
-**Réalisé (lot 4) — écarts :**
+**Réalisé (lot 4), écarts :**
 - Routes prestataire nommées `(provider)/{requests,jobs,messages,account}` : un groupe
   expo-router n'ajoute pas de segment d'URL, et `index` / `chats` / `profile`
   entraient en conflit avec `(tabs)` ou le dossier `profile/`. `messages` réutilise
@@ -182,7 +182,7 @@ vers `(tabs)/`. Pas de bascule client ↔ prestataire en v1.
 - Wizard : étape `provider-step` supprimée ; récap et succès réécrits.
 - Détail réservation : section **Offres reçues (N)** tant que la demande est ouverte.
 - Écran `provider/[id]` (profil public d'un prestataire).
-- Onglets : ordre de la PR #8 (Réservations en 2e, Messages en 4e) — **à confirmer**.
+- Onglets : ordre de la PR #8 (Réservations en 2e, Messages en 4e), **à confirmer**.
   **Réalisé (lot 2) :** non repris, l'ordre actuel est conservé (sans lien avec l'appel
   d'offres) ; à trancher séparément.
 
@@ -223,10 +223,10 @@ prestataire (relié à la main), puis un vrai prestataire recruté.
 
 1. **Notifications.** Sans notification push, un prestataire ne sait qu'une demande
    existe que s'il ouvre l'app : l'appel d'offres risque de rester sans réponse. À
-   évaluer après le lot 4 (`expo-notifications` — vérifier ce qu'Expo Go permet
+   évaluer après le lot 4 (`expo-notifications` : vérifier ce qu'Expo Go permet
    encore sur iOS avant de s'engager ; sinon il faudra un build via `eas.json`).
 2. **Durée de vie d'une demande sans offre.** Expire-t-elle (ex. 72 h) ?
 3. **Nombre maximum d'offres par demande** (ex. 5) pour ne pas noyer le client ?
-4. ✅ **Messages système en français seulement** — réglé : clé `system_key` traduite
+4. ✅ **Messages système en français seulement** (réglé) : clé `system_key` traduite
    par l'app selon la langue et le rôle du lecteur (voir `AGENTS.md` > i18n).
 5. **Un prestataire peut-il aussi être client** avec le même compte ? v1 : non.

@@ -73,9 +73,9 @@ function parseIso(iso: string): Date {
   return new Date(iso);
 }
 
-/** Adresse complète sur une ligne : « Maison — 4521, rue Saint-Denis, Montréal H2J 2L2 ». */
+/** Adresse complète sur une ligne : « Maison · 4521, rue Saint-Denis, Montréal H2J 2L2 ». */
 export function formatAddress(address: Address): string {
-  return `${address.label} — ${address.street}, ${address.city} ${address.postalCode}`;
+  return `${address.label} · ${address.street}, ${address.city} ${address.postalCode}`;
 }
 
 /**

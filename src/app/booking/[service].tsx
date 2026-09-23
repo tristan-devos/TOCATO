@@ -42,7 +42,7 @@ export default function BookingWizardScreen() {
   const createBooking = useAppStore((s) => s.createBooking);
   const addresses = useAddresses();
 
-  // Hook must be called unconditionally — use a valid fallback until the guard runs
+  // Hook must be called unconditionally: use a valid fallback until the guard runs
   const validId: ServiceId =
     serviceParam && isServiceId(serviceParam) ? serviceParam : 'plumber';
   const service = useLocalizedService(validId);
