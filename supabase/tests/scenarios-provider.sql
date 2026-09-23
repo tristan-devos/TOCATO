@@ -110,3 +110,9 @@ select status from bookings where id = :'bk';
 select text from messages where conversation_id = :'conv' and sender_kind = 'system' order by created_at;
 \echo '--- Paul ne voit que SES conversations (1), aucune de Marc/Amadou/Sophie'
 select count(*) as conversations_paul from conversations;
+
+\echo '--- Anon (non connecté) : tout vide, pas d''erreur (0, 0, 0, 0 — providers compris)'
+reset role; set role anon;
+select set_config('request.jwt.claim.sub', '', false) \g /dev/null
+select (select count(*) from bookings) as b, (select count(*) from conversations) as c,
+       (select count(*) from messages) as m, (select count(*) from providers) as p;

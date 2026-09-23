@@ -5,6 +5,9 @@
 -- (current_provider_id(), providers.sql). Écriture : aucune policy update ; seuls
 -- les messages TEXTE s'insèrent directement (client ou prestataire, chacun dans
 -- ses conversations). Tout le reste passe par des RPC security definer.
+-- Les policies qui appellent current_provider_id() sont `to authenticated` : anon n'a
+-- pas le droit d'exécuter la fonction, et une policy évaluée pour anon ferait échouer
+-- la requête (« permission denied ») au lieu de renvoyer une liste vide.
 -- Voir AGENTS.md > Sécurité des données. Idempotent (drop policy if exists).
 -- =============================================================================
 alter table public.profiles      enable row level security;
@@ -17,7 +20,7 @@ alter table public.messages      enable row level security;
 -- profiles : chacun gère son propre profil.
 drop policy if exists "profiles_select_own" on public.profiles;
 create policy "profiles_select_own" on public.profiles
-  for select using (auth.uid() = id);
+  for select to authenticated using (auth.uid() = id);
 drop policy if exists "profiles_update_own" on public.profiles;
 create policy "profiles_update_own" on public.profiles
   for update using (auth.uid() = id);
@@ -30,7 +33,7 @@ create policy "addresses_all_own" on public.addresses
 -- providers : catalogue en lecture pour tout utilisateur connecté.
 drop policy if exists "providers_select_all" on public.providers;
 create policy "providers_select_all" on public.providers
-  for select using (true);
+  for select to authenticated using (true);
 
 -- bookings : lecture owner-only. AUCUNE écriture directe : l'ancienne policy
 -- `for all` laissait le client écrire status / agreed_price (se confirmer une
@@ -39,28 +42,28 @@ create policy "providers_select_all" on public.providers
 drop policy if exists "bookings_all_own" on public.bookings;
 drop policy if exists "bookings_select_own" on public.bookings;
 create policy "bookings_select_own" on public.bookings
-  for select using (auth.uid() = user_id);
+  for select to authenticated using (auth.uid() = user_id);
 -- Prestataire : uniquement les réservations où il est RETENU (devis accepté). Les
 -- demandes ouvertes passent par list_open_requests (sans adresse exacte).
 drop policy if exists "bookings_select_assigned_provider" on public.bookings;
 create policy "bookings_select_assigned_provider" on public.bookings
-  for select using (provider_id is not null and provider_id = public.current_provider_id());
+  for select to authenticated using (provider_id is not null and provider_id = public.current_provider_id());
 
 -- conversations : lecture owner-only, écritures via RPC (create_booking,
 -- mark_conversation_read) et trigger handle_new_message.
 drop policy if exists "conversations_all_own" on public.conversations;
 drop policy if exists "conversations_select_own" on public.conversations;
 create policy "conversations_select_own" on public.conversations
-  for select using (auth.uid() = user_id);
+  for select to authenticated using (auth.uid() = user_id);
 -- Prestataire : ses propres conversations (une par demande sur laquelle il a offert).
 drop policy if exists "conversations_select_provider" on public.conversations;
 create policy "conversations_select_provider" on public.conversations
-  for select using (provider_id = public.current_provider_id());
+  for select to authenticated using (provider_id = public.current_provider_id());
 
 -- messages : lisibles par les deux participants de la conversation.
 drop policy if exists "messages_select_own" on public.messages;
 create policy "messages_select_own" on public.messages
-  for select using (
+  for select to authenticated using (
     exists (
       select 1 from public.conversations c
       where c.id = messages.conversation_id
@@ -85,7 +88,7 @@ create policy "messages_insert_own" on public.messages
 -- Prestataire : messages texte signés 'provider' à son nom, dans SES conversations.
 drop policy if exists "messages_insert_provider" on public.messages;
 create policy "messages_insert_provider" on public.messages
-  for insert with check (
+  for insert to authenticated with check (
     messages.sender_kind = 'provider'
     and messages.type = 'text'
     and messages.quote is null
