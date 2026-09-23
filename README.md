@@ -36,3 +36,6 @@ la prochaine étape. « Profil → Réinitialiser la démo » recharge le scéna
 ## Documentation technique
 
 Voir [AGENTS.md](./AGENTS.md) : stack, architecture, conventions et commandes.
+
+Conceptions en cours : [docs/](./docs/) — en particulier
+[l'interface prestataire](./docs/interface-prestataire.md).
