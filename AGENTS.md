@@ -51,9 +51,8 @@ plombier, déménageur, jardinier.
   fournit `crypto.getRandomValues` + `crypto.subtle.digest` sur natif (compatible Expo
   Go), importé en tête de `src/lib/supabase.ts`. État de la migration :
   **migration store terminée** : auth, profil/adresses, et bookings/conversations/messages
-  passent tous par Supabase (lectures + Realtime + écritures). La simulation des réponses
-  prestataire vit désormais côté serveur (Edge Function `provider-reply` + service_role +
-  Realtime) ; l'app ne fait que la déclencher. Les photos du wizard sont téléversées dans
+  passent tous par Supabase (lectures + Realtime + écritures). Plus de simulation : les
+  devis viennent de vrais comptes prestataires (lot 5, voir Données de test). Les photos du wizard sont téléversées dans
   **Supabase Storage** (bucket privé `booking-photos`, RLS par dossier `{user}/{booking}/`,
   affichées via URLs signées) — la migration store est désormais complète.
 - React Compiler (expérimental) et typed routes activés (`app.json > experiments`).
@@ -79,7 +78,7 @@ plombier, déménageur, jardinier.
   `curl https://<ref>.supabase.co/auth/v1/health` doit répondre du **JSON** (401 sans clé).
   **Appliquer le SQL** : `supabase/apply.sh` (depuis `main` à jour), qui joue dans cet
   ordre : `supabase/schema.sql` (tables,
-  migrations, Realtime, seed) → `rpc.sql` (trigger, create_booking, seed_demo) →
+  migrations, Realtime, Storage) → `rpc.sql` (trigger, create_booking) →
   `transitions.sql` (transitions côté client) → `providers.sql` (comptes et actions
   prestataire) → `policies.sql` (RLS + Storage, **en dernier** : les policies appellent
   les fonctions des fichiers précédents). Tous idempotents et ré-exécutables. **Après
@@ -106,8 +105,7 @@ plombier, déménageur, jardinier.
   l'app) : `select id, user_id from bookings where conversation_id is null or provider_id
   is null;` — à supprimer à la main si besoin, puis ré-exécuter `schema.sql` pour remettre
   les `NOT NULL` (réparation remplacée depuis par la migration vers l'appel d'offres,
-  qui supprime `conversation_id` proprement). Idem Edge Function : ne déployer
-  `provider-reply` que depuis `main`.
+  qui supprime `conversation_id` proprement).
   Types DB régénérables via `npx supabase gen types typescript --project-id <ref>`
   (réimporter ensuite les unions de `lib/types.ts` dans `lib/database.types.ts`).
 - **Tests SQL** : `supabase/tests/run.sh` (Docker requis, ne touche pas au projet réel).
@@ -116,14 +114,13 @@ plombier, déménageur, jardinier.
   (client) et `scenarios-provider.sql` (prestataire) — chaque bloc annonce le résultat
   attendu ; le script échoue à la moindre erreur SQL d'installation. **À lancer avant de conclure toute modif SQL** ;
   ajouter un scénario pour chaque nouvelle policy ou RPC.
-- **Edge Functions** : `supabase functions deploy provider-reply --project-ref <ref>`
-  (déploiement seul, sans Docker ; `supabase login` requis). `SUPABASE_URL` /
-  `SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` sont injectés automatiquement.
-  **Toujours depuis `main` à jour.** Vérifier que la version déployée est bien celle du
-  repo : `npx supabase functions download provider-reply --project-ref <ref> --use-api
-  --workdir <dossier-temporaire>` puis `diff` avec `supabase/functions/provider-reply/index.ts`.
-  **Piège vérifié** : une version déployée depuis la PR #8 tournait encore ; seule la
-  réponse `canned` marchait (« Parfait, c'est noté ! »), jamais l'intro ni le devis.
+- **Edge Functions** : aucune depuis le lot 5 (`provider-reply`, la simulation des
+  prestataires de démo, est supprimée). La retirer du projet :
+  `npx supabase functions delete provider-reply --project-ref <ref>` (`supabase login`
+  requis). Pour une future fonction : déployer **toujours depuis `main` à jour**
+  (`supabase functions deploy <nom> --project-ref <ref>`) et vérifier la version déployée
+  (`supabase functions download … --use-api` puis `diff`). **Piège vérifié** : une version
+  déployée depuis la PR #8, jamais mergée, a tourné en production.
 
 Pas de tests unitaires ni de linter au-delà d'`eslint-config-expo` pour l'instant.
 
@@ -233,8 +230,8 @@ src/lib/
   profile-store.ts          Profil + adresses + **rôle** (client/prestataire, via la RPC
                             current_provider_id) de l'utilisateur connecté. Chargé EN PREMIER
                             à la connexion : le store en dépend pour savoir qui est « moi ».
-  providers-store.ts        Fiches prestataires lues depuis la table providers (démo et
-                            réelles) ; useProvider(id) / useProviders(). A remplacé mock-data.
+  providers-store.ts        Fiches prestataires lues depuis la table providers ;
+                            useProvider(id) / useProviders().
   provider-store.ts         Rôle prestataire : demandes ouvertes (list_open_requests, pas de
                             temps réel -> rechargées au focus / tirer pour rafraîchir), prénoms
                             des clients, sendQuote / startJob / completeJob.
@@ -244,10 +241,6 @@ src/lib/
   photo-upload.ts           Upload des photos du wizard vers Storage (bucket privé
                             booking-photos) + URLs signées pour l'affichage. Décodage base64
                             inline (pas de dépendance ajoutée).
-  provider-reply.ts         Déclenche la simulation prestataire côté serveur (invoke de
-                            l'Edge Function provider-reply) — fire-and-forget, Realtime.
-                            `initial` (bookingId) : chaque prestataire du service ouvre sa
-                            conversation + devis ; `canned` (conversationId) : réponse type.
   format.ts                 createFormatters(locale) : formatage fr-CA / en-CA (prix CAD,
                             dates), via le hook use-formats (langue active) ; formatAddress,
                             formatSector (ville · secteur), parseAmountInput (montant saisi).
@@ -275,12 +268,10 @@ src/hooks/use-auth-guard.ts Redirige selon la session ET le rôle : connexion, a
 src/hooks/use-counterpart.ts Nom de « l'autre » dans une conversation selon le rôle
                             (prestataire pour un client, prénom du client pour un prestataire)
 supabase/schema.sql         Schéma Postgres : tables + migrations + Realtime + bucket Storage
-                            booking-photos + seed prestataires de démo (is_demo). Miroir de
-                            lib/types.ts. Pas de policies (voir policies.sql).
+                            booking-photos. Miroir de lib/types.ts. Pas de policies (voir
+                            policies.sql).
 supabase/rpc.sql            Fonctions/triggers (create_booking = demande ouverte sans
-                            prestataire, seed_demo, trigger messages)
-                            — à exécuter APRÈS schema.sql. seed_demo charge le scénario de
-                            démo (réservations/conversations/messages, dates relatives).
+                            prestataire, trigger messages) — à exécuter APRÈS schema.sql.
 supabase/transitions.sql    Transitions d'état (security definer, à exécuter APRÈS rpc.sql) :
                             accept_quote, decline_quote, cancel_booking, set_booking_photos,
                             mark_conversation_read. Voir section Sécurité des données.
@@ -293,11 +284,8 @@ supabase/apply.sh           Applique les cinq fichiers à la base partagée (mai
 supabase/tests/             Tests SQL hors projet réel : run.sh (Postgres Docker),
                             supabase-stubs.sql (auth.uid, rôles, storage simulés),
                             scenarios.sql (client), scenarios-provider.sql (prestataire).
-supabase/functions/         Edge Functions (Deno). provider-reply : simule les prestataires
-                            (ouvre leurs conversations, insère intro + devis, service_role)
-                            — exclu du tsconfig de l'app.
 docs/                       Documents de conception, validés en PR avant le code.
-  interface-prestataire.md  Appel d'offres + comptes prestataires (lots 1 à 5 ; 1 et 2 faits).
+  interface-prestataire.md  Appel d'offres + comptes prestataires (lots 1 à 5, tous faits).
 ```
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).
@@ -325,8 +313,6 @@ les dépendances `i18next` / `react-i18next` / `expo-localization`.
   la langue active **et** du point de vue de celui qui lit. Ajouter un message système =
   ajouter la clé à la contrainte `messages_system_key_valid` (schema.sql), au type
   `SystemMessageKey` (types.ts) et aux deux catalogues (versions client et prestataire).
-  Les réponses des prestataires **simulés** (Edge Function) restent en français : ce sont
-  des propos de prestataires montréalais, pas des textes de l'app.
 
 ## Login social (OAuth Google)
 
@@ -394,7 +380,7 @@ depuis un client modifié, pas seulement depuis l'app. D'où la règle :
   atomiquement. Seule exception : les messages **texte**, insérés directement par le
   client (`sender_kind = 'client'`) ou le prestataire (`'provider'`, à son nom), chacun
   dans ses conversations. Les messages `system` et les devis viennent des RPC
-  (`send_quote`), les réponses simulées de l'Edge Function (service_role).
+  (`send_quote`).
 - **Rôle prestataire** : une fiche `providers` avec `user_id` = le compte. Aucune colonne
   de rôle modifiable par l'utilisateur ; seul `admin_link_provider` (exécutable par
   l'admin uniquement) pose le lien. v1 : un compte prestataire ne peut pas créer de
@@ -446,23 +432,22 @@ Ces règles sont non négociables :
   réservation `confirmed` avec ce prestataire, devis concurrents `declined` et autres
   prestataires prévenus. Détails : `docs/interface-prestataire.md`.
 
-## Données de démo
+## Données de test
 
 L'état applicatif (réservations, conversations, messages) vit dans **Supabase** — le store
-n'est **pas** persisté en AsyncStorage. Plus aucun mock côté app : les fiches
-prestataires (de démo `is_demo`, et réelles) sont lues depuis la table `providers`
-(`lib/providers-store.ts`) ; les six fiches de démo sont seedées par `schema.sql`.
+n'est **pas** persisté en AsyncStorage. Aucun mock ni aucune donnée de démo : les fiches
+prestataires sont lues depuis la table `providers` (`lib/providers-store.ts`).
 
-**Simulation** (Edge Function `provider-reply`) : seules les fiches `is_demo` répondent.
-À chaque nouvelle demande, les prestataires de démo du service répondent **sauf si un
-vrai prestataire** (fiche reliée à un compte) couvre ce service — c'est alors à lui de
-répondre. Et la simulation ne répond jamais dans la conversation d'un vrai prestataire.
+**Plus de simulation** (lot 5, septembre 2026) : les six fiches de démo (Marc, Amadou…),
+l'Edge Function `provider-reply`, la RPC `seed_demo` et « Profil → Réinitialiser la démo »
+ont été supprimés après un test de bout en bout avec deux appareils. La migration de
+`schema.sql` a effacé leurs données (réservations qui ne tenaient qu'à elles, offres de
+démo) et la colonne `providers.is_demo`. Les photos Storage de ces réservations restent
+dans le bucket (fichiers orphelins, sans effet).
 
-« Profil → Réinitialiser la démo » appelle la RPC **`seed_demo`** (côté serveur, dans
-`supabase/rpc.sql`) puis recharge depuis Supabase. C'est `seed_demo` qui contient le scénario
-de démo (réservations/conversations/messages), avec des dates relatives à aujourd'hui pour
-que la démo reste crédible : une plomberie ouverte avec **deux offres** (Marc 185 $,
-Amadou 170 $) et un jardinage terminé avec facture.
+**Tester le flux** : deux comptes, un client et un prestataire relié (fiche `p-test`,
+voir ci-dessous). Une demande n'a d'offre que si un prestataire relié du service répond.
+L'accueil masque « Prestataires populaires » tant qu'aucune fiche vérifiée n'existe.
 
 ## Relier un prestataire réel (admin)
 
@@ -477,7 +462,7 @@ select admin_link_provider('p-prenom', 'courriel@exemple.ca');
 -- Délier : update providers set user_id = null where id = 'p-prenom';
 ```
 
-Un compte ne peut être relié qu'à une fiche, et jamais à une fiche de démo. À la
+Un compte ne peut être relié qu'à une fiche. À la
 connexion suivante (ou relance de l'app), il bascule sur l'**interface prestataire**
 (onglets Demandes / Mes travaux / Messages / Profil) ; il ne peut plus créer de demande.
 

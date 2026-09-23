@@ -16,10 +16,12 @@ insert into auth.users (id, email, raw_user_meta_data) values
 insert into providers (id, name, services, hourly_rate) values
  ('p-paul', 'Paul Plombier', array['plumber'], 90),
  ('p-gina', 'Gina Jardin', array['gardener'], 50);
-\echo '--- Admin relie Paul et Gina (doit réussir), puis une fiche de démo (doit échouer)'
+\echo '--- Admin relie Paul et Gina (doit réussir), puis une fiche inexistante (doit échouer)'
 select admin_link_provider('p-paul', 'PAUL@test.ca');
 select admin_link_provider('p-gina', 'gina@test.ca');
-select admin_link_provider('p-marc', 'bob@test.ca');
+select admin_link_provider('p-inconnu', 'bob@test.ca');
+\echo '--- Relier Paul à une seconde fiche (doit échouer : un compte, une fiche)'
+select admin_link_provider('p-marc', 'paul@test.ca');
 \echo '--- Un utilisateur ne peut pas appeler la fonction admin (doit échouer)'
 set role authenticated;
 select set_config('request.jwt.claim.sub', :'bob', false) \g /dev/null

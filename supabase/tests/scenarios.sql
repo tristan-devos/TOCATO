@@ -6,10 +6,28 @@ insert into auth.users (id, email, raw_user_meta_data) values
  ('11111111-1111-1111-1111-111111111111','alice@test.ca','{"name":"Alice"}'),
  ('22222222-2222-2222-2222-222222222222','bob@test.ca','{"name":"Bob"}');
 
+-- Jeu de données d'Alice (rôle postgres, comme un admin) : une plomberie ouverte avec
+-- deux offres (Marc 185, Amadou 170) et un jardinage terminé avec Sophie. Fiches de
+-- test ordinaires, non reliées à un compte (l'ancien seed_demo n'existe plus).
+insert into providers (id, name, services, hourly_rate) values
+ ('p-marc', 'Marc Tremblay', array['plumber'], 95),
+ ('p-amadou', 'Amadou Diallo', array['plumber'], 90),
+ ('p-sophie', 'Sophie Gagnon', array['gardener'], 55);
+insert into bookings (id, user_id, service_id, status, address, estimate_min, estimate_max, agreed_price, provider_id) values
+ ('b0000000-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','plumber','pending','{}',170,300,null,null),
+ ('b0000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','gardener','completed','{}',135,270,160,'p-sophie');
+insert into conversations (id, user_id, provider_id, booking_id) values
+ ('c0000000-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','p-marc','b0000000-0000-0000-0000-000000000001'),
+ ('c0000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','p-amadou','b0000000-0000-0000-0000-000000000001'),
+ ('c0000000-0000-0000-0000-000000000003','11111111-1111-1111-1111-111111111111','p-sophie','b0000000-0000-0000-0000-000000000002');
+insert into messages (conversation_id, sender_kind, provider_id, type, text, quote) values
+ ('c0000000-0000-0000-0000-000000000001','provider','p-marc','quote','','{"amount":185,"details":"","status":"pending"}'),
+ ('c0000000-0000-0000-0000-000000000002','provider','p-amadou','quote','','{"amount":170,"details":"","status":"pending"}'),
+ ('c0000000-0000-0000-0000-000000000003','provider','p-sophie','text','Facture',null);
+
 set role authenticated;
 select set_config('request.jwt.claim.sub','11111111-1111-1111-1111-111111111111',false);
-select seed_demo();
-\echo '--- données démo d''Alice'
+\echo '--- données d''Alice'
 select service_id, status, agreed_price from bookings order by service_id;
 
 \echo '--- TROU 1 : update direct du statut/prix (doit toucher 0 ligne)'

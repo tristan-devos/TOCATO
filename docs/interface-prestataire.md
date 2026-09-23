@@ -194,6 +194,10 @@ Avec de vrais prestataires, des faux qui répondent aussi fausseraient les tests
 les fiches de démo, et **uniquement si aucun vrai prestataire ne couvre le
 service**. `seed_demo` reste pour la démo. Suppression complète au lot 5.
 
+**Réalisé (lot 5) :** simulation supprimée entièrement (fiches de démo et leurs données,
+colonne `is_demo`, Edge Function, `seed_demo`, bouton « Réinitialiser la démo »), après
+un test de bout en bout avec deux appareils. Les tests SQL créent leurs propres fiches.
+
 ## 9. Découpage en PR (lots)
 
 Chaque lot : `tsc` + export web + `expo-doctor` OK, fichiers < 300 lignes,
@@ -210,7 +214,7 @@ Chaque lot : `tsc` + export web + `expo-doctor` OK, fichiers < 300 lignes,
    procédure SQL documentée pour relier un compte.
 4. ✅ **Interface prestataire** : navigation par rôle, onglets et écrans du §7, i18n
    FR/EN, **fiches prestataires lues depuis la base** (au lieu de `mock-data.ts`).
-5. **Nettoyage** : fin de la simulation (`mock-data.ts` déjà supprimé au lot 4).
+5. ✅ **Nettoyage** : fin de la simulation (`mock-data.ts` déjà supprimé au lot 4).
 
 Test de bout en bout après le lot 4 : ton collègue = client, un compte de test =
 prestataire (relié à la main), puis un vrai prestataire recruté.

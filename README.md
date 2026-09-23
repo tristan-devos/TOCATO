@@ -28,9 +28,9 @@ npx expo start
 - iPhone : scanner le QR code avec l'app [Expo Go](https://expo.dev/go).
 - Web : appuyer sur `w` dans le terminal.
 
-Les données (comptes, réservations, conversations, photos) vivent dans Supabase. Les
-prestataires de démo répondent via une simulation côté serveur (Edge Function
-`provider-reply`), sauf dans les services couverts par un vrai prestataire. « Profil → Réinitialiser la démo » recharge le scénario de démo.
+Les données (comptes, réservations, conversations, photos) vivent dans Supabase. Il n'y
+a plus de prestataires simulés : pour tester, utiliser deux comptes, un client et un
+prestataire relié par l'admin (voir AGENTS.md > Relier un prestataire réel).
 
 ## Fonctionnalités
 

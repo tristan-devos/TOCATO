@@ -1,11 +1,6 @@
 import { useRouter } from 'expo-router';
-import {
-  CircleHelp,
-  CreditCard,
-  MapPin,
-  RotateCcw,
-} from 'lucide-react-native';
-import { Alert, StyleSheet, View } from 'react-native';
+import { CircleHelp, CreditCard, MapPin } from 'lucide-react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { LanguageItem, LogoutCard } from '@/components/profile/account-actions';
@@ -17,7 +12,6 @@ import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAddresses, useProfile } from '@/lib/profile-store';
-import { useAppStore } from '@/lib/store';
 
 export default function ProfilScreen() {
   const colors = useTheme();
@@ -25,18 +19,6 @@ export default function ProfilScreen() {
   const { t } = useTranslation();
   const profile = useProfile();
   const addresses = useAddresses();
-  const resetDemo = useAppStore((s) => s.resetDemo);
-
-  const confirmReset = () => {
-    Alert.alert(t('profile.resetTitle'), t('profile.resetMessage'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('profile.resetConfirm'),
-        style: 'destructive',
-        onPress: () => void resetDemo(),
-      },
-    ]);
-  };
 
   return (
     <Screen>
@@ -82,12 +64,6 @@ export default function ProfilScreen() {
             onPress={() => router.push('/profile/help')}
           />
           <LanguageItem />
-          <ListItem
-            title={t('profile.resetDemo')}
-            subtitle={t('profile.resetDemoSubtitle')}
-            leading={<RotateCcw size={20} color={colors.primary} />}
-            onPress={confirmReset}
-          />
         </Card>
       </View>
 

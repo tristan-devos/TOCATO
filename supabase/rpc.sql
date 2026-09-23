@@ -33,7 +33,7 @@ create trigger on_message_created
 
 -- ——— create_booking : crée une demande ouverte (appel d'offres) ——————————————
 -- Pas de prestataire à la création : les prestataires intéressés ouvrent chacun
--- leur conversation (Edge Function provider-reply, puis send_quote au lot 3).
+-- leur conversation avec un devis (send_quote, providers.sql).
 -- security definer : le client n'a pas de policy d'insert sur bookings. La
 -- fonction force user_id = auth.uid(), status = 'pending', provider_id = null ;
 -- les photos sont rattachées ensuite via set_booking_photos. Renvoie l'id.
@@ -84,73 +84,5 @@ grant execute on function public.create_booking(
   text, date, text, jsonb, jsonb, text, numeric, numeric
 ) to authenticated;
 
--- ——— seed_demo : charge des réservations d'exemple dans le compte courant ——
--- Remplace « Réinitialiser la démo ». Efface les bookings de l'utilisateur
--- (cascade) puis insère deux scénarios datés relativement à aujourd'hui.
--- security definer : le seed insère des messages 'provider' (interdits au client
--- par la policy messages_insert_own). La fonction reste limitée au compte courant
--- via auth.uid() (lecture du JWT, indépendante du rôle d'exécution).
-create or replace function public.seed_demo()
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_uid     uuid := auth.uid();
-  v_addr    jsonb := '{"id":"addr-home","label":"Maison","street":"4521, rue Saint-Denis, app. 3","city":"Montréal","postalCode":"H2J 2L2"}'::jsonb;
-  v_plomb   uuid := gen_random_uuid();
-  v_cmarc   uuid := gen_random_uuid();
-  v_camadou uuid := gen_random_uuid();
-  v_jard    uuid := gen_random_uuid();
-  v_cjard   uuid := gen_random_uuid();
-begin
-  if v_uid is null then return; end if;
-  delete from public.bookings where user_id = v_uid;
-
-  -- Scénario 1 : plomberie en attente, sans prestataire attribué — deux
-  -- prestataires ont répondu, chacun avec un devis en attente (multi-offres).
-  insert into public.bookings (id, user_id, service_id, status, created_at,
-    scheduled_date, time_slot, address, answers, description, photos,
-    estimate_min, estimate_max, provider_id)
-  values (v_plomb, v_uid, 'plumber', 'pending', now() - interval '2 days 3 hours',
-    (now() + interval '3 days')::date, 'morning', v_addr,
-    '[{"questionId":"issue","questionLabel":"Quel est le problème ?","values":["Fuite d''eau"]},{"questionId":"urgency","questionLabel":"C''est urgent ?","values":["Cette semaine"]},{"questionId":"housingType","questionLabel":"Type de logement ?","values":["Appartement / condo"]}]'::jsonb,
-    'Fuite sous l''évier de la cuisine, le raccord du siphon goutte en continu. J''ai mis un seau en attendant.',
-    '{}', 170, 300, null);
-  insert into public.conversations (id, user_id, provider_id, booking_id) values
-    (v_cmarc, v_uid, 'p-marc', v_plomb),
-    (v_camadou, v_uid, 'p-amadou', v_plomb);
-  insert into public.messages (conversation_id, sender_kind, provider_id, type, text, created_at, quote) values
-    (v_cmarc, 'provider', 'p-marc', 'text', 'Bonjour ! J''ai bien vu votre demande pour la fuite sous l''évier. Les photos sont claires, c''est fort probablement le joint du siphon.', now() - interval '2 days 1 hour', null),
-    (v_cmarc, 'client', null, 'text', 'Bonjour ! Oui c''est ça, ça goutte surtout quand on fait couler l''eau. Vous pouvez passer cette semaine ?', now() - interval '1 day 6 hours', null),
-    (v_cmarc, 'provider', 'p-marc', 'quote', 'Voici mon devis pour l''intervention. Je peux passer comme prévu en matinée.', now() - interval '2 hours',
-     '{"amount":185,"details":"Remplacement du siphon et des joints, main-d''œuvre et déplacement inclus. Garantie 6 mois.","status":"pending"}'::jsonb),
-    (v_camadou, 'provider', 'p-amadou', 'text', 'Bonjour, je suis disponible cette semaine pour votre fuite sous l''évier. Je me déplace avec les pièces courantes.', now() - interval '1 day 20 hours', null),
-    (v_camadou, 'provider', 'p-amadou', 'quote', 'Voici ma proposition, déplacement inclus.', now() - interval '1 day 4 hours',
-     '{"amount":170,"details":"Diagnostic et remplacement du joint ou du siphon selon l''état. Pièces standard incluses.","status":"pending"}'::jsonb);
-
-  -- Scénario 2 : jardinage terminé (prestataire confirmé), facture dans le chat.
-  insert into public.bookings (id, user_id, service_id, status, created_at,
-    scheduled_date, time_slot, address, answers, description, photos,
-    estimate_min, estimate_max, agreed_price, provider_id)
-  values (v_jard, v_uid, 'gardener', 'completed', now() - interval '16 days',
-    (now() - interval '12 days')::date, 'afternoon', v_addr,
-    '[{"questionId":"work","questionLabel":"Quels travaux ?","values":["Tonte de pelouse","Taille de haies et arbustes"]},{"questionId":"area","questionLabel":"Quelle surface ?","values":["Petit terrain"]},{"questionId":"frequency","questionLabel":"À quelle fréquence ?","values":["Une seule fois"]}]'::jsonb,
-    'Petite cour arrière, haie de cèdres à rafraîchir avant l''été.',
-    '{}', 135, 270, 160, 'p-sophie');
-  insert into public.conversations (id, user_id, provider_id, booking_id)
-  values (v_cjard, v_uid, 'p-sophie', v_jard);
-  insert into public.messages (conversation_id, sender_kind, provider_id, type, text, created_at, document) values
-    (v_cjard, 'provider', 'p-sophie', 'text', 'Bonjour ! Merci pour votre demande. Pour une petite cour avec haie de cèdres, je propose 160 $ tout inclus.', now() - interval '15 days', null),
-    (v_cjard, 'client', null, 'text', 'Parfait pour moi, on confirme !', now() - interval '15 days' + interval '2 hours', null),
-    (v_cjard, 'provider', 'p-sophie', 'text', 'C''est fait ! La haie est taillée et la pelouse tondue. Merci pour votre confiance.', now() - interval '12 days' + interval '5 hours', null),
-    (v_cjard, 'provider', 'p-sophie', 'document', 'Voici votre facture.', now() - interval '11 days',
-     '{"name":"Facture-TOCATO-0214.pdf","size":"86 Ko"}'::jsonb);
-
-  -- Le trigger a recalculé les non-lus/last_message_at ; on fixe l'état voulu.
-  update public.conversations set client_unread_count = 1, provider_unread_count = 0, last_message_at = now() - interval '2 hours' where id = v_cmarc;
-  update public.conversations set client_unread_count = 1, provider_unread_count = 0, last_message_at = now() - interval '1 day 4 hours' where id = v_camadou;
-  update public.conversations set client_unread_count = 0, provider_unread_count = 0, last_message_at = now() - interval '11 days' where id = v_cjard;
-end;
-$$;
+-- ——— seed_demo : supprimé (lot 5, fin de la simulation) ——————————————————
+drop function if exists public.seed_demo();

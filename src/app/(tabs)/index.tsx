@@ -109,24 +109,27 @@ export default function HomeScreen() {
         </Card>
       </View>
 
-      <View>
-        <SectionHeader title={t('home.popularProviders')} />
-        <Card style={styles.providersCard}>
-          {topProviders.map((provider, index) => (
-            <View key={provider.id}>
-              {index > 0 ? (
-                <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              ) : null}
-              <Pressable
-                onPress={() =>
-                  router.push({ pathname: '/provider/[id]', params: { id: provider.id } })
-                }>
-                <ProviderRow provider={provider} />
-              </Pressable>
-            </View>
-          ))}
-        </Card>
-      </View>
+      {/* Masquée tant qu'aucune fiche vérifiée n'existe (plus de fiches de démo). */}
+      {topProviders.length > 0 ? (
+        <View>
+          <SectionHeader title={t('home.popularProviders')} />
+          <Card style={styles.providersCard}>
+            {topProviders.map((provider, index) => (
+              <View key={provider.id}>
+                {index > 0 ? (
+                  <View style={[styles.divider, { backgroundColor: colors.border }]} />
+                ) : null}
+                <Pressable
+                  onPress={() =>
+                    router.push({ pathname: '/provider/[id]', params: { id: provider.id } })
+                  }>
+                  <ProviderRow provider={provider} />
+                </Pressable>
+              </View>
+            ))}
+          </Card>
+        </View>
+      ) : null}
 
       <View style={[styles.trustBanner, { backgroundColor: colors.primaryMuted }]}>
         <ShieldCheck size={20} color={colors.primary} />
