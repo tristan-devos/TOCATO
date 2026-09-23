@@ -12,9 +12,7 @@ l'appareil photo (ou l'ouvrir dans un navigateur et toucher le lien) :
 
 Il ouvre toujours la dernière version publiée (`npx eas-cli update --branch preview …`, voir
 [AGENTS.md](./AGENTS.md) > Déploiement). Après la première ouverture, TOCATO reste dans
-« Recently opened » d'Expo Go. Pour récupérer la dernière version, fermer complètement
-Expo Go et le rouvrir **deux fois** : la première ouverture télécharge la mise à jour, la
-seconde l'applique.
+« Recently opened » d'Expo Go ; fermer et rouvrir l'app récupère la dernière version.
 
 ## Lancer l'app
 

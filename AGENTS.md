@@ -164,7 +164,7 @@ pas de build natif pour l'instant, et **pas de `eas.json`** à la racine.
   `exp://u.expo.dev/83c31465-c53d-4aac-b3be-615809d04420?runtime-version=exposdk%3A57.0.0&channel-name=preview`).
   Scanner avec l'appareil photo de l'iPhone (Expo Go installé) ; ensuite le projet reste
   dans « Recently opened » d'Expo Go. Il sert **toujours la dernière publication** de la
-  branche `preview` (rouvrir Expo Go deux fois pour l'appliquer, voir plus bas). Si le runtime change (bump de
+  branche `preview` (rouvrir Expo Go pour la récupérer). Si le runtime change (bump de
   SDK), `runtimeVersion` change aussi dans ce lien : le mettre à jour ici et dans le README.
 - **Canal `preview` → branche `preview`** (créé le 2026-09-23 : `eas channel:create
   preview`). **Piège vérifié** : sans canal, le serveur de mises à jour répond 404 à Expo Go
@@ -190,11 +190,8 @@ pas de build natif pour l'instant, et **pas de `eas.json`** à la racine.
   garde de connexion, déconnexion impossible). Le choix dans le menu interactif, lui,
   garde le `.env`. Si l'URL ou la clé change : `eas env:update` dans les trois
   environnements **et** le `.env` local (utilisé par `npx expo start`).
-  Pas `--non-interactive` (non supporté ici) ; utiliser `$CI=1` si besoin.
-  **Piège vérifié** : Expo Go **télécharge** l'update à l'ouverture mais ne l'**applique**
-  qu'au lancement suivant. Il faut donc fermer complètement Expo Go et le rouvrir **deux
-  fois**. Symptôme : « la nouvelle fonctionnalité n'apparaît pas » alors que la publication
-  a réussi.
+  Pas `--non-interactive` (non supporté ici) ; utiliser `$CI=1` si besoin. L'iPhone récupère l'update au prochain
+  lancement d'Expo Go (fermer/rouvrir l'app).
 - **Avant tout build natif** (TestFlight, APK) il faudra d'abord créer un `eas.json`.
 - Rappel : un changement de **config Supabase** (ex. « Confirm email ») est côté serveur et
   s'applique **sans redéploiement**.
