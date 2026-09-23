@@ -190,6 +190,8 @@ supabase/rpc.sql            Fonctions/triggers (create_booking, seed_demo, trigg
                             démo (réservations/conversations/messages, dates relatives).
 supabase/functions/         Edge Functions (Deno). provider-reply : insère les réponses
                             prestataire (service_role) — exclu du tsconfig de l'app.
+docs/                       Documents de conception, validés en PR avant le code.
+  interface-prestataire.md  Appel d'offres + comptes prestataires (lots 1 à 5).
 ```
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).
