@@ -286,6 +286,8 @@ supabase/tests/             Tests SQL hors projet réel : run.sh (Postgres Docke
                             scenarios.sql (client), scenarios-provider.sql (prestataire).
 docs/                       Documents de conception, validés en PR avant le code.
   interface-prestataire.md  Appel d'offres + comptes prestataires (lots 1 à 5, tous faits).
+  adhesion-prestataires.md  Inscription et vérification des prestataires (RBQ, pièces,
+                            approbation admin). Validé, lots en cours.
 ```
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).
