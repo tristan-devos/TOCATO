@@ -3,7 +3,9 @@
  *
  * Source de vérité = la base. Le store charge les données à la connexion
  * (`loadAll`, appelé depuis auth-store), écoute le Realtime et réécrit via
- * Supabase. La simulation des réponses prestataire vit côté serveur (Edge
+ * Supabase. Seul l'envoi d'un message texte est un insert direct : toute
+ * transition d'état (devis, annulation, photos, lu) passe par une RPC qui
+ * vérifie les droits côté serveur (voir supabase/transitions.sql). La simulation des réponses prestataire vit côté serveur (Edge
  * Function `provider-reply`), déclenchée via `provider-reply.ts`. Les sélecteurs
  * exposés restent identiques pour ne pas toucher les écrans.
  */
@@ -174,7 +176,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (userId) {
         const paths = await uploadBookingPhotos(userId, result.booking_id, draft.photos);
         if (paths.length > 0) {
-          await supabase.from('bookings').update({ photos: paths }).eq('id', result.booking_id);
+          const { error: photosError } = await supabase.rpc('set_booking_photos', {
+            p_booking_id: result.booking_id,
+            p_photos: paths,
+          });
+          if (photosError && __DEV__) console.warn('[set_booking_photos]', photosError.message);
         }
       }
     }
@@ -188,13 +194,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     const booking = get().bookings.find((b) => b.id === bookingId);
     if (!booking || booking.status === 'cancelled' || booking.status === 'completed') return;
 
-    await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', bookingId);
-    await supabase.from('messages').insert({
-      conversation_id: booking.conversationId,
-      sender_kind: 'system',
-      type: 'system',
-      text: 'Vous avez annulé cette réservation.',
-    });
+    const { error } = await supabase.rpc('cancel_booking', { p_booking_id: bookingId });
+    if (error && __DEV__) console.warn('[cancel_booking]', error.message);
     await Promise.all([refreshBookings(), refreshMessages()]);
   },
 
@@ -218,35 +219,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   respondToQuote: async (messageId, accept) => {
     const message = get().messages.find((m) => m.id === messageId);
     if (!message?.quote || message.quote.status !== 'pending') return;
-    const conversation = get().conversations.find((c) => c.id === message.conversationId);
-    if (!conversation) return;
 
-    const status = accept ? 'accepted' : 'declined';
-    await supabase
-      .from('messages')
-      .update({ quote: { ...message.quote, status } })
-      .eq('id', messageId);
-    if (accept) {
-      await supabase
-        .from('bookings')
-        .update({ status: 'confirmed', agreed_price: message.quote.amount })
-        .eq('id', conversation.bookingId);
-    }
-    await supabase.from('messages').insert({
-      conversation_id: message.conversationId,
-      sender_kind: 'system',
-      type: 'system',
-      text: accept
-        ? 'Devis accepté — votre réservation est confirmée.'
-        : 'Vous avez refusé le devis.',
+    // Le serveur applique la transition complète (devis, réservation, message
+    // système) et refuse un devis déjà traité ou une réservation non en attente.
+    const { error } = await supabase.rpc(accept ? 'accept_quote' : 'decline_quote', {
+      p_message_id: messageId,
     });
+    if (error && __DEV__) console.warn('[respondToQuote]', error.message);
     await Promise.all([refreshBookings(), refreshMessages()]);
   },
 
   markConversationRead: async (conversationId) => {
     const conversation = get().conversations.find((c) => c.id === conversationId);
     if (!conversation || conversation.unreadCount === 0) return;
-    await supabase.from('conversations').update({ unread_count: 0 }).eq('id', conversationId);
+    await supabase.rpc('mark_conversation_read', { p_conversation_id: conversationId });
     await refreshConversations();
   },
 

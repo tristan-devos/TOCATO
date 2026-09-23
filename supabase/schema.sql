@@ -7,6 +7,8 @@
 --
 -- Modèle : une app côté client. Chaque utilisateur ne voit que ses propres
 -- données (RLS owner-only). Le catalogue `providers` est en lecture publique.
+-- Écritures sur bookings / conversations / messages : uniquement via les RPC
+-- (rpc.sql, transitions.sql), sauf l'envoi d'un message texte par le client.
 -- =============================================================================
 
 -- ——— profiles : 1:1 avec auth.users ———————————————————————————————————————
@@ -158,15 +160,21 @@ drop policy if exists "providers_select_all" on public.providers;
 create policy "providers_select_all" on public.providers
   for select using (true);
 
--- bookings : owner-only.
+-- bookings : lecture owner-only. AUCUNE écriture directe : l'ancienne policy
+-- `for all` laissait le client écrire status / agreed_price (se confirmer une
+-- réservation au prix de son choix). Création via create_booking, transitions
+-- via transitions.sql.
 drop policy if exists "bookings_all_own" on public.bookings;
-create policy "bookings_all_own" on public.bookings
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "bookings_select_own" on public.bookings;
+create policy "bookings_select_own" on public.bookings
+  for select using (auth.uid() = user_id);
 
--- conversations : owner-only.
+-- conversations : lecture owner-only, écritures via RPC (create_booking,
+-- mark_conversation_read) et trigger handle_new_message.
 drop policy if exists "conversations_all_own" on public.conversations;
-create policy "conversations_all_own" on public.conversations
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "conversations_select_own" on public.conversations;
+create policy "conversations_select_own" on public.conversations
+  for select using (auth.uid() = user_id);
 
 -- messages : accès via la conversation possédée par l'utilisateur.
 drop policy if exists "messages_select_own" on public.messages;
@@ -177,27 +185,26 @@ create policy "messages_select_own" on public.messages
       where c.id = messages.conversation_id and c.user_id = auth.uid()
     )
   );
--- Le client n'insère que ses propres messages ('client') ou des messages
--- 'system' issus de ses actions (annulation, réponse à un devis). Les messages
--- 'provider' viennent du serveur (Edge Function provider-reply, service_role)
--- et ne peuvent donc pas être forgés depuis l'app.
+-- Le client n'insère que des messages texte signés 'client'. Les messages
+-- 'system' viennent des RPC (security definer), les messages 'provider' du
+-- serveur (Edge Function provider-reply, service_role) : ni un faux devis ni un
+-- faux « Devis accepté » ne peuvent être forgés depuis l'app.
 drop policy if exists "messages_insert_own" on public.messages;
 create policy "messages_insert_own" on public.messages
   for insert with check (
-    messages.sender_kind in ('client', 'system')
+    messages.sender_kind = 'client'
+    and messages.type = 'text'
+    and messages.quote is null
+    and messages.document is null
     and exists (
       select 1 from public.conversations c
       where c.id = messages.conversation_id and c.user_id = auth.uid()
     )
   );
+-- Pas d'update direct : l'ancienne policy laissait le client modifier
+-- n'importe quel message, y compris le montant d'un devis du prestataire.
+-- Le statut d'un devis change via accept_quote / decline_quote.
 drop policy if exists "messages_update_own" on public.messages;
-create policy "messages_update_own" on public.messages
-  for update using (
-    exists (
-      select 1 from public.conversations c
-      where c.id = messages.conversation_id and c.user_id = auth.uid()
-    )
-  );
 
 -- =============================================================================
 -- Realtime : le client s'abonne aux changements (messages, bookings,
