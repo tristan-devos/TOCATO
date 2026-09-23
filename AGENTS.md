@@ -109,6 +109,17 @@ plombier, déménageur, jardinier.
   qui supprime `conversation_id` proprement).
   Types DB régénérables via `npx supabase gen types typescript --project-id <ref>`
   (réimporter ensuite les unions de `lib/types.ts` dans `lib/database.types.ts`).
+- **Registre RBQ** (vérification des licences de plomberie, `docs/adhesion-prestataires.md`
+  §6) : `supabase/rbq-import.sh` remplace `rbq_licences` par les licences d'entrepreneur
+  actives publiées par la RBQ (Données Québec, CC-BY 4.0, environ 53 000 licences dont
+  2 300 en plomberie 15.5 ; une minute environ). Tout ou rien, et refus si moins de 20 000
+  licences lues (téléchargement tronqué). **Chaque nuit** via la GitHub Action
+  `.github/workflows/rbq-import.yml` (8 h UTC) ; à la main : `supabase/rbq-import.sh`
+  (lit `SUPABASE_DB_URL` dans `.env`) ou bouton *Run workflow* dans l'onglet Actions.
+  **Secret requis** : `SUPABASE_DB_URL` dans *Settings → Secrets and variables → Actions*
+  (même chaîne que le `.env`). Sans lui, l'Action échoue (« SUPABASE_DB_URL manquante ») et
+  GitHub envoie un courriel. Repo privé : environ 2 min d'Actions par jour, largement dans
+  le quota gratuit.
 - **Tests SQL** : `supabase/tests/run.sh` (Docker requis, ne touche pas au projet réel).
   Joue les six fichiers dans un Postgres jetable (install neuve + ré-exécution + mise à
   jour depuis `main`), puis les scénarios RLS/RPC de `supabase/tests/scenarios.sql`
@@ -290,6 +301,8 @@ supabase/applications.sql   Adhésion des prestataires : admins + is_admin, rbq_
 supabase/policies.sql       Toutes les policies RLS + Storage (client et prestataire), en
                             dernier. Voir section Sécurité des données.
 supabase/apply.sh           Applique les six fichiers à la base partagée (main uniquement)
+supabase/rbq-import.sh      Importe le registre des licences RBQ (nocturne via GitHub Action)
+.github/workflows/          rbq-import.yml : import RBQ chaque nuit (secret SUPABASE_DB_URL)
 supabase/tests/             Tests SQL hors projet réel : run.sh (Postgres Docker),
                             supabase-stubs.sql (auth.uid, rôles, storage simulés),
                             scenarios.sql (client), scenarios-provider.sql (prestataire),

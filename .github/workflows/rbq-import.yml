@@ -1,0 +1,29 @@
+# Import nocturne du registre des licences RBQ dans la base Supabase partagée.
+# Voir supabase/rbq-import.sh et docs/adhesion-prestataires.md §6.
+# Secret requis : SUPABASE_DB_URL (Settings > Secrets and variables > Actions),
+# même chaîne « Session pooler » que dans .env.
+# En cas d'échec, GitHub envoie un courriel au propriétaire du repo.
+name: Import RBQ
+
+on:
+  schedule:
+    - cron: '0 8 * * *' # 8 h UTC = 4 h à Montréal (heure d'été), après la mise à jour du jeu
+  workflow_dispatch: # bouton « Run workflow » dans l'onglet Actions
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rbq-import
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Importer le registre
+        run: supabase/rbq-import.sh
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
