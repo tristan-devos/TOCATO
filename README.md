@@ -6,17 +6,22 @@ construite avec Expo (iOS / Android / web).
 
 ## Lancer l'app
 
+Prérequis : un projet Supabase configuré (voir [AGENTS.md](./AGENTS.md), section
+Commandes > Supabase).
+
 ```bash
 npm install
+cp .env.example .env   # puis remplir l'URL de l'API (https://<ref>.supabase.co) et la clé anon
 npx expo start
 ```
 
 - iPhone : scanner le QR code avec l'app [Expo Go](https://expo.dev/go).
 - Web : appuyer sur `w` dans le terminal.
 
-L'app tourne entièrement avec des données de démo, sans backend. Les réponses des
-prestataires dans le chat sont simulées. « Profil → Réinitialiser la démo » restaure les
-données de départ.
+Les données (comptes, réservations, conversations, photos) vivent dans Supabase. Les
+prestataires sont encore des **prestataires de démo** et leurs réponses dans le chat sont
+**simulées côté serveur** (Edge Function `provider-reply`) ; l'interface prestataire est
+la prochaine étape. « Profil → Réinitialiser la démo » recharge le scénario de démo.
 
 ## Fonctionnalités
 
