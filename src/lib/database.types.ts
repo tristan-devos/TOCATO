@@ -10,6 +10,7 @@
  * (à ce moment, réimporter les unions du domaine pour rester DRY).
  */
 
+import type { ApplicationFunctions, ApplicationTables } from '@/lib/database-applications.types';
 import type {
   Address,
   BookingAnswer,
@@ -179,7 +180,7 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['messages']['Insert']>;
         Relationships: [];
       };
-    };
+    } & ApplicationTables;
     Views: Record<never, never>;
     Functions: {
       // Crée une demande ouverte (sans prestataire) ; renvoie son id.
@@ -260,7 +261,7 @@ export interface Database {
         Args: Record<string, never>;
         Returns: { conversation_id: string; client_first_name: string }[];
       };
-    };
+    } & ApplicationFunctions;
     Enums: Record<never, never>;
   };
 }

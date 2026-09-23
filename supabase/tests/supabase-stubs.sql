@@ -12,5 +12,6 @@ create function storage.foldername(name text) returns text[] language sql as $$ 
 alter table storage.objects enable row level security;
 -- Comme sur Supabase : droits de table accordés, l'accès réel est filtré par la RLS.
 grant select, insert, delete on storage.objects to authenticated;
+grant usage on sequence storage.objects_id_seq to authenticated;
 create publication supabase_realtime;
 alter default privileges in schema public grant all on tables to anon, authenticated;

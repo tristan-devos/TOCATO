@@ -153,7 +153,12 @@ par … », pas l'image). À refléter dans la politique de confidentialité.
 
 ## 9. Découpage en PR (lots)
 
-1. **Serveur** : tables, `is_admin`, RPC, policies, bucket, scénarios SQL.
+1. ✅ **Serveur** : tables, `is_admin`, RPC, policies, bucket, scénarios SQL.
+   **Réalisé :** nouveau fichier `supabase/applications.sql` (entre `providers.sql` et
+   `policies.sql`). En plus du plan : `submit_provider_application` refuse aussi un
+   compte qui a déjà des réservations (`client_account`) ; licence et NEQ sont saisis
+   avec ou sans tirets (`digits_only`) ; `provider_applications` est dans le Realtime ;
+   l'id de la fiche créée vaut `p-` + 12 caractères de l'id de la demande.
 2. **Registre RBQ** : `rbq-import.sh`, GitHub Action nocturne, secret et doc dans `AGENTS.md`.
 3. **App, côté demandeur** : choix à l'inscription, formulaire, écran de statut, rôle
    `applicant`.

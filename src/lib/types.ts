@@ -124,6 +124,18 @@ export interface User {
 /** Who is using the app: a client, or a provider linked to a `providers` row. */
 export type Role = 'client' | 'provider';
 
+/** Status of a provider membership application (docs/adhesion-prestataires.md). */
+export type ApplicationStatus = 'submitted' | 'approved' | 'rejected';
+
+/** Outcome of the RBQ licence check (plumbing, subclass 15.5). Indicative: the admin decides. */
+export type RbqCheckResult =
+  | 'ok'
+  | 'not_found'
+  | 'missing_subcategory'
+  | 'restricted'
+  | 'neq_mismatch'
+  | 'registry_unavailable';
+
 /**
  * An open request as a provider sees it (RPC list_open_requests): never the exact
  * address nor the client's name: only the city and postal sector (e.g. H2J).

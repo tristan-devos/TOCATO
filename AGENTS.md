@@ -80,11 +80,12 @@ plombier, déménageur, jardinier.
   ordre : `supabase/schema.sql` (tables,
   migrations, Realtime, Storage) → `rpc.sql` (trigger, create_booking) →
   `transitions.sql` (transitions côté client) → `providers.sql` (comptes et actions
-  prestataire) → `policies.sql` (RLS + Storage, **en dernier** : les policies appellent
+  prestataire) → `applications.sql` (adhésion des prestataires, admin, registre RBQ) →
+  `policies.sql` (RLS + Storage, **en dernier** : les policies appellent
   les fonctions des fichiers précédents). Tous idempotents et ré-exécutables. **Après
   toute PR qui touche `supabase/`** : `git checkout main && git pull && supabase/apply.sh`.
   Le script remplace le copier-coller dans le SQL editor : psql via Docker (image
-  `postgres:16-alpine`, rien à installer), les cinq fichiers dans **une seule
+  `postgres:16-alpine`, rien à installer), les six fichiers dans **une seule
   transaction** (à la première erreur, rien n'est appliqué), confirmation `[o/N]` après
   affichage de l'hôte visé. Il **refuse** de tourner hors de `main`, avec des
   modifications dans `supabase/`, ou si `main` n'est pas à jour avec `origin/main`.
@@ -109,9 +110,10 @@ plombier, déménageur, jardinier.
   Types DB régénérables via `npx supabase gen types typescript --project-id <ref>`
   (réimporter ensuite les unions de `lib/types.ts` dans `lib/database.types.ts`).
 - **Tests SQL** : `supabase/tests/run.sh` (Docker requis, ne touche pas au projet réel).
-  Joue les cinq fichiers dans un Postgres jetable (install neuve + ré-exécution + mise à
+  Joue les six fichiers dans un Postgres jetable (install neuve + ré-exécution + mise à
   jour depuis `main`), puis les scénarios RLS/RPC de `supabase/tests/scenarios.sql`
-  (client) et `scenarios-provider.sql` (prestataire) : chaque bloc annonce le résultat
+  (client), `scenarios-provider.sql` (prestataire) et `scenarios-applications.sql`
+  (adhésion) : chaque bloc annonce le résultat
   attendu ; le script échoue à la moindre erreur SQL d'installation. **À lancer avant de conclure toute modif SQL** ;
   ajouter un scénario pour chaque nouvelle policy ou RPC.
 - **Edge Functions** : aucune depuis le lot 5 (`provider-reply`, la simulation des
@@ -249,6 +251,9 @@ src/lib/
                             reste false tant que .env est vide (app fonctionnelle sans).
                             flowType 'pkce' (échange de code OAuth), detectSessionInUrl false.
   database.types.ts         Type `Database` du schéma Postgres, aligné sur types.ts
+  database-applications.types.ts  Tables/RPC de l'adhésion, fusionnées dans `Database`
+                            (fichier séparé : plafond de 300 lignes). Alias `type`, pas
+                            `interface` : sinon l'inférence supabase-js tombe à `never`.
   auth-store.ts             Store Zustand auth (signUp/signIn/signInWithOAuth/signOut,
                             session), séparé du store applicatif ; `initAuth()` au montage.
                             signInWithOAuth : flux navigateur (expo-web-browser) + échange
@@ -278,12 +283,17 @@ supabase/transitions.sql    Transitions d'état (security definer, à exécuter 
 supabase/providers.sql      Comptes prestataires : current_provider_id, list_open_requests
                             (sans adresse exacte), send_quote, start_job, complete_job,
                             provider_conversation_clients, admin_link_provider (admin).
+supabase/applications.sql   Adhésion des prestataires : admins + is_admin, rbq_licences
+                            (extrait du registre RBQ), provider_applications, bucket
+                            provider-documents, submit_provider_application,
+                            admin_approve/reject_application. Voir docs/adhesion-prestataires.md.
 supabase/policies.sql       Toutes les policies RLS + Storage (client et prestataire), en
                             dernier. Voir section Sécurité des données.
-supabase/apply.sh           Applique les cinq fichiers à la base partagée (main uniquement)
+supabase/apply.sh           Applique les six fichiers à la base partagée (main uniquement)
 supabase/tests/             Tests SQL hors projet réel : run.sh (Postgres Docker),
                             supabase-stubs.sql (auth.uid, rôles, storage simulés),
-                            scenarios.sql (client), scenarios-provider.sql (prestataire).
+                            scenarios.sql (client), scenarios-provider.sql (prestataire),
+                            scenarios-applications.sql (adhésion).
 docs/                       Documents de conception, validés en PR avant le code.
   interface-prestataire.md  Appel d'offres + comptes prestataires (lots 1 à 5, tous faits).
   adhesion-prestataires.md  Inscription et vérification des prestataires (RBQ, pièces,
@@ -386,11 +396,19 @@ depuis un client modifié, pas seulement depuis l'app. D'où la règle :
 - **Rôle prestataire** : une fiche `providers` avec `user_id` = le compte. Aucune colonne
   de rôle modifiable par l'utilisateur ; seul `admin_link_provider` (exécutable par
   l'admin uniquement) pose le lien. v1 : un compte prestataire ne peut pas créer de
-  demande (`create_booking` refuse).
+  demande (`create_booking` refuse), un demandeur d'adhésion non plus.
+- **Admin** : une ligne dans `admins` (aucune policy : ni lisible ni modifiable depuis
+  l'app) ; `is_admin()` la consulte. Les RPC admin sont accordées à `authenticated`
+  mais refusent (`not_admin`) sans `is_admin()`. **Adhésion** : `provider_applications`
+  lisible par le demandeur et l'admin, écrite seulement par `submit_provider_application`
+  (qui vérifie la licence RBQ) et `admin_approve_application` / `admin_reject_application`.
+  L'approbation crée la fiche (`verified = true`) et la relie au compte. Pièces
+  justificatives : bucket privé `provider-documents`, lisible par le propriétaire et
+  l'admin seulement.
 - Chaque nouvelle RPC : `security definer` + `set search_path = public`, vérification
   explicite d'`auth.uid()`, `revoke execute ... from public, anon` + `grant ... to
-  authenticated`, type ajouté dans `database.types.ts > Functions`, scénario ajouté dans
-  `supabase/tests/scenarios.sql` ou `scenarios-provider.sql`.
+  authenticated`, type ajouté dans `database.types.ts > Functions` (ou
+  `database-applications.types.ts`), scénario ajouté dans `supabase/tests/`.
 - Historique : avant septembre 2026, `bookings_all_own` et `messages_update_own` laissaient
   le client écrire `status` / `agreed_price` et modifier le montant d'un devis. Corrigé
   (lot 1 de `docs/interface-prestataire.md`).
@@ -451,9 +469,20 @@ dans le bucket (fichiers orphelins, sans effet).
 voir ci-dessous). Une demande n'a d'offre que si un prestataire relié du service répond.
 L'accueil masque « Prestataires populaires » tant qu'aucune fiche vérifiée n'existe.
 
-## Relier un prestataire réel (admin)
+## Admin et prestataires réels
 
-Dans le SQL editor (rôle admin), une fois que la personne s'est **inscrite dans l'app** :
+**Désigner l'admin** (une seule fois, SQL editor ou psql ; aujourd'hui Tristan seul) :
+
+```sql
+insert into admins (user_id) select id from auth.users where email = 'courriel@exemple.ca'
+on conflict do nothing;
+```
+
+**Adhésion** (`docs/adhesion-prestataires.md`) : le serveur est prêt (lot 1) ; les écrans
+demandeur et admin arrivent aux lots 3 et 4. En attendant, et ensuite en secours :
+
+**Relier à la main** dans le SQL editor (rôle admin), une fois que la personne s'est
+**inscrite dans l'app** :
 
 ```sql
 -- 1. Créer sa fiche (id libre, préfixe p-, services parmi plumber/mover/gardener)
