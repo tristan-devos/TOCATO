@@ -18,6 +18,7 @@ import { create } from 'zustand';
 
 import { rowToBooking, rowToConversation, rowToMessage } from '@/lib/db-mappers';
 import { type LocalPhoto, uploadBookingPhotos } from '@/lib/photo-upload';
+import { useProfileStore } from '@/lib/profile-store';
 import { triggerProviderReply } from '@/lib/provider-reply';
 import { estimatePrice } from '@/lib/services';
 import { supabase } from '@/lib/supabase';
@@ -60,6 +61,13 @@ interface AppState {
 }
 
 // ——— Lectures (RLS restreint déjà aux données de l'utilisateur) ———
+// Client : ses demandes et conversations. Prestataire : ses conversations et
+// les réservations où il est retenu (les demandes ouvertes : provider-store).
+
+/** Rôle courant (chargé par profile-store avant loadAll, voir auth-store). */
+function currentRole() {
+  return useProfileStore.getState().role ?? 'client';
+}
 
 async function fetchBookings(): Promise<Booking[]> {
   const { data } = await supabase
@@ -71,7 +79,8 @@ async function fetchBookings(): Promise<Booking[]> {
 
 async function fetchConversations(): Promise<Conversation[]> {
   const { data } = await supabase.from('conversations').select('*');
-  return (data ?? []).map(rowToConversation);
+  const role = currentRole();
+  return (data ?? []).map((row) => rowToConversation(row, role));
 }
 
 async function fetchMessages(): Promise<Message[]> {
@@ -79,7 +88,8 @@ async function fetchMessages(): Promise<Message[]> {
     .from('messages')
     .select('*')
     .order('created_at', { ascending: true });
-  return (data ?? []).map(rowToMessage);
+  const role = currentRole();
+  return (data ?? []).map((row) => rowToMessage(row, role));
 }
 
 async function refreshBookings(): Promise<void> {
@@ -198,15 +208,25 @@ export const useAppStore = create<AppState>((set, get) => ({
     const conversation = get().conversations.find((c) => c.id === conversationId);
     if (!conversation) return;
 
-    await supabase.from('messages').insert({
-      conversation_id: conversationId,
-      sender_kind: 'client',
-      type: 'text',
-      text: trimmed,
-    });
+    // Signé du côté de l'utilisateur ; la RLS vérifie qu'il est bien ce participant.
+    const { providerId } = useProfileStore.getState();
+    const { error } = await supabase.from('messages').insert(
+      providerId
+        ? {
+            conversation_id: conversationId,
+            sender_kind: 'provider',
+            provider_id: providerId,
+            type: 'text',
+            text: trimmed,
+          }
+        : { conversation_id: conversationId, sender_kind: 'client', type: 'text', text: trimmed },
+    );
+    if (error && __DEV__) console.warn('[sendMessage]', error.message);
     await refreshMessages();
 
-    triggerProviderReply({ kind: 'canned', conversationId });
+    // Réponse simulée : uniquement quand un client écrit (l'Edge Function ne
+    // répond en plus qu'à la place d'une fiche de démo).
+    if (!providerId) triggerProviderReply({ kind: 'canned', conversationId });
   },
 
   respondToQuote: async (messageId, accept) => {

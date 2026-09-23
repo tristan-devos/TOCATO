@@ -2,14 +2,13 @@ import { useRouter } from 'expo-router';
 import {
   CircleHelp,
   CreditCard,
-  Globe,
-  LogOut,
   MapPin,
   RotateCcw,
 } from 'lucide-react-native';
 import { Alert, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { LanguageItem, LogoutCard } from '@/components/profile/account-actions';
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/ui/avatar';
 import { Card } from '@/components/ui/card';
@@ -17,20 +16,16 @@ import { ListItem } from '@/components/ui/list-item';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useAuthStore } from '@/lib/auth-store';
-import { changeLanguage } from '@/i18n';
 import { useAddresses, useProfile } from '@/lib/profile-store';
 import { useAppStore } from '@/lib/store';
 
 export default function ProfilScreen() {
   const colors = useTheme();
   const router = useRouter();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const profile = useProfile();
   const addresses = useAddresses();
   const resetDemo = useAppStore((s) => s.resetDemo);
-  const signOut = useAuthStore((s) => s.signOut);
-  const currentLang = i18n.language as 'fr' | 'en';
 
   const confirmReset = () => {
     Alert.alert(t('profile.resetTitle'), t('profile.resetMessage'), [
@@ -42,40 +37,6 @@ export default function ProfilScreen() {
       },
     ]);
   };
-
-  const confirmLogout = () => {
-    Alert.alert(t('profile.logoutTitle'), t('profile.logoutMessage'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('profile.logout'),
-        style: 'destructive',
-        onPress: () => {
-          // La garde de navigation redirige vers la connexion une fois la session levée.
-          void signOut();
-        },
-      },
-    ]);
-  };
-
-  const pickLanguage = () => {
-    Alert.alert(t('profile.language'), undefined, [
-      {
-        text: t('profile.languageFr'),
-        onPress: () => {
-          void changeLanguage('fr');
-        },
-      },
-      {
-        text: t('profile.languageEn'),
-        onPress: () => {
-          void changeLanguage('en');
-        },
-      },
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
-  };
-
-  const langLabel = currentLang === 'fr' ? t('profile.languageFr') : t('profile.languageEn');
 
   return (
     <Screen>
@@ -120,12 +81,7 @@ export default function ProfilScreen() {
             leading={<CircleHelp size={20} color={colors.primary} />}
             onPress={() => router.push('/profile/help')}
           />
-          <ListItem
-            title={t('profile.language')}
-            subtitle={langLabel}
-            leading={<Globe size={20} color={colors.primary} />}
-            onPress={pickLanguage}
-          />
+          <LanguageItem />
           <ListItem
             title={t('profile.resetDemo')}
             subtitle={t('profile.resetDemoSubtitle')}
@@ -135,14 +91,7 @@ export default function ProfilScreen() {
         </Card>
       </View>
 
-      <Card style={styles.menuCard}>
-        <ListItem
-          title={t('profile.logout')}
-          leading={<LogOut size={20} color={colors.destructive} />}
-          onPress={confirmLogout}
-          destructive
-        />
-      </Card>
+      <LogoutCard />
 
       <AppText variant="small" style={styles.version} color={colors.textSecondary}>
         {t('profile.version')}

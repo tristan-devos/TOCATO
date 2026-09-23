@@ -19,7 +19,10 @@ import { MessageBubble } from '@/components/chat/message-bubble';
 import { Avatar } from '@/components/ui/avatar';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { getProvider } from '@/lib/mock-data';
+import { useCounterpartName } from '@/hooks/use-counterpart';
+import { useRole } from '@/lib/profile-store';
+import { useOpenRequest } from '@/lib/provider-store';
+import { useProvider } from '@/lib/providers-store';
 import { useAppStore, useBooking, useConversation } from '@/lib/store';
 
 export default function ChatScreen() {
@@ -35,6 +38,12 @@ export default function ChatScreen() {
   const respondToQuote = useAppStore((s) => s.respondToQuote);
   const setActiveConversation = useAppStore((s) => s.setActiveConversation);
   const markConversationRead = useAppStore((s) => s.markConversationRead);
+  const role = useRole();
+  const isProvider = role === 'provider';
+  const provider = useProvider(conversation?.providerId);
+  const counterpartName = useCounterpartName();
+  // Prestataire sur une demande encore ouverte : pas de ligne booking lisible.
+  const openRequest = useOpenRequest(isProvider ? conversation?.bookingId : undefined);
 
   const [draft, setDraft] = useState('');
 
@@ -61,8 +70,26 @@ export default function ChatScreen() {
     return <Redirect href="/(tabs)/chats" />;
   }
 
-  const provider = getProvider(conversation.providerId);
-  const serviceName = booking ? t(`services.${booking.serviceId}.categoryName`) : '';
+  const serviceId = booking?.serviceId ?? openRequest?.serviceId;
+  const serviceName = serviceId ? t(`services.${serviceId}.categoryName`) : '';
+  const name = counterpartName(conversation);
+
+  // Client : fiche du prestataire. Prestataire : sa mission (retenu) ou la demande.
+  const openIdentity = () => {
+    if (!isProvider) {
+      router.push({ pathname: '/provider/[id]', params: { id: conversation.providerId } });
+    }
+  };
+  const openDetails = () => {
+    if (!isProvider) {
+      router.push({ pathname: '/reservation/[id]', params: { id: conversation.bookingId } });
+    } else if (booking) {
+      router.push({ pathname: '/job/[id]', params: { id: booking.id } });
+    } else if (openRequest) {
+      router.push({ pathname: '/request/[id]', params: { id: openRequest.id } });
+    }
+  };
+  const hasDetails = isProvider ? Boolean(booking ?? openRequest) : Boolean(booking);
 
   const send = () => {
     void sendMessage(conversation.id, draft);
@@ -85,34 +112,22 @@ export default function ChatScreen() {
         <Pressable onPress={() => router.back()} hitSlop={10} style={styles.headerButton}>
           <ArrowLeft size={22} color={colors.text} />
         </Pressable>
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: '/provider/[id]',
-              params: { id: conversation.providerId },
-            })
-          }
-          style={styles.headerIdentity}>
-          <Avatar name={provider?.name ?? '?'} size={38} />
+        <Pressable onPress={openIdentity} disabled={isProvider} style={styles.headerIdentity}>
+          <Avatar name={name} size={38} />
           <View style={styles.headerTexts}>
             <Text style={[styles.headerName, { color: colors.text }]} numberOfLines={1}>
-              {provider?.name ?? t('common.provider')}
+              {name}
             </Text>
             <Text
               style={[styles.headerSubtitle, { color: colors.textSecondary }]}
               numberOfLines={1}>
-              {serviceName ? `${serviceName} · ` : ''}
-              {provider?.responseTime ?? ''}
+              {serviceName}
+              {!isProvider && provider?.responseTime ? ` · ${provider.responseTime}` : ''}
             </Text>
           </View>
         </Pressable>
-        {booking ? (
-          <Pressable
-            onPress={() =>
-              router.push({ pathname: '/reservation/[id]', params: { id: booking.id } })
-            }
-            hitSlop={10}
-            style={styles.headerButton}>
+        {hasDetails ? (
+          <Pressable onPress={openDetails} hitSlop={10} style={styles.headerButton}>
             <Info size={22} color={colors.primary} />
           </Pressable>
         ) : null}
@@ -128,7 +143,10 @@ export default function ChatScreen() {
           inverted
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
-            <MessageBubble message={item} onQuoteResponse={respondToQuote} />
+            <MessageBubble
+              message={item}
+              onQuoteResponse={isProvider ? undefined : respondToQuote}
+            />
           )}
         />
 

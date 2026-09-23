@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { MapPin, Search, ShieldCheck } from 'lucide-react-native';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -12,8 +13,8 @@ import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { PROVIDERS } from '@/lib/mock-data';
 import { useProfile } from '@/lib/profile-store';
+import { useProviders } from '@/lib/providers-store';
 import { SERVICE_IDS } from '@/lib/services';
 import { useHighlightedBooking } from '@/lib/store';
 import type { ServiceId } from '@/lib/types';
@@ -25,7 +26,11 @@ export default function HomeScreen() {
   const profile = useProfile();
   const firstName = (profile?.name ?? '').split(' ')[0];
   const highlighted = useHighlightedBooking();
-  const topProviders = PROVIDERS.filter((p) => p.verified).slice(0, 3);
+  const providers = useProviders();
+  const topProviders = useMemo(
+    () => providers.filter((p) => p.verified).slice(0, 3),
+    [providers],
+  );
 
   const openBooking = (serviceId: ServiceId) =>
     router.push({ pathname: '/booking/[service]', params: { service: serviceId } });

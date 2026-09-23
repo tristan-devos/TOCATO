@@ -11,7 +11,8 @@ import type { Message } from '@/lib/types';
 
 interface MessageBubbleProps {
   message: Message;
-  onQuoteResponse: (messageId: string, accept: boolean) => void;
+  /** Client uniquement : accepter/refuser un devis. Absent = pas de boutons. */
+  onQuoteResponse?: (messageId: string, accept: boolean) => void;
 }
 
 export function MessageBubble({ message, onQuoteResponse }: MessageBubbleProps) {
@@ -30,8 +31,10 @@ export function MessageBubble({ message, onQuoteResponse }: MessageBubbleProps) 
 
   if (message.type === 'quote' && message.quote) {
     const { quote } = message;
+    // Côté prestataire, son propre devis s'affiche à droite, sans boutons.
+    const canRespond = !mine && quote.status === 'pending' && onQuoteResponse;
     return (
-      <View style={[styles.row, styles.rowLeft]}>
+      <View style={[styles.row, mine ? styles.rowRight : styles.rowLeft]}>
         <View
           style={[styles.quoteCard, { backgroundColor: colors.card, borderColor: colors.primary }]}>
           <View style={styles.quoteHeader}>
@@ -55,7 +58,7 @@ export function MessageBubble({ message, onQuoteResponse }: MessageBubbleProps) 
           {message.text ? (
             <Text style={[styles.quoteNote, { color: colors.text }]}>{message.text}</Text>
           ) : null}
-          {quote.status === 'pending' ? (
+          {canRespond ? (
             <View style={styles.quoteActions}>
               <Button
                 title={t('messageBubble.decline')}
@@ -71,6 +74,9 @@ export function MessageBubble({ message, onQuoteResponse }: MessageBubbleProps) 
                 style={styles.quoteAction}
               />
             </View>
+          ) : null}
+          {mine && quote.status === 'pending' ? (
+            <Badge label={t('messageBubble.awaitingAnswer')} tone="warning" />
           ) : null}
           <Text style={[styles.time, { color: colors.textSecondary }]}>
             {formatTime(message.createdAt)}

@@ -11,7 +11,7 @@ import { FontSize, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
 import { BOOKING_STATUS } from '@/lib/booking-status';
-import { getProvider } from '@/lib/mock-data';
+import { useProvider } from '@/lib/providers-store';
 import { TIME_SLOTS } from '@/lib/services';
 import { useAppStore } from '@/lib/store';
 import type { Booking } from '@/lib/types';
@@ -19,14 +19,16 @@ import type { Booking } from '@/lib/types';
 interface BookingCardProps {
   booking: Booking;
   onPress: () => void;
+  /** Remplace la ligne sous le titre (ex. prénom du client côté prestataire). */
+  subtitle?: string;
 }
 
-export function BookingCard({ booking, onPress }: BookingCardProps) {
+export function BookingCard({ booking, onPress, subtitle: subtitleOverride }: BookingCardProps) {
   const colors = useTheme();
   const { t } = useTranslation();
   const { formatDateLong, formatPrice, formatPriceRange } = useFormats();
   const conversations = useAppStore((s) => s.conversations);
-  const provider = booking.providerId ? getProvider(booking.providerId) : undefined;
+  const provider = useProvider(booking.providerId);
   const status = BOOKING_STATUS[booking.status];
   const slot = TIME_SLOTS.find((s) => s.id === booking.timeSlot);
 
@@ -35,7 +37,9 @@ export function BookingCard({ booking, onPress }: BookingCardProps) {
     () => conversations.filter((c) => c.bookingId === booking.id).length,
     [conversations, booking.id],
   );
-  const subtitle = provider
+  const subtitle = subtitleOverride
+    ? subtitleOverride
+    : provider
     ? provider.name
     : booking.status === 'pending'
       ? offerCount > 0

@@ -1,14 +1,15 @@
 import { useRouter } from 'expo-router';
 import { CalendarDays } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { BookingCard } from '@/components/booking-card';
 import { AppText } from '@/components/ui/app-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
-import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { SegmentedControl } from '@/components/ui/segmented-control';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { isActiveStatus } from '@/lib/booking-status';
 import { useAppStore } from '@/lib/store';
@@ -40,25 +41,7 @@ export default function ReservationsScreen() {
       <View style={styles.header}>
         <AppText variant="title">{t('reservations.title')}</AppText>
 
-        <View style={[styles.segmented, { backgroundColor: colors.backgroundElement }]}>
-          {tabs.map((tab) => {
-            const selected = filter === tab.id;
-            return (
-              <Pressable
-                key={tab.id}
-                onPress={() => setFilter(tab.id)}
-                style={[styles.segment, selected && { backgroundColor: colors.card }]}>
-                <Text
-                  style={[
-                    styles.segmentLabel,
-                    { color: selected ? colors.text : colors.textSecondary },
-                  ]}>
-                  {tab.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+        <SegmentedControl options={tabs} value={filter} onChange={setFilter} />
       </View>
 
       <FlatList
@@ -107,18 +90,6 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.three,
     gap: Spacing.three,
   },
-  segmented: {
-    flexDirection: 'row',
-    borderRadius: Radius.md,
-    padding: 3,
-  },
-  segment: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-    borderRadius: Radius.md - 3,
-  },
-  segmentLabel: { fontSize: FontSize.sm, fontWeight: '600' },
   listContent: { paddingHorizontal: Spacing.three, paddingBottom: Spacing.five },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   gap: { height: Spacing.three },

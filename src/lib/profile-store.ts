@@ -1,15 +1,16 @@
 /**
- * Profil + adresses de l'utilisateur connecté (adossé à Supabase).
+ * Profil, adresses et rôle de l'utilisateur connecté (adossé à Supabase).
  *
- * Chargé à la connexion (depuis auth-store) et vidé à la déconnexion. Remplace
- * l'ancien `user` mock du store applicatif. Les bookings/conversations/messages
- * restent dans `store.ts` en attendant leur propre migration.
+ * Chargé à la connexion (depuis auth-store) et vidé à la déconnexion. Le rôle
+ * vient de la RPC `current_provider_id` : un compte relié à une fiche prestataire
+ * (par un admin) est prestataire, tout autre compte est client. Tant que le rôle
+ * n'est pas connu (`role === null`), la navigation attend (use-auth-guard).
  */
 
 import { create } from 'zustand';
 
 import { supabase } from '@/lib/supabase';
-import type { Address } from '@/lib/types';
+import type { Address, Role } from '@/lib/types';
 
 export interface Profile {
   id: string;
@@ -40,6 +41,10 @@ interface ProfileState {
   profile: Profile | null;
   addresses: Address[];
   loading: boolean;
+  /** null tant que le rôle n'est pas chargé. */
+  role: Role | null;
+  /** Fiche prestataire du compte (rôle 'provider'), sinon null. */
+  providerId: string | null;
   loadProfile: () => Promise<void>;
   /** Insère une adresse ; renvoie son id, ou null en cas d'échec. */
   addAddress: (input: Omit<Address, 'id'>) => Promise<string | null>;
@@ -51,29 +56,35 @@ export const useProfileStore = create<ProfileState>((set) => ({
   profile: null,
   addresses: [],
   loading: false,
+  role: null,
+  providerId: null,
 
   loadProfile: async () => {
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData.session?.user.id;
     if (!userId) {
-      set({ profile: null, addresses: [], loading: false });
+      set({ profile: null, addresses: [], loading: false, role: null, providerId: null });
       return;
     }
 
     set({ loading: true });
-    const [profileResult, addressResult] = await Promise.all([
+    const [profileResult, addressResult, providerResult] = await Promise.all([
       supabase.from('profiles').select('id, name, email, phone').eq('id', userId).single(),
       supabase
         .from('addresses')
         .select('id, label, street, city, postal_code')
         .eq('user_id', userId)
         .order('created_at', { ascending: true }),
+      supabase.rpc('current_provider_id'),
     ]);
 
+    const providerId = providerResult.data ?? null;
     set({
       profile: profileResult.data ?? null,
       addresses: (addressResult.data ?? []).map(toAddress),
       loading: false,
+      role: providerId ? 'provider' : 'client',
+      providerId,
     });
   },
 
@@ -106,7 +117,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
     set((s) => ({ addresses: s.addresses.filter((a) => a.id !== addressId) }));
   },
 
-  clear: () => set({ profile: null, addresses: [], loading: false }),
+  clear: () =>
+    set({ profile: null, addresses: [], loading: false, role: null, providerId: null }),
 }));
 
 // ——— Sélecteurs ———
@@ -117,4 +129,13 @@ export function useProfile(): Profile | null {
 
 export function useAddresses(): Address[] {
   return useProfileStore((s) => s.addresses);
+}
+
+/** Rôle de l'utilisateur connecté ; null tant qu'il n'est pas chargé. */
+export function useRole(): Role | null {
+  return useProfileStore((s) => s.role);
+}
+
+export function useMyProviderId(): string | null {
+  return useProfileStore((s) => s.providerId);
 }

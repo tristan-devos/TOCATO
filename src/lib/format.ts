@@ -1,3 +1,5 @@
+import type { Address } from '@/lib/types';
+
 export interface Formatters {
   formatPrice: (amount: number) => string;
   formatPriceRange: (range: { min: number; max: number }) => string;
@@ -69,4 +71,28 @@ function parseIso(iso: string): Date {
     return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
   }
   return new Date(iso);
+}
+
+/** Adresse complète sur une ligne : « Maison — 4521, rue Saint-Denis, Montréal H2J 2L2 ». */
+export function formatAddress(address: Address): string {
+  return `${address.label} — ${address.street}, ${address.city} ${address.postalCode}`;
+}
+
+/**
+ * Lieu approximatif d'une demande ouverte vue par un prestataire : ville et
+ * secteur postal seulement (« Montréal · H2J »), jamais l'adresse exacte.
+ */
+export function formatSector(city: string, postalSector: string): string {
+  return [city, postalSector].filter((part) => part.length > 0).join(' · ');
+}
+
+/**
+ * Montant saisi par un prestataire (« 180 », « 180,50 », « 180.5 ») -> nombre,
+ * ou null s'il n'est pas un montant positif valide.
+ */
+export function parseAmountInput(text: string): number | null {
+  const normalized = text.replace(/\s/g, '').replace(',', '.');
+  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return null;
+  const amount = Number(normalized);
+  return amount > 0 ? amount : null;
 }

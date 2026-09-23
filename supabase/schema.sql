@@ -198,7 +198,7 @@ on conflict (id) do nothing;
 
 
 -- =============================================================================
--- Seed du catalogue prestataires (miroir de src/lib/mock-data.ts)
+-- Seed des fiches prestataires de démo (lues par l'app via providers-store)
 -- =============================================================================
 insert into public.providers
   (id, name, services, rating, review_count, jobs_completed, verified,

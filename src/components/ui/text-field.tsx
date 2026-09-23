@@ -4,12 +4,12 @@ import { AppText } from '@/components/ui/app-text';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
-interface AuthTextFieldProps extends TextInputProps {
+interface TextFieldProps extends TextInputProps {
   label: string;
 }
 
-/** Champ libellé (label + TextInput) pour les formulaires d'authentification. */
-export function AuthTextField({ label, style, ...rest }: AuthTextFieldProps) {
+/** Champ libellé (label + TextInput) : formulaires de connexion, devis… */
+export function TextField({ label, style, ...rest }: TextFieldProps) {
   const colors = useTheme();
   return (
     <View style={styles.base}>

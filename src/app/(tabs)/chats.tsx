@@ -10,8 +10,10 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { useCounterpartName } from '@/hooks/use-counterpart';
 import { useFormats } from '@/hooks/use-formats';
-import { getProvider } from '@/lib/mock-data';
+import { useRole } from '@/lib/profile-store';
+import { useOpenRequests } from '@/lib/provider-store';
 import { useAppStore } from '@/lib/store';
 import type { Conversation, Message } from '@/lib/types';
 
@@ -30,6 +32,10 @@ export default function ChatsScreen() {
   const conversations = useAppStore((s) => s.conversations);
   const messages = useAppStore((s) => s.messages);
   const bookings = useAppStore((s) => s.bookings);
+  const role = useRole();
+  const counterpartName = useCounterpartName();
+  // Prestataire : une demande encore ouverte n'est connue que par list_open_requests.
+  const openRequests = useOpenRequests();
 
   const items = useMemo<ConversationItem[]>(() => {
     const previewOf = (message: Message | undefined): string => {
@@ -50,15 +56,17 @@ export default function ChatsScreen() {
         const lastMessage = [...messages]
           .reverse()
           .find((m) => m.conversationId === conversation.id);
-        const booking = bookings.find((b) => b.id === conversation.bookingId);
+        const serviceId =
+          bookings.find((b) => b.id === conversation.bookingId)?.serviceId ??
+          openRequests.find((r) => r.id === conversation.bookingId)?.serviceId;
         return {
           conversation,
-          providerName: getProvider(conversation.providerId)?.name ?? t('common.provider'),
-          serviceName: booking ? t(`services.${booking.serviceId}.categoryName`) : '',
+          providerName: counterpartName(conversation),
+          serviceName: serviceId ? t(`services.${serviceId}.categoryName`) : '',
           preview: previewOf(lastMessage),
         };
       });
-  }, [conversations, messages, bookings, t]);
+  }, [conversations, messages, bookings, openRequests, counterpartName, t]);
 
   return (
     <Screen scroll={false}>
@@ -79,9 +87,9 @@ export default function ChatsScreen() {
           <EmptyState
             icon={<MessageCircle size={32} color={colors.primary} />}
             title={t('chats.emptyTitle')}
-            message={t('chats.emptyMessage')}
-            actionLabel={t('common.bookService')}
-            onAction={() => router.push('/(tabs)/reserver')}
+            message={t(role === 'provider' ? 'providerApp.chatsEmpty' : 'chats.emptyMessage')}
+            actionLabel={role === 'provider' ? undefined : t('common.bookService')}
+            onAction={role === 'provider' ? undefined : () => router.push('/(tabs)/reserver')}
           />
         }
         renderItem={({ item }) => {

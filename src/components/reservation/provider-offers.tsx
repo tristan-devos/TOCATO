@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
-import { getProvider } from '@/lib/mock-data';
+import { useProviders } from '@/lib/providers-store';
 import { useAppStore } from '@/lib/store';
 import type { Conversation, Provider } from '@/lib/types';
 
@@ -36,6 +36,7 @@ export function ProviderOffers({ bookingId }: ProviderOffersProps) {
   const { formatPrice } = useFormats();
   const conversations = useAppStore((s) => s.conversations);
   const messages = useAppStore((s) => s.messages);
+  const providers = useProviders();
 
   const offers = useMemo<Offer[]>(
     () =>
@@ -51,11 +52,11 @@ export function ProviderOffers({ bookingId }: ProviderOffersProps) {
             );
           return {
             conversation,
-            provider: getProvider(conversation.providerId),
+            provider: providers.find((p) => p.id === conversation.providerId),
             quoteAmount: quote?.quote?.amount,
           };
         }),
-    [conversations, messages, bookingId],
+    [conversations, messages, providers, bookingId],
   );
 
   return (

@@ -45,6 +45,7 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: palette.background },
         }}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(provider)" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen
           name="booking/[service]"
@@ -53,6 +54,8 @@ export default function RootLayout() {
         <Stack.Screen name="chat/[id]" />
         <Stack.Screen name="reservation/[id]" />
         <Stack.Screen name="provider/[id]" />
+        <Stack.Screen name="request/[id]" />
+        <Stack.Screen name="job/[id]" />
         <Stack.Screen name="profile/addresses" />
         <Stack.Screen name="profile/payments" />
         <Stack.Screen name="profile/help" />

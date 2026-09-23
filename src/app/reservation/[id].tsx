@@ -1,49 +1,48 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Calendar, FileText, Images, MapPin, XCircle } from 'lucide-react-native';
+import { ArrowLeft, XCircle } from 'lucide-react-native';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
-import { BookingPhotos } from '@/components/booking/booking-photos';
 import { ProviderRow } from '@/components/provider-row';
+import { BookingSummary } from '@/components/reservation/booking-summary';
 import { ProviderOffers } from '@/components/reservation/provider-offers';
+import { RequestDetails } from '@/components/reservation/request-details';
 import { StatusTimeline } from '@/components/reservation/status-timeline';
-import { ServiceIcon } from '@/components/service-icon';
 import { AppText } from '@/components/ui/app-text';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
 import { BOOKING_STATUS, isCancellableStatus } from '@/lib/booking-status';
-import { getProvider } from '@/lib/mock-data';
-import { TIME_SLOTS } from '@/lib/services';
+import { formatAddress } from '@/lib/format';
+import { useProvider } from '@/lib/providers-store';
 import { useAppStore, useBooking } from '@/lib/store';
 
 export default function ReservationDetailScreen() {
   const colors = useTheme();
   const router = useRouter();
   const { t } = useTranslation();
-  const { formatDateLong, formatPrice, formatPriceRange } = useFormats();
+  const { formatPrice, formatPriceRange } = useFormats();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const booking = useBooking(id);
   const conversations = useAppStore((s) => s.conversations);
   const cancelBooking = useAppStore((s) => s.cancelBooking);
+  // Prestataire confirmé (devis accepté) ; lu avant le retour anticipé (règle des hooks).
+  const provider = useProvider(booking?.providerId);
 
   if (!booking) {
     return <Redirect href="/(tabs)/reservations" />;
   }
 
-  // Prestataire confirmé (devis accepté) et sa conversation ; tant que la
-  // demande est ouverte, les offres reçues sont listées par ProviderOffers.
-  const provider = booking.providerId ? getProvider(booking.providerId) : undefined;
+  // Conversation du prestataire confirmé ; tant que la demande est ouverte, les
+  // offres reçues sont listées par ProviderOffers.
   const providerConversation = conversations.find(
     (c) => c.bookingId === booking.id && c.providerId === booking.providerId,
   );
   const status = BOOKING_STATUS[booking.status];
-  const slot = TIME_SLOTS.find((s) => s.id === booking.timeSlot);
   const cancelled = booking.status === 'cancelled';
 
   const confirmCancel = () => {
@@ -56,10 +55,6 @@ export default function ReservationDetailScreen() {
       },
     ]);
   };
-
-  const scheduleText = booking.scheduledDate
-    ? `${formatDateLong(booking.scheduledDate)}${slot ? ` · ${t(`timeSlots.${slot.id}`).toLowerCase()} (${t(`timeSlots.${slot.id}Hours`)})` : ''}`
-    : t('common.asap');
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safe, { backgroundColor: colors.background }]}>
@@ -74,20 +69,11 @@ export default function ReservationDetailScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Card style={styles.summary}>
-          <View style={styles.summaryRow}>
-            <ServiceIcon serviceId={booking.serviceId} boxed size={22} boxSize={48} />
-            <View style={styles.summaryTexts}>
-              <AppText variant="subheading">
-                {t(`services.${booking.serviceId}.categoryName`)}
-              </AppText>
-              <AppText variant="secondary">
-                {t('reservationDetail.requestDate', { date: formatDateLong(booking.createdAt) })}
-              </AppText>
-            </View>
-            <Badge label={t(`bookingStatus.${booking.status}`)} tone={status.tone} />
-          </View>
-        </Card>
+        <BookingSummary
+          serviceId={booking.serviceId}
+          createdAt={booking.createdAt}
+          badge={{ label: t(`bookingStatus.${booking.status}`), tone: status.tone }}
+        />
 
         {cancelled ? (
           <Card style={[styles.cancelledCard, { backgroundColor: colors.destructiveMuted }]}>
@@ -118,52 +104,14 @@ export default function ReservationDetailScreen() {
           <ProviderOffers bookingId={booking.id} />
         )}
 
-        <View>
-          <AppText variant="label" style={styles.sectionLabel} color={colors.textSecondary}>
-            {t('reservationDetail.requestSection')}
-          </AppText>
-          <Card style={styles.detailsCard}>
-            {booking.answers.map((answer) => (
-              <View key={answer.questionId} style={styles.answerRow}>
-                <AppText variant="secondary">{answer.questionLabel}</AppText>
-                <AppText variant="label">{answer.values.join(', ')}</AppText>
-              </View>
-            ))}
-
-            <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
-
-            <View style={styles.iconRow}>
-              <FileText size={16} color={colors.textSecondary} />
-              <AppText variant="secondary" style={styles.iconRowText}>
-                {booking.description}
-              </AppText>
-            </View>
-            {booking.photos.length > 0 ? (
-              <View style={styles.iconRow}>
-                <Images size={16} color={colors.textSecondary} />
-                <View style={styles.iconRowText}>
-                  <AppText variant="secondary" style={styles.photosLabel}>
-                    {t('reservationDetail.photos', { count: booking.photos.length })}
-                  </AppText>
-                  <BookingPhotos photos={booking.photos} />
-                </View>
-              </View>
-            ) : null}
-            <View style={styles.iconRow}>
-              <MapPin size={16} color={colors.textSecondary} />
-              <AppText variant="secondary" style={styles.iconRowText}>
-                {booking.address.label} — {booking.address.street}, {booking.address.city}{' '}
-                {booking.address.postalCode}
-              </AppText>
-            </View>
-            <View style={styles.iconRow}>
-              <Calendar size={16} color={colors.textSecondary} />
-              <AppText variant="secondary" style={styles.iconRowText}>
-                {scheduleText}
-              </AppText>
-            </View>
-          </Card>
-        </View>
+        <RequestDetails
+          answers={booking.answers}
+          description={booking.description}
+          photos={booking.photos}
+          location={formatAddress(booking.address)}
+          scheduledDate={booking.scheduledDate}
+          timeSlot={booking.timeSlot}
+        />
 
         <View style={[styles.priceBanner, { backgroundColor: colors.primaryMuted }]}>
           <View style={styles.priceTexts}>
@@ -222,9 +170,6 @@ const styles = StyleSheet.create({
   headerButton: { width: 30, padding: Spacing.one },
   headerTitle: { flex: 1, textAlign: 'center' },
   content: { padding: Spacing.three, paddingBottom: Spacing.five, gap: Spacing.three },
-  summary: {},
-  summaryRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
-  summaryTexts: { flex: 1, gap: 2 },
   cancelledCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -234,12 +179,6 @@ const styles = StyleSheet.create({
   cancelledText: { flex: 1 },
   sectionLabel: { marginBottom: Spacing.two, marginLeft: Spacing.one },
   providerCard: { gap: Spacing.three },
-  detailsCard: { gap: Spacing.two + 4 },
-  answerRow: { gap: 1 },
-  dividerLine: { height: StyleSheet.hairlineWidth, marginVertical: Spacing.one },
-  iconRow: { flexDirection: 'row', gap: Spacing.two + 2 },
-  iconRowText: { flex: 1, marginTop: -1 },
-  photosLabel: { marginBottom: Spacing.two },
   priceBanner: {
     flexDirection: 'row',
     alignItems: 'center',

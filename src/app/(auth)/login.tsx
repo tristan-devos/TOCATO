@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { AuthTextField } from '@/components/auth/auth-text-field';
+import { TextField } from '@/components/ui/text-field';
 import { SocialAuth } from '@/components/auth/social-auth';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
@@ -43,7 +43,7 @@ export default function LoginScreen() {
       </View>
 
       <View style={styles.form}>
-        <AuthTextField
+        <TextField
           label={t('auth.email')}
           value={email}
           onChangeText={setEmail}
@@ -53,7 +53,7 @@ export default function LoginScreen() {
           keyboardType="email-address"
           inputMode="email"
         />
-        <AuthTextField
+        <TextField
           label={t('auth.password')}
           value={password}
           onChangeText={setPassword}
