@@ -4,6 +4,16 @@ Application de mise en relation entre clients et prestataires de services à dom
 (plombier, déménageur, jardinier), lancée à Montréal. Ce dépôt contient la partie client,
 construite avec Expo (iOS / Android / web).
 
+## Tester l'app sans rien installer (Expo Go)
+
+Sur iPhone ou Android, installer [Expo Go](https://expo.dev/go), puis scanner ce QR code avec
+l'appareil photo (ou l'ouvrir dans un navigateur et toucher le lien) :
+**https://qr.expo.dev/eas-update?projectId=83c31465-c53d-4aac-b3be-615809d04420&runtimeVersion=exposdk:57.0.0&channel=preview**
+
+Il ouvre toujours la dernière version publiée (`npx eas-cli update --branch preview …`, voir
+[AGENTS.md](./AGENTS.md) > Déploiement). Après la première ouverture, TOCATO reste dans
+« Recently opened » d'Expo Go ; fermer et rouvrir l'app récupère la dernière version.
+
 ## Lancer l'app
 
 Prérequis : un projet Supabase configuré (voir [AGENTS.md](./AGENTS.md), section

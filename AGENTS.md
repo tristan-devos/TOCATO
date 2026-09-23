@@ -123,11 +123,26 @@ pas de build natif pour l'instant, et **pas de `eas.json`** à la racine.
   Dashboard : https://expo.dev/accounts/tocato/projects/tocato
 - **Compte** : `tristanos` (propriétaire de l'org `tocato`). Vérifier avec
   `npx eas-cli whoami` (le binaire s'appelle `eas-cli`, **pas** `eas`).
+- **Lien permanent pour tester dans Expo Go** (n'importe où, sans le Metro de personne) :
+  QR code https://qr.expo.dev/eas-update?projectId=83c31465-c53d-4aac-b3be-615809d04420&runtimeVersion=exposdk:57.0.0&channel=preview
+  (s'ouvre dans un navigateur ; il encode
+  `exp://u.expo.dev/83c31465-c53d-4aac-b3be-615809d04420?runtime-version=exposdk%3A57.0.0&channel-name=preview`).
+  Scanner avec l'appareil photo de l'iPhone (Expo Go installé) ; ensuite le projet reste
+  dans « Recently opened » d'Expo Go. Il sert **toujours la dernière publication** de la
+  branche `preview` (rouvrir Expo Go pour la récupérer). Si le runtime change (bump de
+  SDK), `runtimeVersion` change aussi dans ce lien — le mettre à jour ici et dans le README.
+- **Canal `preview` → branche `preview`** (créé le 2026-09-23 : `eas channel:create
+  preview`). **Piège vérifié** : sans canal, le serveur de mises à jour répond 404 à Expo Go
+  (`u.expo.dev` résout par canal, pas par branche) — il n'existait pas de lien stable.
+  Vérif rapide : `curl -H "expo-platform: ios" -H "expo-runtime-version: exposdk:57.0.0"
+  -H "expo-channel-name: preview" -H "accept: multipart/mixed" https://u.expo.dev/<projectId>`
+  doit répondre **200**.
 - **Une seule branche : `preview`**, runtime `exposdk:57.0.0` (dérivé automatiquement du SDK
   installé — `runtimeVersion.policy: "sdkVersion"` dans `app.json`, se met donc à jour
-  seul à chaque bump de SDK). **Aucun channel** : l'app consomme les updates **directement
-  par branche**, et le runtime détermine dans quelle version d'**Expo Go** l'update s'ouvre
-  (cohérent avec le workflow iPhone tant que le SDK pinné et Expo Go restent alignés).
+  seul à chaque bump de SDK). L'app consomme les updates **par le canal `preview`** (relié
+  à la branche du même nom), et le runtime détermine dans quelle version d'**Expo Go**
+  l'update s'ouvre (cohérent avec le workflow iPhone tant que le SDK pinné et Expo Go
+  restent alignés).
 - **Publier le code committé** (= « déployer sur Expo ») :
   `npx eas-cli update --branch preview --environment preview --message "<résumé>"`.
   Sans `--environment`, eas-cli demande l'environnement (aucune variable n'est stockée sur
