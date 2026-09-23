@@ -11,12 +11,13 @@ plombier, déménageur, jardinier.
 ## Stack
 
 - **Expo SDK 57** (React Native 0.86, React 19.2). **Pin volontaire — ne pas bumper.**
-  Le dev sur Windows se fait via **Expo Go** sur un iPhone physique. Avant tout futur bump
+  L'app se teste via **Expo Go** sur iPhone physique (le collègue au Canada) ; le dev se
+  fait sous Linux (Fedora), sans simulateur iOS. Avant tout futur bump
   de SDK, vérifier que la version publiée de l'app Expo Go supporte bien la nouvelle
   version sur https://apps.apple.com/app/expo-go/id982107779 (SDK 54 posait ce problème :
   Expo Go iOS était resté bloqué en 54.0.2, incompatible avec les projets SDK 55/56 — la
   mise à jour vers 57 a confirmé qu'Expo Go supporte de nouveau la dernière version).
-- **expo-router** (version alignée sur le SDK, `57.0.19`) — file-based routing. Depuis le
+- **expo-router** (version alignée sur le SDK, `~57.0.22`) — file-based routing. Depuis le
   **SDK 56**, le router s'est découplé
   de react-navigation : imports interdits depuis `@react-navigation/*` en code applicatif.
   `Stack`/`Tabs` s'importent depuis `'expo-router'`, `ThemeProvider`/`DarkTheme`/
@@ -61,13 +62,22 @@ plombier, déménageur, jardinier.
 
 - `npm install` — dépendances.
 - `npx expo start` — serveur Metro. `w` pour le web, ou scanner le QR avec **Expo Go** sur
-  iPhone (pas de simulateur Xcode sur Windows).
+  iPhone (pas de simulateur Xcode hors macOS). Après une modif de `.env` : `npx expo start -c`
+  (Metro inline les `EXPO_PUBLIC_*` au bundle, le cache garderait l'ancienne valeur).
 - `npx tsc --noEmit` — type-check (à lancer avant de conclure une modif).
 - `npx expo export --platform web` — build web de prod ; c'est aussi le **smoke test** de
   référence : si toutes les routes se bundlent, le pipeline est sain.
-- `npx expo-doctor` — validation de la config Expo.
+- `npx expo-doctor` — validation de la config Expo ; doit passer (21/21). Si des paquets
+  sont signalés en retard de patch : `npx expo install --fix` (reste dans le SDK pinné,
+  runtime EAS inchangé), puis relancer tsc + export web.
 - **Supabase** : copier `.env.example` en `.env` et remplir `EXPO_PUBLIC_SUPABASE_URL` /
-  `EXPO_PUBLIC_SUPABASE_ANON_KEY` (Dashboard > Project Settings > API). Exécuter
+  `EXPO_PUBLIC_SUPABASE_ANON_KEY` (Dashboard > Project Settings > API).
+  **Piège vérifié** : l'URL est celle de l'**API**, `https://<ref>.supabase.co` — **pas**
+  l'URL du dashboard (`https://supabase.com/dashboard/project/<ref>`). Avec l'URL du
+  dashboard, Supabase répond du HTML et l'app affiche `JSON parse error: Unexpected
+  character: <` à l'inscription/connexion. Vérif rapide :
+  `curl https://<ref>.supabase.co/auth/v1/health` doit répondre du **JSON** (401 sans clé).
+  Exécuter
   `supabase/schema.sql` puis `supabase/rpc.sql` dans le SQL editor (tables + RLS + Realtime +
   seed, puis fonctions/triggers ; les deux idempotents et ré-exécutables).
   Types DB régénérables via `npx supabase gen types typescript --project-id <ref>`
