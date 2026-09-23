@@ -312,6 +312,11 @@ depuis un client modifié, pas seulement depuis l'app. D'où la règle :
   postal, ex. `H2J`). Photos : lisibles par le prestataire si la demande est ouverte dans
   un de ses services ou lui est confiée. `profiles` reste owner-only (prénom du client
   via `provider_conversation_clients`).
+- **Anon** (non connecté) ne lit **rien**, catalogue `providers` compris : toutes les
+  policies de lecture sont `to authenticated`. Une policy qui appelle une fonction
+  réservée à `authenticated` (ex. `current_provider_id()`) **doit** être `to
+  authenticated`, sinon une requête anon échoue (« permission denied for function »)
+  au lieu de renvoyer une liste vide — **piège vérifié** sur la base réelle après le lot 3.
 - **Écriture** : **aucune policy `update`** sur `bookings`, `conversations`, `messages`,
   et pas d'`insert` direct sur `bookings` / `conversations`. Toute transition d'état
   passe par une fonction `security definer` (`rpc.sql`, `transitions.sql`) qui vérifie
