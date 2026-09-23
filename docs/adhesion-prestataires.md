@@ -159,7 +159,13 @@ par … », pas l'image). À refléter dans la politique de confidentialité.
    compte qui a déjà des réservations (`client_account`) ; licence et NEQ sont saisis
    avec ou sans tirets (`digits_only`) ; `provider_applications` est dans le Realtime ;
    l'id de la fiche créée vaut `p-` + 12 caractères de l'id de la demande.
-2. **Registre RBQ** : `rbq-import.sh`, GitHub Action nocturne, secret et doc dans `AGENTS.md`.
+2. ✅ **Registre RBQ** : `rbq-import.sh`, GitHub Action nocturne, secret et doc dans `AGENTS.md`.
+   **Réalisé :** on garde **toutes** les licences d'entrepreneur (53 241 au 2026-09-24),
+   pas seulement celles avec la 15.5 : sans elles, une licence valide sans la 15.5
+   donnerait `not_found` au lieu de `missing_subcategory`. Une restriction n'est active
+   que si la date du jour est dans ses bornes (45 licences). 744 licences n'ont pas de
+   NEQ au registre (personnes physiques) : leur vérification donne `neq_mismatch`,
+   l'admin tranche.
 3. **App, côté demandeur** : choix à l'inscription, formulaire, écran de statut, rôle
    `applicant`.
 4. **App, côté admin** : liste et détail des adhésions, approbation, refus.
