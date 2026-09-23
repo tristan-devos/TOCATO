@@ -13,8 +13,13 @@ import { useAuthStore } from '@/lib/auth-store';
 // requis pour fermer la fenêtre OAuth sur web).
 WebBrowser.maybeCompleteAuthSession();
 
+interface SocialAuthProps {
+  /** Appelé avant d'ouvrir le navigateur (inscription : mémoriser le type de compte). */
+  beforeSignIn?: () => Promise<void>;
+}
+
 /** Bloc de connexion via fournisseur tiers (OAuth navigateur). Partagé login/signup. */
-export function SocialAuth() {
+export function SocialAuth({ beforeSignIn }: SocialAuthProps) {
   const colors = useTheme();
   const { t } = useTranslation();
   const signInWithOAuth = useAuthStore((s) => s.signInWithOAuth);
@@ -24,6 +29,7 @@ export function SocialAuth() {
   const onGoogle = async () => {
     setError(null);
     setLoading(true);
+    await beforeSignIn?.();
     const result = await signInWithOAuth('google');
     setLoading(false);
     // En cas de succès, la garde de navigation redirige automatiquement.

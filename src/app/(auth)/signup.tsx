@@ -8,22 +8,32 @@ import { SocialAuth } from '@/components/auth/social-auth';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useAuthStore } from '@/lib/auth-store';
+import { clearProviderIntent, setProviderIntent } from '@/lib/signup-intent';
 
 const MIN_PASSWORD = 6;
+
+type AccountType = 'client' | 'provider';
 
 export default function SignupScreen() {
   const colors = useTheme();
   const { t } = useTranslation();
   const signUp = useAuthStore((s) => s.signUp);
 
+  const [accountType, setAccountType] = useState<AccountType>('client');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Mémorisé AVANT la création du compte : la session qui suit lit l'intention
+  // pour ouvrir le formulaire d'adhésion (profile-store, rôle 'applicant').
+  const rememberAccountType = () =>
+    accountType === 'provider' ? setProviderIntent() : clearProviderIntent();
 
   const submit = async () => {
     if (!name.trim() || !email.trim() || !password) {
@@ -36,9 +46,11 @@ export default function SignupScreen() {
     }
     setError(null);
     setLoading(true);
+    await rememberAccountType();
     const result = await signUp(email.trim(), password, name.trim());
     setLoading(false);
     if (result.error) {
+      await clearProviderIntent();
       setError(result.error);
       return;
     }
@@ -56,6 +68,14 @@ export default function SignupScreen() {
       </View>
 
       <View style={styles.form}>
+        <SegmentedControl
+          options={[
+            { id: 'client', label: t('auth.roleClient') },
+            { id: 'provider', label: t('auth.roleProvider') },
+          ]}
+          value={accountType}
+          onChange={setAccountType}
+        />
         <TextField
           label={t('auth.name')}
           value={name}
@@ -92,7 +112,7 @@ export default function SignupScreen() {
 
         <Button title={t('auth.signUp')} onPress={submit} loading={loading} size="lg" />
 
-        <SocialAuth />
+        <SocialAuth beforeSignIn={rememberAccountType} />
       </View>
 
       <View style={styles.footer}>

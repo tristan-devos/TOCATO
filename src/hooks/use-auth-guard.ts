@@ -9,13 +9,15 @@ import { isSupabaseConfigured } from '@/lib/supabase';
 // profil public d'un prestataire, sont partagées).
 const CLIENT_ONLY = new Set(['(tabs)', 'booking', 'reservation', 'profile']);
 const PROVIDER_ONLY = new Set(['(provider)', 'request', 'job']);
+const APPLICANT_ONLY = new Set(['apply']);
 
 /**
  * Redirige selon l'état de session et le rôle :
  *  - non connecté hors du groupe (auth) -> écran de connexion ;
  *  - connecté : attend que le rôle soit chargé, puis envoie un prestataire vers
  *    ses onglets (demandes) et un client vers l'app client, en les sortant des
- *    routes réservées à l'autre rôle (et du groupe (auth)).
+ *    routes réservées à l'autre rôle (et du groupe (auth)) ; un demandeur
+ *    d'adhésion reste cantonné au formulaire / statut de sa demande (/apply).
  *
  * Inactif tant que Supabase n'est pas configuré (l'app reste accessible en démo).
  */
@@ -36,9 +38,17 @@ export function useAuthGuard(): void {
     }
     if (role === null) return; // rôle en cours de chargement
 
-    if (role === 'provider' && (inAuthGroup || first === '' || CLIENT_ONLY.has(first))) {
+    if (role === 'applicant') {
+      if (!APPLICANT_ONLY.has(first)) router.replace('/apply');
+    } else if (
+      role === 'provider' &&
+      (inAuthGroup || first === '' || CLIENT_ONLY.has(first) || APPLICANT_ONLY.has(first))
+    ) {
       router.replace('/requests');
-    } else if (role === 'client' && (inAuthGroup || PROVIDER_ONLY.has(first))) {
+    } else if (
+      role === 'client' &&
+      (inAuthGroup || PROVIDER_ONLY.has(first) || APPLICANT_ONLY.has(first))
+    ) {
       router.replace('/');
     }
   }, [status, role, segments, router]);

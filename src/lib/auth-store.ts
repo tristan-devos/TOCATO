@@ -11,9 +11,11 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { create } from 'zustand';
 
+import { useApplicationStore } from '@/lib/application-store';
 import { useProfileStore } from '@/lib/profile-store';
 import { useProviderStore } from '@/lib/provider-store';
 import { useProvidersStore } from '@/lib/providers-store';
+import { clearProviderIntent } from '@/lib/signup-intent';
 import { useAppStore } from '@/lib/store';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
@@ -164,11 +166,21 @@ export function initAuth(): void {
       void loadSessionData();
     } else {
       useProfileStore.getState().clear();
+      useApplicationStore.getState().clear();
+      void clearProviderIntent();
       useAppStore.getState().clearAll();
       useProvidersStore.getState().clear();
       useProviderStore.getState().clear();
     }
   };
+
+  // Demandeur (à la connexion ou via « Proposer mes services ») : la décision de
+  // l'admin arrive par Realtime et recharge la session, donc le rôle.
+  useProfileStore.subscribe((state, prev) => {
+    if (state.role === 'applicant' && prev.role !== 'applicant' && state.profile) {
+      useApplicationStore.getState().watch(state.profile.id, () => void loadSessionData());
+    }
+  });
 
   void supabase.auth.getSession().then(({ data }) => apply(data.session));
   supabase.auth.onAuthStateChange((_event, session) => apply(session));

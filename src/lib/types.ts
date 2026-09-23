@@ -121,8 +121,11 @@ export interface User {
   addresses: Address[];
 }
 
-/** Who is using the app: a client, or a provider linked to a `providers` row. */
-export type Role = 'client' | 'provider';
+/**
+ * Who is using the app: a client, a provider linked to a `providers` row, or an
+ * applicant (wants to become a provider: application pending, rejected, or not yet sent).
+ */
+export type Role = 'client' | 'provider' | 'applicant';
 
 /** Status of a provider membership application (docs/adhesion-prestataires.md). */
 export type ApplicationStatus = 'submitted' | 'approved' | 'rejected';
@@ -135,6 +138,33 @@ export type RbqCheckResult =
   | 'restricted'
   | 'neq_mismatch'
   | 'registry_unavailable';
+
+/** RBQ check stored with an application (column rbq_check). */
+export interface RbqCheck {
+  result: RbqCheckResult;
+  checkedAt: string;
+  registryName: string | null;
+  importedAt: string | null;
+}
+
+/** A provider membership application, as its author (or the admin) sees it. */
+export interface ProviderApplication {
+  id: string;
+  status: ApplicationStatus;
+  businessName: string;
+  services: ServiceId[];
+  /** Quebec enterprise number, 10 digits. */
+  neq: string;
+  /** RBQ licence, 10 digits; null outside plumbing. */
+  rbqLicence: string | null;
+  hourlyRate: number;
+  bio: string;
+  idDocumentPath: string;
+  insurancePath: string;
+  rbqCheck: RbqCheck | null;
+  submittedAt: string;
+  rejectionReason: string | null;
+}
 
 /**
  * An open request as a provider sees it (RPC list_open_requests): never the exact

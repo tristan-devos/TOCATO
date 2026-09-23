@@ -166,8 +166,14 @@ par … », pas l'image). À refléter dans la politique de confidentialité.
    que si la date du jour est dans ses bornes (45 licences). 744 licences n'ont pas de
    NEQ au registre (personnes physiques) : leur vérification donne `neq_mismatch`,
    l'admin tranche.
-3. **App, côté demandeur** : choix à l'inscription, formulaire, écran de statut, rôle
+3. ✅ **App, côté demandeur** : choix à l'inscription, formulaire, écran de statut, rôle
    `applicant`.
+   **Réalisé :** l'intention « Je suis prestataire » est gardée sur l'appareil
+   (AsyncStorage) jusqu'à l'envoi de la demande, qui fait foi ensuite ; elle couvre aussi
+   Google (mémorisée avant d'ouvrir le navigateur). En plus du plan : « Proposer mes
+   services » dans le profil d'un client sans réservation (rattrape une inscription faite
+   du mauvais côté), et « Je ne suis pas prestataire » tant que rien n'est envoyé. Le
+   Realtime s'abonne dès que le rôle devient `applicant`, par l'un ou l'autre chemin.
 4. **App, côté admin** : liste et détail des adhésions, approbation, refus.
 5. **Vie privée** : suppression des pièces d'identité 30 jours après décision (tâche
    planifiée), mise à jour de la politique de confidentialité.
