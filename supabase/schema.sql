@@ -5,7 +5,7 @@
 -- src/lib/database.types.ts. Appliqué par supabase/apply.sh (ou le SQL editor).
 -- Idempotent autant que possible (IF NOT EXISTS / ON CONFLICT).
 --
--- Ordre d'exécution (tous idempotents) : schema.sql (tables, migrations, seed)
+-- Ordre d'exécution (tous idempotents) : schema.sql (tables, migrations, Storage)
 -- -> rpc.sql -> transitions.sql -> providers.sql -> policies.sql (RLS + Storage,
 -- en dernier car les policies appellent les fonctions des fichiers précédents).
 -- Écritures sur bookings / conversations / messages : uniquement via les RPC,
@@ -78,16 +78,13 @@ create table if not exists public.providers (
   bio            text not null default '',
   member_since   text not null default '',
   -- Compte relié (prestataire réel), renseigné par un admin via
-  -- admin_link_provider (providers.sql). Null pour les fiches de démo.
+  -- admin_link_provider (providers.sql). Null tant que la fiche n'est reliée à aucun compte.
   user_id        uuid unique references public.profiles (id) on delete set null,
-  -- Fiche de démo : répond via la simulation (Edge Function provider-reply).
-  is_demo        boolean not null default false,
   constraint providers_services_valid
     check (services <@ array['plumber', 'mover', 'gardener']::text[])
 );
 alter table public.providers
   add column if not exists user_id uuid unique references public.profiles (id) on delete set null;
-alter table public.providers add column if not exists is_demo boolean not null default false;
 
 -- ——— bookings ————————————————————————————————————————————————————————————
 -- Appel d'offres : provider_id est null tant qu'aucun devis n'est accepté. Les
@@ -217,37 +214,29 @@ on conflict (id) do nothing;
 
 
 -- =============================================================================
--- Seed des fiches prestataires de démo (lues par l'app via providers-store)
+-- Migration (lot 5) : fin de la simulation, suppression des fiches de démo
 -- =============================================================================
-insert into public.providers
-  (id, name, services, rating, review_count, jobs_completed, verified,
-   response_time, hourly_rate, bio, member_since)
-values
-  ('p-marc', 'Marc Tremblay', array['plumber'], 4.9, 127, 340, true,
-   'Répond en ~15 min', 95,
-   'Plombier certifié CMMTQ, 12 ans d''expérience sur le Plateau et Rosemont. Urgences acceptées.',
-   '2021'),
-  ('p-amadou', 'Amadou Diallo', array['plumber'], 4.8, 89, 210, true,
-   'Répond en ~30 min', 90,
-   'Spécialiste débouchage et chauffe-eau. Travail propre, devis clair avant chaque intervention.',
-   '2022'),
-  ('p-jp', 'Jean-Philippe Côté', array['mover'], 4.7, 203, 480, true,
-   'Répond en ~1 h', 120,
-   'Équipe de 2 à 4 déménageurs, camion 20 pieds. Habitués des escaliers en colimaçon montréalais.',
-   '2020'),
-  ('p-kevin', 'Kevin Nguyen', array['mover'], 4.9, 156, 320, true,
-   'Répond en ~20 min', 115,
-   'Déménagement résidentiel et petit commercial. Couvertures, sangles et diable fournis.',
-   '2021'),
-  ('p-sophie', 'Sophie Gagnon', array['gardener'], 5.0, 78, 190, true,
-   'Répond en ~45 min', 55,
-   'Horticultrice passionnée. Entretien écologique, sans pesticides. Rosemont, Villeray et alentours.',
-   '2022'),
-  ('p-maria', 'Maria Fernandez', array['gardener'], 4.8, 112, 260, false,
-   'Répond en ~2 h', 60,
-   'Aménagement paysager et entretien saisonnier. Devis gratuit sur photos.',
-   '2023')
-on conflict (id) do nothing;
--- Les six fiches ci-dessus sont des fiches de démo (simulation provider-reply).
-update public.providers set is_demo = true
-where id in ('p-marc', 'p-amadou', 'p-jp', 'p-kevin', 'p-sophie', 'p-maria') and not is_demo;
+-- Les six fiches is_demo (Marc, Amadou…) répondaient via l'Edge Function
+-- provider-reply, supprimée. On efface leurs données puis la colonne. Ne tourne
+-- qu'une fois : ensuite la colonne n'existe plus (plpgsql n'analyse les requêtes
+-- qu'à l'exécution, le bloc reste valide sur une base déjà migrée).
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public'
+             and table_name = 'providers' and column_name = 'is_demo') then
+    -- Réservations qui ne tiennent qu'aux fiches de démo : retenue par l'une d'elles,
+    -- ou avec des offres de démo et aucune d'un vrai prestataire. Cascade :
+    -- conversations et messages. Les photos Storage restent (fichiers orphelins).
+    delete from public.bookings b
+    where b.provider_id in (select id from public.providers where is_demo)
+       or (exists (select 1 from public.conversations c join public.providers p on p.id = c.provider_id
+                   where c.booking_id = b.id and p.is_demo)
+           and not exists (select 1 from public.conversations c join public.providers p on p.id = c.provider_id
+                           where c.booking_id = b.id and not p.is_demo));
+    -- Offres de démo restantes sur des demandes gardées (cascade : leurs messages).
+    delete from public.conversations
+    where provider_id in (select id from public.providers where is_demo);
+    delete from public.providers where is_demo;
+    alter table public.providers drop column is_demo;
+  end if;
+end $$;

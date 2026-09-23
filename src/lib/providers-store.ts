@@ -1,8 +1,7 @@
 /**
  * Catalogue des fiches prestataires, lu depuis la table `providers` (Supabase).
  *
- * Remplace l'ancien `mock-data.ts` : les fiches de démo (is_demo) comme les fiches
- * réelles (reliées à un compte) s'affichent de la même façon. Chargé à la connexion
+ * Chargé à la connexion
  * (depuis auth-store), lecture réservée aux utilisateurs connectés (RLS).
  */
 

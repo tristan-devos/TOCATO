@@ -157,12 +157,6 @@ const fr = {
     language: 'Langue',
     languageFr: 'Français',
     languageEn: 'English',
-    resetDemo: 'Réinitialiser la démo',
-    resetDemoSubtitle: 'Restaurer les données d’exemple',
-    resetTitle: 'Réinitialiser la démo',
-    resetMessage:
-      'Toutes vos réservations et conversations seront remplacées par les données de départ.',
-    resetConfirm: 'Réinitialiser',
     logout: 'Se déconnecter',
     logoutTitle: 'Déconnexion',
     logoutMessage: 'Vous reviendrez à l’écran de connexion.',

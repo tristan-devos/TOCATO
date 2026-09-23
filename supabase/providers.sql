@@ -206,8 +206,8 @@ $$;
 -- ——— admin_link_provider : relier un compte à une fiche (ADMIN SEULEMENT) ——
 -- À lancer dans le SQL editor (rôle postgres). Non exécutable depuis l'app.
 -- Exemple : select admin_link_provider('p-paul', 'paul@exemple.ca');
--- La fiche doit exister (insert into providers ... ; voir AGENTS.md) et ne pas être
--- de démo. Un compte ne peut être relié qu'à une seule fiche (user_id unique).
+-- La fiche doit exister (insert into providers ... ; voir AGENTS.md). Un compte ne
+-- peut être relié qu'à une seule fiche (user_id unique).
 create or replace function public.admin_link_provider(p_provider_id text, p_email text)
 returns void
 language plpgsql
@@ -220,9 +220,8 @@ begin
   select id into v_user from auth.users where lower(email) = lower(p_email);
   if v_user is null then raise exception 'user_not_found: %', p_email; end if;
 
-  update public.providers set user_id = v_user
-  where id = p_provider_id and not is_demo;
-  if not found then raise exception 'provider_not_found_or_demo: %', p_provider_id; end if;
+  update public.providers set user_id = v_user where id = p_provider_id;
+  if not found then raise exception 'provider_not_found: %', p_provider_id; end if;
 end;
 $$;
 

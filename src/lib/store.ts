@@ -8,9 +8,8 @@
  * qui vérifie les droits côté serveur (voir supabase/transitions.sql).
  *
  * Appel d'offres : la demande est créée sans prestataire ; les prestataires
- * intéressés ouvrent chacun leur conversation avec un devis (simulés côté
- * serveur, Edge Function `provider-reply` déclenchée via `provider-reply.ts`),
- * et l'acceptation d'un devis fixe le prestataire de la réservation.
+ * intéressés ouvrent chacun leur conversation avec un devis (send_quote, depuis
+ * leur interface), et l'acceptation d'un devis fixe le prestataire de la réservation.
  */
 
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -19,7 +18,6 @@ import { create } from 'zustand';
 import { rowToBooking, rowToConversation, rowToMessage } from '@/lib/db-mappers';
 import { type LocalPhoto, uploadBookingPhotos } from '@/lib/photo-upload';
 import { useProfileStore } from '@/lib/profile-store';
-import { triggerProviderReply } from '@/lib/provider-reply';
 import { estimatePrice } from '@/lib/services';
 import { supabase } from '@/lib/supabase';
 import type {
@@ -57,7 +55,6 @@ interface AppState {
   respondToQuote: (messageId: string, accept: boolean) => Promise<void>;
   markConversationRead: (conversationId: string) => Promise<void>;
   setActiveConversation: (conversationId: string | null) => void;
-  resetDemo: () => Promise<void>;
 }
 
 // ——— Lectures (RLS restreint déjà aux données de l'utilisateur) ———
@@ -189,7 +186,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
 
     await refreshBookings();
-    triggerProviderReply({ kind: 'initial', bookingId });
     return { bookingId };
   },
 
@@ -223,10 +219,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     );
     if (error && __DEV__) console.warn('[sendMessage]', error.message);
     await refreshMessages();
-
-    // Réponse simulée : uniquement quand un client écrit (l'Edge Function ne
-    // répond en plus qu'à la place d'une fiche de démo).
-    if (!providerId) triggerProviderReply({ kind: 'canned', conversationId });
   },
 
   respondToQuote: async (messageId, accept) => {
@@ -252,12 +244,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   setActiveConversation: (conversationId) => {
     set({ activeConversationId: conversationId });
     if (conversationId) void get().markConversationRead(conversationId);
-  },
-
-  resetDemo: async () => {
-    const { error } = await supabase.rpc('seed_demo');
-    if (error && __DEV__) console.warn('[seed_demo]', error.message);
-    await Promise.all([refreshBookings(), refreshConversations(), refreshMessages()]);
   },
 }));
 

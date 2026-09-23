@@ -84,10 +84,8 @@ export interface Database {
           hourly_rate: number;
           bio: string;
           member_since: string;
-          /** Compte relié (prestataire réel) ; null pour une fiche de démo. */
+          /** Compte relié (prestataire réel) ; null tant que la fiche n'est reliée à aucun compte. */
           user_id: string | null;
-          /** Fiche simulée par l'Edge Function provider-reply. */
-          is_demo: boolean;
         };
         Insert: Database['public']['Tables']['providers']['Row'];
         Update: Partial<Database['public']['Tables']['providers']['Row']>;
@@ -197,10 +195,6 @@ export interface Database {
           p_estimate_max: number;
         };
         Returns: string;
-      };
-      seed_demo: {
-        Args: Record<string, never>;
-        Returns: undefined;
       };
       // Transitions d'état (supabase/transitions.sql) — lèvent une exception si
       // l'appelant n'a pas le droit ou si la transition n'est pas permise.
