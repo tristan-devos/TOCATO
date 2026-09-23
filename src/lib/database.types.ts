@@ -103,8 +103,7 @@ export interface Database {
           estimate_min: number;
           estimate_max: number;
           agreed_price: number | null;
-          provider_id: string;
-          conversation_id: string;
+          provider_id: string | null;
         };
         Insert: {
           id?: string;
@@ -121,8 +120,7 @@ export interface Database {
           estimate_min: number;
           estimate_max: number;
           agreed_price?: number | null;
-          provider_id: string;
-          conversation_id: string;
+          provider_id?: string | null;
         };
         Update: Partial<Database['public']['Tables']['bookings']['Insert']>;
         Relationships: [];
@@ -176,6 +174,7 @@ export interface Database {
     };
     Views: Record<never, never>;
     Functions: {
+      // Crée une demande ouverte (sans prestataire) ; renvoie son id.
       create_booking: {
         Args: {
           p_service_id: ServiceId;
@@ -184,12 +183,10 @@ export interface Database {
           p_address: Address;
           p_answers: BookingAnswer[];
           p_description: string;
-          p_photos: string[];
           p_estimate_min: number;
           p_estimate_max: number;
-          p_provider_id: string;
         };
-        Returns: { booking_id: string; conversation_id: string }[];
+        Returns: string;
       };
       seed_demo: {
         Args: Record<string, never>;

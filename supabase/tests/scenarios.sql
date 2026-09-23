@@ -28,28 +28,42 @@ insert into messages (conversation_id, sender_kind, type, text, quote)
 \echo '--- Message texte normal (doit réussir)'
 insert into messages (conversation_id, sender_kind, type, text)
   select c.id,'client','text','Bonjour' from conversations c join bookings b on b.id=c.booking_id where b.service_id='plumber';
+select count(*) as messages_bonjour_inseres from messages where text='Bonjour';
 
 \echo '--- Bob tente d''accepter le devis d''Alice (doit échouer)'
 select set_config('request.jwt.claim.sub','22222222-2222-2222-2222-222222222222',false);
 select accept_quote((select id from messages where type='quote' limit 1));
 select count(*) as bookings_visibles_par_bob from bookings;
 
-\echo '--- Alice accepte son devis (doit réussir)'
 select set_config('request.jwt.claim.sub','11111111-1111-1111-1111-111111111111',false);
-select accept_quote((select id from messages where type='quote'));
-select status, agreed_price from bookings where service_id='plumber';
-select quote->>'status' as statut_devis from messages where type='quote';
-select text from messages where sender_kind='system' order by created_at desc limit 1;
-\echo '--- Double acceptation (doit échouer)'
-select accept_quote((select id from messages where type='quote'));
+\echo '--- Appel d''offres : la demande plomberie a 2 offres (Marc 185, Amadou 170), sans prestataire'
+select b.provider_id is null as sans_prestataire, count(c.*) as conversations
+  from bookings b join conversations c on c.booking_id = b.id where b.service_id='plumber' group by 1;
+
+\echo '--- Alice accepte l''offre d''Amadou (doit réussir)'
+select accept_quote((select m.id from messages m join conversations c on c.id=m.conversation_id
+  where m.type='quote' and c.provider_id='p-amadou'));
+select status, agreed_price, provider_id from bookings where service_id='plumber';
+\echo '--- Devis : Amadou accepted, Marc declined'
+select c.provider_id, m.quote->>'status' as statut_devis from messages m
+  join conversations c on c.id=m.conversation_id where m.type='quote' order by 1;
+\echo '--- Dernier message système de chaque conversation'
+select distinct on (c.provider_id) c.provider_id, m.text from messages m
+  join conversations c on c.id=m.conversation_id where m.sender_kind='system'
+  order by c.provider_id, m.created_at desc;
+\echo '--- Accepter ensuite l''offre de Marc (doit échouer)'
+select accept_quote((select m.id from messages m join conversations c on c.id=m.conversation_id
+  where m.type='quote' and c.provider_id='p-marc'));
 
 \echo '--- Non-lus : Alice les remet à zéro (1 -> 0)'
-select unread_count from conversations c join bookings b on b.id=c.booking_id where b.service_id='plumber';
-select mark_conversation_read((select c.id from conversations c join bookings b on b.id=c.booking_id where b.service_id='plumber'));
-select unread_count from conversations c join bookings b on b.id=c.booking_id where b.service_id='plumber';
+select unread_count from conversations where provider_id='p-marc';
+select mark_conversation_read((select id from conversations where provider_id='p-marc'));
+select unread_count from conversations where provider_id='p-marc';
 
 \echo '--- Nouvelle demande via create_booking + photos'
-select booking_id as bk from create_booking('mover', null, null, '{"id":"a","label":"x","street":"s","city":"Montréal","postalCode":"H2J 2L2"}', '[]', 'd', '{}', 100, 200, 'p-jp') \gset
+select create_booking('mover', null, null, '{"id":"a","label":"x","street":"s","city":"Montréal","postalCode":"H2J 2L2"}', '[]', 'd', 100, 200) as bk \gset
+\echo '--- Demande ouverte : pending, sans prestataire'
+select status, provider_id is null as sans_prestataire from bookings where id = :'bk';
 select set_booking_photos(:'bk', array['11111111-1111-1111-1111-111111111111/' || :'bk' || '/0.jpg']);
 select photos from bookings where id = :'bk';
 \echo '--- Photo hors de son dossier (doit échouer)'
@@ -58,7 +72,6 @@ select set_booking_photos(:'bk', array['22222222-2222-2222-2222-222222222222/x/0
 \echo '--- Annulation (doit réussir), puis ré-annulation (doit échouer)'
 select cancel_booking(:'bk');
 select status from bookings where id = :'bk';
-select text from messages m join conversations c on c.id=m.conversation_id where c.booking_id = :'bk' order by m.created_at desc limit 1;
 select cancel_booking(:'bk');
 \echo '--- Annuler une réservation terminée (doit échouer)'
 select cancel_booking((select id from bookings where status='completed'));

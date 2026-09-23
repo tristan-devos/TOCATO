@@ -4,17 +4,19 @@
  * Source de vérité = la base. Le store charge les données à la connexion
  * (`loadAll`, appelé depuis auth-store), écoute le Realtime et réécrit via
  * Supabase. Seul l'envoi d'un message texte est un insert direct : toute
- * transition d'état (devis, annulation, photos, lu) passe par une RPC qui
- * vérifie les droits côté serveur (voir supabase/transitions.sql). La simulation des réponses prestataire vit côté serveur (Edge
- * Function `provider-reply`), déclenchée via `provider-reply.ts`. Les sélecteurs
- * exposés restent identiques pour ne pas toucher les écrans.
+ * transition d'état (création, devis, annulation, photos, lu) passe par une RPC
+ * qui vérifie les droits côté serveur (voir supabase/transitions.sql).
+ *
+ * Appel d'offres : la demande est créée sans prestataire ; les prestataires
+ * intéressés ouvrent chacun leur conversation avec un devis (simulés côté
+ * serveur, Edge Function `provider-reply` déclenchée via `provider-reply.ts`),
+ * et l'acceptation d'un devis fixe le prestataire de la réservation.
  */
 
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { create } from 'zustand';
 
 import { rowToBooking, rowToConversation, rowToMessage } from '@/lib/db-mappers';
-import { providersForService } from '@/lib/mock-data';
 import { type LocalPhoto, uploadBookingPhotos } from '@/lib/photo-upload';
 import { triggerProviderReply } from '@/lib/provider-reply';
 import { estimatePrice } from '@/lib/services';
@@ -37,8 +39,6 @@ export interface BookingDraft {
   address: Address;
   scheduledDate?: string;
   timeSlot?: TimeSlotId;
-  /** Prestataire choisi par le client ; absent = attribution automatique. */
-  providerId?: string;
 }
 
 interface AppState {
@@ -50,9 +50,7 @@ interface AppState {
 
   loadAll: () => Promise<void>;
   clearAll: () => void;
-  createBooking: (
-    draft: BookingDraft,
-  ) => Promise<{ bookingId: string; conversationId: string } | null>;
+  createBooking: (draft: BookingDraft) => Promise<{ bookingId: string } | null>;
   cancelBooking: (bookingId: string) => Promise<void>;
   sendMessage: (conversationId: string, text: string) => Promise<void>;
   respondToQuote: (messageId: string, accept: boolean) => Promise<void>;
@@ -143,14 +141,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   createBooking: async (draft) => {
-    // Le client choisit un prestataire ; sinon attribution auto (rotation démo).
-    const candidates = providersForService(draft.serviceId);
-    const chosen = draft.providerId
-      ? candidates.find((p) => p.id === draft.providerId)
-      : undefined;
-    const provider = chosen ?? candidates[get().bookings.length % candidates.length];
-    if (!provider) return null;
-
+    // La demande est créée sans prestataire : ce sont les prestataires
+    // intéressés qui ouvriront chacun leur conversation (appel d'offres).
     const estimate = estimatePrice(draft.serviceId);
     const { data, error } = await supabase.rpc('create_booking', {
       p_service_id: draft.serviceId,
@@ -159,13 +151,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       p_address: draft.address,
       p_answers: draft.answers,
       p_description: draft.description,
-      p_photos: [],
       p_estimate_min: estimate.min,
       p_estimate_max: estimate.max,
-      p_provider_id: provider.id,
     });
-    const result = data?.[0];
-    if (error || !result) return null;
+    if (error || !data) {
+      if (error && __DEV__) console.warn('[create_booking]', error.message);
+      return null;
+    }
+    const bookingId = data;
 
     // Upload des photos après création (le booking_id sert de dossier Storage),
     // puis on rattache les chemins à la réservation. Best-effort : un échec
@@ -174,10 +167,10 @@ export const useAppStore = create<AppState>((set, get) => ({
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData.session?.user.id;
       if (userId) {
-        const paths = await uploadBookingPhotos(userId, result.booking_id, draft.photos);
+        const paths = await uploadBookingPhotos(userId, bookingId, draft.photos);
         if (paths.length > 0) {
           const { error: photosError } = await supabase.rpc('set_booking_photos', {
-            p_booking_id: result.booking_id,
+            p_booking_id: bookingId,
             p_photos: paths,
           });
           if (photosError && __DEV__) console.warn('[set_booking_photos]', photosError.message);
@@ -185,9 +178,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     }
 
-    await Promise.all([refreshBookings(), refreshConversations(), refreshMessages()]);
-    triggerProviderReply(result.conversation_id, 'initial');
-    return { bookingId: result.booking_id, conversationId: result.conversation_id };
+    await refreshBookings();
+    triggerProviderReply({ kind: 'initial', bookingId });
+    return { bookingId };
   },
 
   cancelBooking: async (bookingId) => {
@@ -213,7 +206,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     await refreshMessages();
 
-    triggerProviderReply(conversationId, 'canned');
+    triggerProviderReply({ kind: 'canned', conversationId });
   },
 
   respondToQuote: async (messageId, accept) => {

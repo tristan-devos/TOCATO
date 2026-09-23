@@ -85,18 +85,27 @@ export default function ChatScreen() {
         <Pressable onPress={() => router.back()} hitSlop={10} style={styles.headerButton}>
           <ArrowLeft size={22} color={colors.text} />
         </Pressable>
-        <Avatar name={provider?.name ?? '?'} size={38} />
-        <View style={styles.headerTexts}>
-          <Text style={[styles.headerName, { color: colors.text }]} numberOfLines={1}>
-            {provider?.name ?? t('common.provider')}
-          </Text>
-          <Text
-            style={[styles.headerSubtitle, { color: colors.textSecondary }]}
-            numberOfLines={1}>
-            {serviceName ? `${serviceName} · ` : ''}
-            {provider?.responseTime ?? ''}
-          </Text>
-        </View>
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: '/provider/[id]',
+              params: { id: conversation.providerId },
+            })
+          }
+          style={styles.headerIdentity}>
+          <Avatar name={provider?.name ?? '?'} size={38} />
+          <View style={styles.headerTexts}>
+            <Text style={[styles.headerName, { color: colors.text }]} numberOfLines={1}>
+              {provider?.name ?? t('common.provider')}
+            </Text>
+            <Text
+              style={[styles.headerSubtitle, { color: colors.textSecondary }]}
+              numberOfLines={1}>
+              {serviceName ? `${serviceName} · ` : ''}
+              {provider?.responseTime ?? ''}
+            </Text>
+          </View>
+        </Pressable>
         {booking ? (
           <Pressable
             onPress={() =>
@@ -176,6 +185,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerButton: { padding: Spacing.one },
+  headerIdentity: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.two + 4,
+  },
   headerTexts: { flex: 1 },
   headerName: { fontSize: FontSize.base, fontWeight: '600' },
   headerSubtitle: { fontSize: FontSize.xs },

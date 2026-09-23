@@ -81,6 +81,9 @@ create table if not exists public.providers (
 );
 
 -- ——— bookings ————————————————————————————————————————————————————————————
+-- Appel d'offres : provider_id est null tant qu'aucun devis n'est accepté. Les
+-- prestataires intéressés ouvrent chacun une conversation (conversations.booking_id,
+-- N par demande) ; accept_quote fixe le prestataire.
 create table if not exists public.bookings (
   id              uuid primary key default gen_random_uuid(),
   user_id         uuid not null references public.profiles (id) on delete cascade,
@@ -98,8 +101,7 @@ create table if not exists public.bookings (
   estimate_min    numeric(10, 2) not null,
   estimate_max    numeric(10, 2) not null,
   agreed_price    numeric(10, 2),
-  provider_id     text not null references public.providers (id),
-  conversation_id uuid not null
+  provider_id     text references public.providers (id)
 );
 create index if not exists bookings_user_id_idx on public.bookings (user_id);
 -- Migration des bases déjà déployées : photo_count (entier) -> photos (chemins Storage).
@@ -116,22 +118,18 @@ create table if not exists public.conversations (
   last_message_at timestamptz not null default now()
 );
 create index if not exists conversations_user_id_idx on public.conversations (user_id);
--- Réparation (2026-09-23, temporaire — le lot 2 remplace ce bloc) : le SQL de la PR #8,
--- jamais mergée, avait supprimé conversation_id sur la base partagée. NOT NULL remis
--- seulement si aucune ligne ne le viole (pas de suppression silencieuse de données).
-alter table public.bookings add column if not exists conversation_id uuid;
-update public.bookings b set conversation_id = (select c.id from public.conversations c
-  where c.booking_id = b.id order by c.last_message_at desc limit 1)
-where b.conversation_id is null;
-do $$
-begin
-  if not exists (select 1 from public.bookings where conversation_id is null) then
-    alter table public.bookings alter column conversation_id set not null;
-  end if;
-  if not exists (select 1 from public.bookings where provider_id is null) then
-    alter table public.bookings alter column provider_id set not null;
-  end if;
-end $$;
+-- Migration des bases déjà déployées vers l'appel d'offres : le prestataire n'est
+-- plus fixé à la création, et une demande a N conversations au lieu d'une seule.
+-- (Remplace la réparation temporaire de conversation_id du 2026-09-23.)
+alter table public.bookings alter column provider_id drop not null;
+alter table public.bookings drop column if exists conversation_id;
+-- Demandes encore en attente créées avec l'ancien modèle : le prestataire y était
+-- fixé d'avance. Dans l'appel d'offres il ne l'est qu'à l'acceptation (accept_quote
+-- l'exige null) ; on le libère pour que leurs devis restent acceptables.
+update public.bookings set provider_id = null where status = 'pending' and provider_id is not null;
+-- Un prestataire n'ouvre qu'une conversation par demande.
+create unique index if not exists conversations_booking_provider_key
+  on public.conversations (booking_id, provider_id);
 
 -- ——— messages ————————————————————————————————————————————————————————————
 -- sender_kind remplace le `senderId` magique ('me') du domaine.

@@ -1,8 +1,9 @@
 # Conception — interface prestataire (appel d'offres)
 
-> **Statut : proposition à valider** (Tristan + collègue) avant tout code.
-> Rédigé le 2026-09-23. Une fois validé, chaque lot ci-dessous devient une PR, et
-> `AGENTS.md` est mis à jour dans la PR qui change le comportement décrit.
+> **Statut : validé**, en cours de réalisation — lots 1 et 2 faits (voir §9).
+> Rédigé le 2026-09-23. Chaque lot ci-dessous devient une PR, et `AGENTS.md` est mis à
+> jour dans la PR qui change le comportement décrit. Les écarts au plan sont notés
+> « **Réalisé :** » dans la section concernée.
 
 ## 1. Décisions déjà prises
 
@@ -117,8 +118,11 @@ Le prénom du client doit s'afficher dans le chat côté prestataire : exposé v
 | `start_job(booking_id)` / `complete_job(booking_id)` | prestataire assigné | `confirmed` → `in_progress` → `completed`. |
 | `mark_conversation_read(conversation_id)` | les deux | Remet à zéro **son** compteur. |
 
-`create_booking` est supprimée (comme dans la PR #8) : insert direct autorisé par
-la policy `bookings` insert.
+**Réalisé (lot 2) :** `create_booking` est **conservée** (pas d'insert direct comme
+prévu ici et dans la PR #8), mais sans prestataire : elle crée une demande ouverte et
+renvoie son id. Raison : le lot 1 a posé la règle « aucune écriture directe sur
+`bookings` » (voir `AGENTS.md` > Sécurité des données) ; une RPC force `status`,
+`user_id` et `provider_id` sans avoir à les contraindre dans une policy.
 
 ## 7. Interface
 
@@ -146,6 +150,8 @@ vers `(tabs)/`. Pas de bascule client ↔ prestataire en v1.
 - Détail réservation : section **Offres reçues (N)** tant que la demande est ouverte.
 - Écran `provider/[id]` (profil public d'un prestataire).
 - Onglets : ordre de la PR #8 (Réservations en 2e, Messages en 4e) — **à confirmer**.
+  **Réalisé (lot 2) :** non repris, l'ordre actuel est conservé (sans lien avec l'appel
+  d'offres) ; à trancher séparément.
 
 ## 8. Démo et simulation
 
@@ -160,10 +166,10 @@ service**. `seed_demo` reste pour la démo. Suppression complète au lot 5.
 Chaque lot : `tsc` + export web + `expo-doctor` OK, fichiers < 300 lignes,
 `AGENTS.md` / `README` à jour, `schema.sql` + `rpc.sql` idempotents et ré-exécutés.
 
-1. **Sécuriser les transitions** (indépendant, corrige les trous §3.3–3.4) :
+1. ✅ **Sécuriser les transitions** (PR #13, + réparation PR #14) (indépendant, corrige les trous §3.3–3.4) :
    RPC `accept_quote` / `decline_quote` / `cancel_booking` / `mark_conversation_read`,
    suppression des `update` directs côté app et des policies d'update.
-2. **Appel d'offres côté client** (reprise de la PR #8) : schéma N conversations,
+2. ✅ **Appel d'offres côté client** (reprise de la PR #8) : schéma N conversations,
    wizard sans choix, offres reçues, profil prestataire, simulation adaptée.
 3. **Comptes prestataires côté serveur** : `providers.user_id`, `is_demo`,
    `current_provider_id()`, policies prestataire, `list_open_requests`,

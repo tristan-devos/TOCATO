@@ -13,8 +13,10 @@
 -- =============================================================================
 
 -- ——— accept_quote : le client accepte un devis ———————————————————————————
--- Devis -> accepted, réservation -> confirmed + agreed_price, autres devis en
--- attente de la même réservation -> declined, message système.
+-- Appel d'offres : devis -> accepted ; réservation -> confirmed + agreed_price +
+-- provider_id (le prestataire de ce devis) ; devis concurrents en attente ->
+-- declined ; message système dans la conversation retenue ET dans celles des
+-- autres prestataires (leurs conversations restent lisibles).
 create or replace function public.accept_quote(p_message_id uuid)
 returns void
 language plpgsql
@@ -24,10 +26,11 @@ as $$
 declare
   v_conversation uuid;
   v_booking      uuid;
+  v_provider     text;
   v_amount       numeric;
 begin
-  select m.conversation_id, c.booking_id, (m.quote ->> 'amount')::numeric
-    into v_conversation, v_booking, v_amount
+  select m.conversation_id, c.booking_id, c.provider_id, (m.quote ->> 'amount')::numeric
+    into v_conversation, v_booking, v_provider, v_amount
   from public.messages m
   join public.conversations c on c.id = m.conversation_id
   where m.id = p_message_id
@@ -38,8 +41,9 @@ begin
   for update of m;
   if not found then raise exception 'quote_not_pending'; end if;
 
+  -- Demande encore ouverte : ni pourvue par un autre prestataire, ni annulée.
   perform 1 from public.bookings
-  where id = v_booking and status = 'pending'
+  where id = v_booking and status = 'pending' and provider_id is null
   for update;
   if not found then raise exception 'booking_not_pending'; end if;
 
@@ -48,7 +52,7 @@ begin
   where id = p_message_id;
 
   update public.bookings
-  set status = 'confirmed', agreed_price = v_amount
+  set status = 'confirmed', agreed_price = v_amount, provider_id = v_provider
   where id = v_booking;
 
   update public.messages m
@@ -62,6 +66,12 @@ begin
   insert into public.messages (conversation_id, sender_kind, type, text)
   values (v_conversation, 'system', 'system',
           'Devis accepté — votre réservation est confirmée.');
+
+  insert into public.messages (conversation_id, sender_kind, type, text)
+  select c.id, 'system', 'system',
+         'Vous avez confirmé un autre prestataire pour cette demande.'
+  from public.conversations c
+  where c.booking_id = v_booking and c.id <> v_conversation;
 end;
 $$;
 

@@ -29,8 +29,8 @@ const fr = {
     howItWorksSection: 'Comment ça marche',
     step1Title: 'Décrivez votre besoin',
     step1Detail: 'Quelques questions, deux minutes.',
-    step2Title: 'Recevez un devis',
-    step2Detail: 'Le prestataire vous répond dans le chat.',
+    step2Title: 'Recevez des offres',
+    step2Detail: 'Les prestataires intéressés vous répondent dans le chat.',
     step3Title: 'Confirmez sereinement',
     step3Detail: 'Prestataires vérifiés, prix convenu à l’avance.',
     popularProviders: 'Prestataires populaires',
@@ -59,7 +59,7 @@ const fr = {
     quoteReceived: 'Devis reçu',
     emptyTitle: 'Aucune conversation',
     emptyMessage:
-      'Réservez une prestation : un chat s’ouvre automatiquement avec votre prestataire.',
+      'Réservez une prestation : les prestataires intéressés vous écriront ici.',
   },
   wizard: {
     abandonTitle: 'Abandonner la demande ?',
@@ -70,7 +70,8 @@ const fr = {
     send: 'Envoyer la demande',
     successTitle: 'Demande envoyée !',
     successMessage:
-      'Votre demande de {{service}} a été transmise. Le prestataire vous répondra dans le chat avec un devis.',
+      'Votre demande de {{service}} a été transmise aux prestataires disponibles. Ils vous enverront leurs offres dans Messages.',
+    viewRequest: 'Suivre ma demande',
     viewBookings: 'Voir mes réservations',
     detailsTitle: 'Décrivez votre besoin',
     detailsSubtitle:
@@ -86,17 +87,11 @@ const fr = {
     scheduleOrPickDate: 'ou choisissez une date',
     schedulePreferredSlot: 'Créneau souhaité',
     scheduleUrgentNote: 'Les demandes urgentes peuvent entraîner une majoration.',
-    providerTitle: 'Choisissez votre prestataire',
-    providerSubtitle:
-      'Sélectionnez un prestataire, ou laissez TOCATO vous proposer le plus adapté.',
-    providerAuto: 'Laisser TOCATO choisir',
-    providerAutoHint: 'Nous vous assignons le prestataire le plus adapté à votre demande.',
-    providerHourlyRate: '{{price}}/h',
-    providerJobs: '{{count}} prestations réalisées',
     reviewTitle: 'Récapitulatif',
     reviewSubtitle:
-      'Vérifiez votre demande — elle sera envoyée au prestataire le plus adapté.',
-    reviewProviderAuto: 'TOCATO choisit le prestataire le plus adapté.',
+      'Vérifiez votre demande — elle sera envoyée aux prestataires disponibles.',
+    reviewProvidersNote:
+      'Votre demande sera envoyée aux prestataires disponibles en {{service}} — ils vous contacteront dans Messages avec leur offre.',
     estimate: 'Estimation',
     estimateNote: 'Le prix final sera confirmé par devis dans le chat.',
   },
@@ -119,14 +114,34 @@ const fr = {
     photos_other: '{{count}} photos jointes',
     agreedPrice: 'Prix convenu',
     estimate: 'Estimation',
-    waitingQuote: 'En attente du devis du prestataire.',
+    waitingQuote: 'En attente des offres des prestataires.',
     openChat: 'Ouvrir le chat',
     cancelBooking: 'Annuler la réservation',
     cancelTitle: 'Annuler la réservation ?',
     cancelMessage:
-      'Le prestataire sera prévenu dans le chat. Cette action est définitive.',
+      'Les prestataires en conversation seront prévenus. Cette action est définitive.',
     keepBooking: 'Garder ma réservation',
     confirmCancel: 'Annuler la réservation',
+  },
+  providerOffers: {
+    title_one: 'PRESTATAIRE INTÉRESSÉ',
+    title_other: 'PRESTATAIRES INTÉRESSÉS ({{count}})',
+    waiting:
+      'Votre demande est visible par les prestataires du service. Leurs offres apparaîtront ici.',
+    quoteReceived: 'Devis reçu : {{price}}',
+    noQuoteYet: 'Pas encore de devis',
+    interested_one: '{{count}} prestataire intéressé',
+    interested_other: '{{count}} prestataires intéressés',
+    waitingShort: 'En attente de prestataires',
+  },
+  providerProfile: {
+    title: 'Profil du prestataire',
+    about: 'À PROPOS',
+    statsSection: 'EN CHIFFRES',
+    jobsCompleted: 'Prestations réalisées',
+    hourlyRate: 'Taux horaire indicatif',
+    hourlyRateValue: '{{price}}/h',
+    memberSince: 'Membre depuis',
   },
   profile: {
     title: 'Profil',
