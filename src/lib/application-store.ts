@@ -19,7 +19,8 @@ import type { ProviderApplication } from '@/lib/types';
 
 type ApplicationRow = Database['public']['Tables']['provider_applications']['Row'];
 
-function rowToApplication(row: ApplicationRow): ProviderApplication {
+/** Ligne provider_applications -> domaine (partagé avec admin-store). */
+export function rowToApplication(row: ApplicationRow): ProviderApplication {
   return {
     id: row.id,
     status: row.status,

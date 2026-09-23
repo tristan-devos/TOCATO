@@ -2,7 +2,7 @@ import { useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 
 import { useAuthStatus } from '@/lib/auth-store';
-import { useRole } from '@/lib/profile-store';
+import { useIsAdmin, useRole } from '@/lib/profile-store';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 // Premier segment des routes réservées à chaque rôle (les autres, chat et
@@ -10,6 +10,8 @@ import { isSupabaseConfigured } from '@/lib/supabase';
 const CLIENT_ONLY = new Set(['(tabs)', 'booking', 'reservation', 'profile']);
 const PROVIDER_ONLY = new Set(['(provider)', 'request', 'job']);
 const APPLICANT_ONLY = new Set(['apply']);
+// Écran « Adhésions » : réservé aux comptes de la table admins (is_admin).
+const ADMIN_ONLY = new Set(['admin']);
 
 /**
  * Redirige selon l'état de session et le rôle :
@@ -24,6 +26,7 @@ const APPLICANT_ONLY = new Set(['apply']);
 export function useAuthGuard(): void {
   const status = useAuthStatus();
   const role = useRole();
+  const isAdmin = useIsAdmin();
   const segments = useSegments();
   const router = useRouter();
 
@@ -38,7 +41,9 @@ export function useAuthGuard(): void {
     }
     if (role === null) return; // rôle en cours de chargement
 
-    if (role === 'applicant') {
+    if (ADMIN_ONLY.has(first) && !isAdmin) {
+      router.replace('/');
+    } else if (role === 'applicant') {
       if (!APPLICANT_ONLY.has(first)) router.replace('/apply');
     } else if (
       role === 'provider' &&
@@ -51,5 +56,5 @@ export function useAuthGuard(): void {
     ) {
       router.replace('/');
     }
-  }, [status, role, segments, router]);
+  }, [status, role, isAdmin, segments, router]);
 }

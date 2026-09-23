@@ -79,6 +79,9 @@ select set_config('request.jwt.claim.sub', :'bob', false) \g /dev/null
 select (select count(*) from provider_applications) as demandes,
        (select count(*) from storage.objects where bucket_id = 'provider-documents') as pieces;
 select admin_approve_application((select id from provider_applications limit 1));
+\echo '--- Bob : ni la liste des demandeurs ni l''état du registre (doivent échouer)'
+select * from admin_list_applicants();
+select * from admin_rbq_registry_status();
 
 \echo '--- Eve (déménageuse) envoie sa demande : pas de vérif RBQ (null)'
 select set_config('request.jwt.claim.sub', :'eve', false) \g /dev/null
@@ -90,6 +93,9 @@ select rbq_licence, rbq_check from provider_applications;
 select set_config('request.jwt.claim.sub', :'dana', false) \g /dev/null
 select is_admin() as dana_admin, (select count(*) from provider_applications) as demandes,
        (select count(*) from storage.objects where bucket_id = 'provider-documents') as pieces;
+\echo '--- Dana : demandeurs (Carla, Eve) avec nom et courriel ; registre (3 licences, importé)'
+select applicant_name, applicant_email from admin_list_applicants() order by 1;
+select last_import is not null as importe, licence_count from admin_rbq_registry_status();
 \echo '--- Refus sans motif (doit échouer), puis avec motif (doit réussir)'
 select admin_reject_application((select id from provider_applications where user_id = :'eve'), ' ');
 select admin_reject_application((select id from provider_applications where user_id = :'eve'),

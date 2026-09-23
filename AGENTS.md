@@ -208,6 +208,9 @@ src/app/                    Routes expo-router
   apply.tsx                 Demandeur d'adhésion (rôle applicant, seul écran accessible) :
                             formulaire tant que rien n'est envoyé, puis statut (en examen,
                             ou refus avec motif et « Corriger et renvoyer »)
+  admin/{index,[id]}.tsx    Admin (is_admin) : liste des adhésions + fraîcheur du registre RBQ,
+                            détail (vérif RBQ, pièces en URLs signées, approuver / refuser).
+                            Entrée « Adhésions prestataires » dans le profil si admin.
   request/[id].tsx          Prestataire : demande ouverte (ville + secteur) + formulaire de devis
   job/[id].tsx              Prestataire : mission retenue (adresse exacte, commencer/terminer)
   booking/[service].tsx     Wizard de réservation multi-étapes (modal)
@@ -235,6 +238,8 @@ src/components/             Composants métier (booking-card, provider-row, serv
   apply/                    Formulaire d'adhésion : application-form (orchestrateur, 4 étapes)
                             + business-step, legal-step, documents-step (document-picker),
                             application-review, application-status, step-header
+  admin/                    Écran admin : registry-status, application-row, application-
+                            status-badge, rbq-check-card, document-image, decision-panel
   chat/                     message-bubble (texte / devis / document / système ; les
                             boutons d'un devis n'existent que côté client)
   ui/                       Primitives (button, card, chip, badge, avatar, screen,
@@ -262,6 +267,10 @@ src/lib/
                             que le serveur).
   signup-intent.ts          Intention « Je suis prestataire » (AsyncStorage) le temps que la
                             demande soit envoyée ; effacée à la déconnexion.
+  admin-store.ts            Admin : demandes (RLS ouverte à is_admin), nom/courriel des
+                            demandeurs et fraîcheur du registre (RPC admin_*), décisions.
+  rbq.ts                    Registre RBQ : âge de la copie (alerte au-delà de 3 jours) et lien
+                            de vérification officiel.
   document-upload.ts        Pièces justificatives vers le bucket privé provider-documents +
                             URL signée (demandeur pour la sienne, admin pour toutes).
   providers-store.ts        Fiches prestataires lues depuis la table providers ;
@@ -301,7 +310,7 @@ src/hooks/use-theme.ts      Accès au thème selon le color scheme
 src/hooks/use-formats.ts    Formatters (prix/dates) liés à la langue active (fr-CA / en-CA)
 src/hooks/use-auth-guard.ts Redirige selon la session ET le rôle : connexion, app client,
                             onglets prestataire ou /apply (demandeur) ; sort chacun des routes
-                            des autres rôles (inactif sans Supabase)
+                            des autres rôles ; /admin réservé aux admins (inactif sans Supabase)
 src/hooks/use-counterpart.ts Nom de « l'autre » dans une conversation selon le rôle
                             (prestataire pour un client, prénom du client pour un prestataire)
 supabase/schema.sql         Schéma Postgres : tables + migrations + Realtime + bucket Storage
@@ -512,8 +521,9 @@ insert into admins (user_id) select id from auth.users where email = 'courriel@e
 on conflict do nothing;
 ```
 
-**Adhésion** (`docs/adhesion-prestataires.md`) : le serveur est prêt (lot 1) ; les écrans
-demandeur et admin arrivent aux lots 3 et 4. En attendant, et ensuite en secours :
+**Adhésion** (`docs/adhesion-prestataires.md`) : un prestataire s'inscrit avec « Je suis
+prestataire » et envoie sa demande ; l'admin l'approuve ou la refuse dans l'app (Profil →
+Adhésions prestataires). En secours :
 
 **Relier à la main** dans le SQL editor (rôle admin), une fois que la personne s'est
 **inscrite dans l'app** :

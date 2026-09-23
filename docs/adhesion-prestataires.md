@@ -174,7 +174,11 @@ par … », pas l'image). À refléter dans la politique de confidentialité.
    services » dans le profil d'un client sans réservation (rattrape une inscription faite
    du mauvais côté), et « Je ne suis pas prestataire » tant que rien n'est envoyé. Le
    Realtime s'abonne dès que le rôle devient `applicant`, par l'un ou l'autre chemin.
-4. **App, côté admin** : liste et détail des adhésions, approbation, refus.
+4. ✅ **App, côté admin** : liste et détail des adhésions, approbation, refus.
+   **Réalisé :** deux RPC de lecture en plus, réservées à l'admin :
+   `admin_list_applicants` (nom et courriel des demandeurs, `profiles` étant owner-only)
+   et `admin_rbq_registry_status` (date du dernier import, nombre de licences). La liste
+   se recharge à chaque ouverture de l'écran (pas de Realtime côté admin).
 5. **Vie privée** : suppression des pièces d'identité 30 jours après décision (tâche
    planifiée), mise à jour de la politique de confidentialité.
 

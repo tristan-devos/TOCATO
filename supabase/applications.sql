@@ -239,6 +239,39 @@ begin
 end;
 $$;
 
+-- --- Lectures de l'admin (écran « Adhésions ») ------------------------------
+-- Nom et courriel des demandeurs : profiles n'est lisible que par son propriétaire.
+create or replace function public.admin_list_applicants()
+returns table (applicant_id uuid, applicant_name text, applicant_email text)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then raise exception 'not_admin'; end if;
+  return query
+    select p.id, p.name, p.email
+    from public.profiles p
+    join public.provider_applications a on a.user_id = p.id;
+end;
+$$;
+
+-- Fraîcheur du registre RBQ (dernier import, nombre de licences) : alerte si l'import
+-- nocturne échoue plusieurs nuits de suite.
+create or replace function public.admin_rbq_registry_status()
+returns table (last_import timestamptz, licence_count bigint)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then raise exception 'not_admin'; end if;
+  return query select max(r.imported_at), count(*) from public.rbq_licences r;
+end;
+$$;
+
 -- --- Droits d'exécution --------------------------------------------------------
 revoke execute on function public.is_admin() from public, anon;
 revoke execute on function public.rbq_check_licence(text, text) from public, anon, authenticated;
@@ -246,9 +279,13 @@ revoke execute on function public.submit_provider_application(
   text, text[], text, text, numeric, text, text, text) from public, anon;
 revoke execute on function public.admin_approve_application(uuid) from public, anon;
 revoke execute on function public.admin_reject_application(uuid, text) from public, anon;
+revoke execute on function public.admin_list_applicants() from public, anon;
+revoke execute on function public.admin_rbq_registry_status() from public, anon;
 grant execute on function public.is_admin() to authenticated;
 grant execute on function public.submit_provider_application(
   text, text[], text, text, numeric, text, text, text) to authenticated;
 -- Exécutables par tout compte connecté, mais refusés sans is_admin() (vérifié dedans).
 grant execute on function public.admin_approve_application(uuid) to authenticated;
 grant execute on function public.admin_reject_application(uuid, text) to authenticated;
+grant execute on function public.admin_list_applicants() to authenticated;
+grant execute on function public.admin_rbq_registry_status() to authenticated;
