@@ -78,4 +78,14 @@ export type ApplicationFunctions = {
     Args: { p_application_id: string; p_reason: string };
     Returns: undefined;
   };
+  /** Admin : nom et courriel de chaque demandeur (profiles est owner-only). */
+  admin_list_applicants: {
+    Args: Record<string, never>;
+    Returns: { applicant_id: string; applicant_name: string; applicant_email: string }[];
+  };
+  /** Admin : date du dernier import du registre RBQ et nombre de licences. */
+  admin_rbq_registry_status: {
+    Args: Record<string, never>;
+    Returns: { last_import: string | null; licence_count: number }[];
+  };
 };

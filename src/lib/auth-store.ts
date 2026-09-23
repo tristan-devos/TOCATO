@@ -11,6 +11,7 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { create } from 'zustand';
 
+import { useAdminStore } from '@/lib/admin-store';
 import { useApplicationStore } from '@/lib/application-store';
 import { useProfileStore } from '@/lib/profile-store';
 import { useProviderStore } from '@/lib/provider-store';
@@ -167,6 +168,7 @@ export function initAuth(): void {
     } else {
       useProfileStore.getState().clear();
       useApplicationStore.getState().clear();
+      useAdminStore.getState().clear();
       void clearProviderIntent();
       useAppStore.getState().clearAll();
       useProvidersStore.getState().clear();

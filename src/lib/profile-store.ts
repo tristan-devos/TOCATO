@@ -49,6 +49,8 @@ interface ProfileState {
   role: Role | null;
   /** Fiche prestataire du compte (rôle 'provider'), sinon null. */
   providerId: string | null;
+  /** Compte admin (table admins, RPC is_admin) : accès à l'écran « Adhésions ». */
+  isAdmin: boolean;
   loadProfile: () => Promise<void>;
   /** Insère une adresse ; renvoie son id, ou null en cas d'échec. */
   addAddress: (input: Omit<Address, 'id'>) => Promise<string | null>;
@@ -74,6 +76,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
   loading: false,
   role: null,
   providerId: null,
+  isAdmin: false,
 
   loadProfile: async () => {
     const { data: sessionData } = await supabase.auth.getSession();
@@ -84,7 +87,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
     }
 
     set({ loading: true });
-    const [profileResult, addressResult, providerResult] = await Promise.all([
+    const [profileResult, addressResult, providerResult, adminResult] = await Promise.all([
       supabase.from('profiles').select('id, name, email, phone').eq('id', userId).single(),
       supabase
         .from('addresses')
@@ -92,6 +95,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
         .eq('user_id', userId)
         .order('created_at', { ascending: true }),
       supabase.rpc('current_provider_id'),
+      supabase.rpc('is_admin'),
     ]);
 
     const providerId = providerResult.data ?? null;
@@ -103,6 +107,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
       loading: false,
       role,
       providerId,
+      isAdmin: adminResult.data === true,
     });
   },
 
@@ -146,7 +151,14 @@ export const useProfileStore = create<ProfileState>((set) => ({
   },
 
   clear: () =>
-    set({ profile: null, addresses: [], loading: false, role: null, providerId: null }),
+    set({
+      profile: null,
+      addresses: [],
+      loading: false,
+      role: null,
+      providerId: null,
+      isAdmin: false,
+    }),
 }));
 
 // --- Sélecteurs ---
@@ -166,4 +178,8 @@ export function useRole(): Role | null {
 
 export function useMyProviderId(): string | null {
   return useProfileStore((s) => s.providerId);
+}
+
+export function useIsAdmin(): boolean {
+  return useProfileStore((s) => s.isAdmin);
 }

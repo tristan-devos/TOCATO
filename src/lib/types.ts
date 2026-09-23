@@ -166,6 +166,18 @@ export interface ProviderApplication {
   rejectionReason: string | null;
 }
 
+/** An application as the admin sees it: with the applicant's name and email. */
+export interface AdminApplication extends ProviderApplication {
+  applicantName: string;
+  applicantEmail: string;
+}
+
+/** Freshness of the RBQ registry copy (nightly import). */
+export interface RbqRegistryStatus {
+  lastImport: string | null;
+  licenceCount: number;
+}
+
 /**
  * An open request as a provider sees it (RPC list_open_requests): never the exact
  * address nor the client's name: only the city and postal sector (e.g. H2J).

@@ -59,6 +59,8 @@ export default function RootLayout() {
         <Stack.Screen name="profile/addresses" />
         <Stack.Screen name="profile/payments" />
         <Stack.Screen name="profile/help" />
+        <Stack.Screen name="admin/index" />
+        <Stack.Screen name="admin/[id]" />
       </Stack>
     </ThemeProvider>
   );
