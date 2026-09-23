@@ -1,6 +1,6 @@
 # Conception — interface prestataire (appel d'offres)
 
-> **Statut : validé**, en cours de réalisation — lots 1, 2 et 3 faits (voir §9).
+> **Statut : validé**, en cours de réalisation — lots 1 à 4 faits (voir §9).
 > Rédigé le 2026-09-23. Chaque lot ci-dessous devient une PR, et `AGENTS.md` est mis à
 > jour dans la PR qui change le comportement décrit. Les écarts au plan sont notés
 > « **Réalisé :** » dans la section concernée.
@@ -161,6 +161,22 @@ vers `(tabs)/`. Pas de bascule client ↔ prestataire en v1.
 - **Réutilisés** : `chat/[id].tsx`, `message-bubble`, `ui/*`. Le côté « moi » d'une
   bulle dépend du rôle de l'utilisateur (voir `db-mappers.toSenderId`).
 
+**Réalisé (lot 4) — écarts :**
+- Routes prestataire nommées `(provider)/{requests,jobs,messages,account}` : un groupe
+  expo-router n'ajoute pas de segment d'URL, et `index` / `chats` / `profile`
+  entraient en conflit avec `(tabs)` ou le dossier `profile/`. `messages` réutilise
+  l'écran de messagerie client (le nom affiché dépend du rôle).
+- Détail d'une mission : `job/[id]` (et non un onglet), ouvert depuis Mes travaux ou
+  le chat.
+- Demandes ouvertes **sans temps réel** (la RLS ne donne pas au prestataire les lignes
+  bookings d'une demande ouverte, donc pas d'événement Realtime) : rechargées à chaque
+  affichage de l'onglet et par « tirer pour rafraîchir ». Les conversations, messages
+  et missions, eux, arrivent en temps réel.
+- Fiches prestataires lues depuis la table `providers` ; `mock-data.ts` supprimé (fait
+  au lot 4 au lieu du lot 5).
+- Blocs d'UI partagés extraits (règle anti-duplication) : `booking-summary`,
+  `request-details`, `account-actions`, `ui/segmented-control`, `ui/text-field`.
+
 ### Côté client (repris et adapté de la PR #8)
 
 - Wizard : étape `provider-step` supprimée ; récap et succès réécrits.
@@ -192,9 +208,9 @@ Chaque lot : `tsc` + export web + `expo-doctor` OK, fichiers < 300 lignes,
    `current_provider_id()`, policies prestataire, `list_open_requests`,
    `send_quote`, `start_job` / `complete_job`, Storage, compteurs par côté,
    procédure SQL documentée pour relier un compte.
-4. **Interface prestataire** : navigation par rôle, onglets et écrans du §7, i18n
+4. ✅ **Interface prestataire** : navigation par rôle, onglets et écrans du §7, i18n
    FR/EN, **fiches prestataires lues depuis la base** (au lieu de `mock-data.ts`).
-5. **Nettoyage** : fin de la simulation, suppression de `mock-data.ts`.
+5. **Nettoyage** : fin de la simulation (`mock-data.ts` déjà supprimé au lot 4).
 
 Test de bout en bout après le lot 4 : ton collègue = client, un compte de test =
 prestataire (relié à la main), puis un vrai prestataire recruté.

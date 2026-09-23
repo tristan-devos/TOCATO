@@ -129,8 +129,10 @@ pas de build natif pour l'instant, et **pas de `eas.json`** à la racine.
   par branche**, et le runtime détermine dans quelle version d'**Expo Go** l'update s'ouvre
   (cohérent avec le workflow iPhone tant que le SDK pinné et Expo Go restent alignés).
 - **Publier le code committé** (= « déployer sur Expo ») :
-  `npx eas-cli update --branch preview --message "<résumé>"`. Pas `--non-interactive`
-  (non supporté ici) ; utiliser `$CI=1` si besoin. L'iPhone récupère l'update au prochain
+  `npx eas-cli update --branch preview --environment preview --message "<résumé>"`.
+  Sans `--environment`, eas-cli demande l'environnement (aucune variable n'est stockée sur
+  EAS : l'app lit le `.env` local, le choix ne change rien — `preview` par cohérence).
+  Pas `--non-interactive` (non supporté ici) ; utiliser `$CI=1` si besoin. L'iPhone récupère l'update au prochain
   lancement d'Expo Go (fermer/rouvrir l'app).
 - **Avant tout build natif** (TestFlight, APK) il faudra d'abord créer un `eas.json`.
 - Rappel : un changement de **config Supabase** (ex. « Confirm email ») est côté serveur et
@@ -147,6 +149,13 @@ src/app/                    Routes expo-router
   (tabs)/_layout.tsx        5 onglets : Accueil, Messages, Réserver (bouton central logo),
                             Réservations, Profil
   (tabs)/{index,chats,reserver,reservations,profil}.tsx
+  (provider)/_layout.tsx    4 onglets prestataire : Demandes, Mes travaux, Messages, Profil
+  (provider)/{requests,jobs,messages,account}.tsx
+                            Noms distincts de (tabs) : un groupe n'ajoute pas de segment
+                            d'URL, deux `index`/`chats` entreraient en conflit. messages
+                            ré-exporte (tabs)/chats (rôle géré par use-counterpart).
+  request/[id].tsx          Prestataire : demande ouverte (ville + secteur) + formulaire de devis
+  job/[id].tsx              Prestataire : mission retenue (adresse exacte, commencer/terminer)
   booking/[service].tsx     Wizard de réservation multi-étapes (modal)
   chat/[id].tsx             Conversation (messages, devis acceptables, documents)
   reservation/[id].tsx      Détail réservation (timeline de statut, offres reçues tant que
@@ -155,8 +164,7 @@ src/app/                    Routes expo-router
                             réservation, les prestataires populaires de l'accueil)
   profile/{addresses,payments,help}.tsx
 src/components/             Composants métier (booking-card, provider-row, service-card…)
-  auth/                     auth-text-field (champ libellé des formulaires de connexion)
-                            + social-auth (séparateur « ou » + bouton Google, OAuth navigateur)
+  auth/                     social-auth (séparateur « ou » + bouton Google, OAuth navigateur)
   booking/                  Étapes du wizard (question, details, address, schedule,
                             review) — pas de choix de prestataire (appel d'offres)
                             + booking-photos (galerie des photos d'une réservation, URLs signées)
@@ -164,8 +172,16 @@ src/components/             Composants métier (booking-card, provider-row, serv
   reservation/              status-timeline (frise verticale de progression d'une réservation)
                             + provider-offers (offres reçues : une carte par prestataire
                             intéressé, montant du devis en attente, tap = conversation)
-  chat/                     message-bubble (texte / devis / document / système)
-  ui/                       Primitives (button, card, chip, badge, avatar, screen…)
+                            + booking-summary (en-tête service/date/statut) + request-details
+                            (réponses, description, photos, lieu, date) — partagés client,
+                            demande ouverte et mission prestataire
+  provider/                 request-card (demande ouverte) + quote-form (devis, send_quote)
+  profile/                  account-actions (Langue + Se déconnecter, profils client et
+                            prestataire)
+  chat/                     message-bubble (texte / devis / document / système ; les
+                            boutons d'un devis n'existent que côté client)
+  ui/                       Primitives (button, card, chip, badge, avatar, screen,
+                            text-field, segmented-control…)
 src/lib/
   types.ts                  Types du domaine = futurs contrats d'API
   services.ts               Catalogue des services + questions du wizard (config-driven :
@@ -177,9 +193,17 @@ src/lib/
                             messages. Charge à la connexion (loadAll), écoute le Realtime,
                             écrit via RPC (create_booking, accept/decline_quote,
                             cancel_booking…) ; seul l'envoi d'un message texte est un insert.
-  profile-store.ts          Profil + adresses de l'utilisateur connecté, adossé à Supabase
-                            (chargé à la connexion). A remplacé le `user` mock du store.
-  db-mappers.ts             Conversion lignes Supabase -> types du domaine (frontière DB/app)
+  profile-store.ts          Profil + adresses + **rôle** (client/prestataire, via la RPC
+                            current_provider_id) de l'utilisateur connecté. Chargé EN PREMIER
+                            à la connexion : le store en dépend pour savoir qui est « moi ».
+  providers-store.ts        Fiches prestataires lues depuis la table providers (démo et
+                            réelles) ; useProvider(id) / useProviders(). A remplacé mock-data.
+  provider-store.ts         Rôle prestataire : demandes ouvertes (list_open_requests, pas de
+                            temps réel -> rechargées au focus / tirer pour rafraîchir), prénoms
+                            des clients, sendQuote / startJob / completeJob.
+  db-mappers.ts             Conversion lignes Supabase -> types du domaine (frontière DB/app).
+                            Conversations/messages selon le rôle : senderId 'me' et compteur
+                            de non-lus (client_ ou provider_unread_count).
   photo-upload.ts           Upload des photos du wizard vers Storage (bucket privé
                             booking-photos) + URLs signées pour l'affichage. Décodage base64
                             inline (pas de dépendance ajoutée).
@@ -187,13 +211,9 @@ src/lib/
                             l'Edge Function provider-reply) — fire-and-forget, Realtime.
                             `initial` (bookingId) : chaque prestataire du service ouvre sa
                             conversation + devis ; `canned` (conversationId) : réponse type.
-  mock-data.ts              Catalogue de prestataires de démo (montréalais) — seul mock
-                            restant. Fiches affichées (conversations, offres, profil) ;
-                            le prestataire d'une réservation est fixé par accept_quote.
-                            Ses IDs doivent refléter les prestataires seedés dans schema.sql
-                            (FK bookings.provider_id). Le reste vit dans Supabase.
   format.ts                 createFormatters(locale) : formatage fr-CA / en-CA (prix CAD,
-                            dates). Consommé via le hook use-formats (langue active).
+                            dates), via le hook use-formats (langue active) ; formatAddress,
+                            formatSector (ville · secteur), parseAmountInput (montant saisi).
   booking-status.ts         Libellés/tons des statuts de réservation
   supabase.ts               Client Supabase (auth/DB/realtime) ; `isSupabaseConfigured`
                             reste false tant que .env est vide (app fonctionnelle sans).
@@ -212,11 +232,14 @@ src/constants/theme.ts      Design tokens (couleurs light/dark, spacing, radius,
 src/hooks/use-color-scheme.ts  Color scheme actif (variante .web.ts pour le rendu web)
 src/hooks/use-theme.ts      Accès au thème selon le color scheme
 src/hooks/use-formats.ts    Formatters (prix/dates) liés à la langue active (fr-CA / en-CA)
-src/hooks/use-auth-guard.ts Redirige login <-> app selon la session (inactif sans Supabase)
+src/hooks/use-auth-guard.ts Redirige selon la session ET le rôle : connexion, app client ou
+                            onglets prestataire ; sort chacun des routes de l'autre rôle
+                            (inactif sans Supabase)
+src/hooks/use-counterpart.ts Nom de « l'autre » dans une conversation selon le rôle
+                            (prestataire pour un client, prénom du client pour un prestataire)
 supabase/schema.sql         Schéma Postgres : tables + migrations + Realtime + bucket Storage
                             booking-photos + seed prestataires de démo (is_demo). Miroir de
-                            lib/types.ts. Les IDs prestataires doivent rester synchrones
-                            avec lib/mock-data.ts. Pas de policies (voir policies.sql).
+                            lib/types.ts. Pas de policies (voir policies.sql).
 supabase/rpc.sql            Fonctions/triggers (create_booking = demande ouverte sans
                             prestataire, seed_demo, trigger messages)
                             — à exécuter APRÈS schema.sql. seed_demo charge le scénario de
@@ -379,16 +402,20 @@ Ces règles sont non négociables :
 ## Données de démo
 
 L'état applicatif (réservations, conversations, messages) vit dans **Supabase** — le store
-n'est **pas** persisté en AsyncStorage. Le seul mock restant est le **catalogue de
-prestataires** (`lib/mock-data.ts`), pour afficher les fiches — il ne contient que les
-fiches de démo ; les fiches réelles seront lues depuis la base au lot 4. Ses IDs doivent
-refléter les prestataires seedés dans `supabase/schema.sql` (FK `bookings.provider_id`,
-`conversations.provider_id`).
+n'est **pas** persisté en AsyncStorage. Plus aucun mock côté app : les fiches
+prestataires (de démo `is_demo`, et réelles) sont lues depuis la table `providers`
+(`lib/providers-store.ts`) ; les six fiches de démo sont seedées par `schema.sql`.
 
 **Simulation** (Edge Function `provider-reply`) : seules les fiches `is_demo` répondent.
 À chaque nouvelle demande, les prestataires de démo du service répondent **sauf si un
 vrai prestataire** (fiche reliée à un compte) couvre ce service — c'est alors à lui de
 répondre. Et la simulation ne répond jamais dans la conversation d'un vrai prestataire.
+
+« Profil → Réinitialiser la démo » appelle la RPC **`seed_demo`** (côté serveur, dans
+`supabase/rpc.sql`) puis recharge depuis Supabase. C'est `seed_demo` qui contient le scénario
+de démo (réservations/conversations/messages), avec des dates relatives à aujourd'hui pour
+que la démo reste crédible : une plomberie ouverte avec **deux offres** (Marc 185 $,
+Amadou 170 $) et un jardinage terminé avec facture.
 
 ## Relier un prestataire réel (admin)
 
@@ -403,14 +430,9 @@ select admin_link_provider('p-prenom', 'courriel@exemple.ca');
 -- Délier : update providers set user_id = null where id = 'p-prenom';
 ```
 
-Un compte ne peut être relié qu'à une fiche, et jamais à une fiche de démo. Tant que
-l'interface prestataire (lot 4) n'existe pas, ce compte voit l'app client.
-
-« Profil → Réinitialiser la démo » appelle la RPC **`seed_demo`** (côté serveur, dans
-`supabase/rpc.sql`) puis recharge depuis Supabase. C'est `seed_demo` qui contient le scénario
-de démo (réservations/conversations/messages), avec des dates relatives à aujourd'hui pour
-que la démo reste crédible : une plomberie ouverte avec **deux offres** (Marc 185 $,
-Amadou 170 $) et un jardinage terminé avec facture.
+Un compte ne peut être relié qu'à une fiche, et jamais à une fiche de démo. À la
+connexion suivante (ou relance de l'app), il bascule sur l'**interface prestataire**
+(onglets Demandes / Mes travaux / Messages / Profil) ; il ne peut plus créer de demande.
 
 ## Notes
 

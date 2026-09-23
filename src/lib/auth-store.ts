@@ -12,6 +12,8 @@ import * as WebBrowser from 'expo-web-browser';
 import { create } from 'zustand';
 
 import { useProfileStore } from '@/lib/profile-store';
+import { useProviderStore } from '@/lib/provider-store';
+import { useProvidersStore } from '@/lib/providers-store';
 import { useAppStore } from '@/lib/store';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
@@ -124,6 +126,22 @@ export const useAuthStore = create<AuthState>(() => ({
 let initialized = false;
 
 /**
+ * Charge les données de la session. Le profil (donc le rôle) d'abord : le store
+ * applicatif en dépend pour savoir qui est « moi » dans les conversations.
+ */
+async function loadSessionData(): Promise<void> {
+  await useProfileStore.getState().loadProfile();
+  const tasks: Promise<void>[] = [
+    useAppStore.getState().loadAll(),
+    useProvidersStore.getState().loadProviders(),
+  ];
+  if (useProfileStore.getState().role === 'provider') {
+    tasks.push(useProviderStore.getState().loadProviderData());
+  }
+  await Promise.all(tasks);
+}
+
+/**
  * Démarre l'écoute de session (à appeler une fois au montage racine).
  * Idempotent : les appels suivants sont ignorés.
  */
@@ -143,11 +161,12 @@ export function initAuth(): void {
       status: session ? 'authenticated' : 'anonymous',
     });
     if (session) {
-      void useProfileStore.getState().loadProfile();
-      void useAppStore.getState().loadAll();
+      void loadSessionData();
     } else {
       useProfileStore.getState().clear();
       useAppStore.getState().clearAll();
+      useProvidersStore.getState().clear();
+      useProviderStore.getState().clear();
     }
   };
 

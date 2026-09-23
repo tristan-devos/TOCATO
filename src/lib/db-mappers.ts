@@ -2,14 +2,28 @@
  * Conversion lignes Supabase -> types du domaine (`@/lib/types`).
  * Les écrans ne manipulent que les types du domaine ; ces fonctions sont la
  * frontière unique entre le schéma DB et l'application.
+ *
+ * Les conversations et messages dépendent du rôle de l'utilisateur : « moi »
+ * (senderId 'me') et le compteur de non-lus ne sont pas les mêmes côté client
+ * et côté prestataire.
  */
 
 import type { Database } from '@/lib/database.types';
-import type { Booking, Conversation, Message } from '@/lib/types';
+import type {
+  Booking,
+  Conversation,
+  Message,
+  OpenRequest,
+  Provider,
+  Role,
+} from '@/lib/types';
 
-type BookingRow = Database['public']['Tables']['bookings']['Row'];
-type ConversationRow = Database['public']['Tables']['conversations']['Row'];
-type MessageRow = Database['public']['Tables']['messages']['Row'];
+type Tables = Database['public']['Tables'];
+type BookingRow = Tables['bookings']['Row'];
+type ConversationRow = Tables['conversations']['Row'];
+type MessageRow = Tables['messages']['Row'];
+type ProviderRow = Tables['providers']['Row'];
+type OpenRequestRow = Database['public']['Functions']['list_open_requests']['Returns'][number];
 
 export function rowToBooking(row: BookingRow): Booking {
   return {
@@ -29,33 +43,66 @@ export function rowToBooking(row: BookingRow): Booking {
   };
 }
 
-export function rowToConversation(row: ConversationRow): Conversation {
+export function rowToConversation(row: ConversationRow, role: Role): Conversation {
   return {
     id: row.id,
     providerId: row.provider_id,
     bookingId: row.booking_id,
-    // Côté client ; l'interface prestataire (lot 4) lira provider_unread_count.
-    unreadCount: row.client_unread_count,
+    unreadCount: role === 'provider' ? row.provider_unread_count : row.client_unread_count,
     lastMessageAt: row.last_message_at,
   };
 }
 
-/** Le `sender_kind` DB redevient le `senderId` du domaine ('me' / id presta / 'system'). */
-function toSenderId(row: MessageRow): string {
-  if (row.sender_kind === 'client') return 'me';
+/** Le `sender_kind` DB devient le `senderId` du domaine, vu depuis le rôle courant. */
+function toSenderId(row: MessageRow, role: Role): string {
   if (row.sender_kind === 'system') return 'system';
-  return row.provider_id ?? '';
+  if (row.sender_kind === 'client') return role === 'client' ? 'me' : 'client';
+  return role === 'provider' ? 'me' : (row.provider_id ?? '');
 }
 
-export function rowToMessage(row: MessageRow): Message {
+export function rowToMessage(row: MessageRow, role: Role): Message {
   return {
     id: row.id,
     conversationId: row.conversation_id,
-    senderId: toSenderId(row),
+    senderId: toSenderId(row, role),
     type: row.type,
     text: row.text,
     createdAt: row.created_at,
     quote: row.quote ?? undefined,
     document: row.document ?? undefined,
+  };
+}
+
+export function rowToProvider(row: ProviderRow): Provider {
+  return {
+    id: row.id,
+    name: row.name,
+    services: row.services,
+    rating: Number(row.rating),
+    reviewCount: row.review_count,
+    jobsCompleted: row.jobs_completed,
+    verified: row.verified,
+    responseTime: row.response_time,
+    hourlyRate: Number(row.hourly_rate),
+    bio: row.bio,
+    memberSince: row.member_since,
+  };
+}
+
+export function rowToOpenRequest(row: OpenRequestRow): OpenRequest {
+  return {
+    id: row.id,
+    serviceId: row.service_id,
+    createdAt: row.created_at,
+    scheduledDate: row.scheduled_date ?? undefined,
+    timeSlot: row.time_slot ?? undefined,
+    city: row.city ?? '',
+    postalSector: row.postal_sector,
+    answers: row.answers,
+    description: row.description,
+    photos: row.photos,
+    estimate: { min: Number(row.estimate_min), max: Number(row.estimate_max) },
+    myConversationId: row.my_conversation_id ?? undefined,
+    myQuoteStatus: row.my_quote_status ?? undefined,
   };
 }

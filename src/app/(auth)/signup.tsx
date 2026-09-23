@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { AuthTextField } from '@/components/auth/auth-text-field';
+import { TextField } from '@/components/ui/text-field';
 import { SocialAuth } from '@/components/auth/social-auth';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
@@ -56,7 +56,7 @@ export default function SignupScreen() {
       </View>
 
       <View style={styles.form}>
-        <AuthTextField
+        <TextField
           label={t('auth.name')}
           value={name}
           onChangeText={setName}
@@ -64,7 +64,7 @@ export default function SignupScreen() {
           autoCapitalize="words"
           autoComplete="name"
         />
-        <AuthTextField
+        <TextField
           label={t('auth.email')}
           value={email}
           onChangeText={setEmail}
@@ -74,7 +74,7 @@ export default function SignupScreen() {
           keyboardType="email-address"
           inputMode="email"
         />
-        <AuthTextField
+        <TextField
           label={t('auth.password')}
           value={password}
           onChangeText={setPassword}

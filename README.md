@@ -19,9 +19,8 @@ npx expo start
 - Web : appuyer sur `w` dans le terminal.
 
 Les données (comptes, réservations, conversations, photos) vivent dans Supabase. Les
-prestataires sont encore des **prestataires de démo** et leurs réponses dans le chat sont
-**simulées côté serveur** (Edge Function `provider-reply`) ; l'interface prestataire est
-la prochaine étape. « Profil → Réinitialiser la démo » recharge le scénario de démo.
+prestataires de démo répondent via une simulation côté serveur (Edge Function
+`provider-reply`), sauf dans les services couverts par un vrai prestataire. « Profil → Réinitialiser la démo » recharge le scénario de démo.
 
 ## Fonctionnalités
 
@@ -32,6 +31,11 @@ la prochaine étape. « Profil → Réinitialiser la démo » recharge le scéna
   date et estimation de prix
 - **Mes réservations** — suivi en cours / historique, statut détaillé, annulation
 - **Profil** — adresses, paiement, aide
+
+**Côté prestataire** (compte relié à une fiche par un admin, voir
+[AGENTS.md](./AGENTS.md) > *Relier un prestataire réel*) : **Demandes** ouvertes de ses
+services (ville et secteur seulement), devis, **Mes travaux** (adresse exacte une fois le
+devis accepté, commencer / terminer l'intervention), **Messages**, **Profil**.
 
 ## Documentation technique
 

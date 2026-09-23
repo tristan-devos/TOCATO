@@ -76,7 +76,7 @@ export type QuoteStatus = 'pending' | 'accepted' | 'declined';
 export interface Message {
   id: string;
   conversationId: string;
-  /** 'me' for the client, otherwise the provider id */
+  /** 'me' for the viewer's own messages, 'system', otherwise the other party ('client' or a provider id) */
   senderId: string;
   type: MessageType;
   text: string;
@@ -105,4 +105,29 @@ export interface User {
   email: string;
   phone: string;
   addresses: Address[];
+}
+
+/** Who is using the app: a client, or a provider linked to a `providers` row. */
+export type Role = 'client' | 'provider';
+
+/**
+ * An open request as a provider sees it (RPC list_open_requests): never the exact
+ * address nor the client's name — only the city and postal sector (e.g. H2J).
+ */
+export interface OpenRequest {
+  id: string;
+  serviceId: ServiceId;
+  createdAt: string; // ISO
+  scheduledDate?: string;
+  timeSlot?: TimeSlotId;
+  city: string;
+  /** First 3 characters of the postal code (e.g. H2J). */
+  postalSector: string;
+  answers: BookingAnswer[];
+  description: string;
+  photos: string[];
+  estimate: PriceRange;
+  /** The provider's own conversation on this request, once they quoted. */
+  myConversationId?: string;
+  myQuoteStatus?: QuoteStatus;
 }

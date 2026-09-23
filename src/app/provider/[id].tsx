@@ -12,7 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
-import { getProvider } from '@/lib/mock-data';
+import { useProvider } from '@/lib/providers-store';
 
 /** Profil public d'un prestataire, ouvert depuis un chat ou une réservation. */
 export default function ProviderProfileScreen() {
@@ -22,7 +22,7 @@ export default function ProviderProfileScreen() {
   const { formatPrice } = useFormats();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const provider = id ? getProvider(id) : undefined;
+  const provider = useProvider(id);
   if (!provider) {
     return <Redirect href="/(tabs)" />;
   }
