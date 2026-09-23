@@ -223,6 +223,6 @@ prestataire (relié à la main), puis un vrai prestataire recruté.
    encore sur iOS avant de s'engager ; sinon il faudra un build via `eas.json`).
 2. **Durée de vie d'une demande sans offre.** Expire-t-elle (ex. 72 h) ?
 3. **Nombre maximum d'offres par demande** (ex. 5) pour ne pas noyer le client ?
-4. **Messages système en français seulement** (écrits en SQL). Dette existante ;
-   à traiter en stockant une clé i18n plutôt qu'un texte ?
+4. ✅ **Messages système en français seulement** — réglé : clé `system_key` traduite
+   par l'app selon la langue et le rôle du lecteur (voir `AGENTS.md` > i18n).
 5. **Un prestataire peut-il aussi être client** avec le même compte ? v1 : non.

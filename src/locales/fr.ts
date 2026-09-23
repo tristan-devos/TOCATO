@@ -317,6 +317,32 @@ const fr = {
     editNote: 'Pour modifier votre fiche, contactez l’équipe TOCATO.',
     settingsSection: 'PARAMÈTRES',
   },
+  systemMessages: {
+    quoteAccepted: {
+      client: 'Devis accepté — votre réservation est confirmée.',
+      provider: 'Le client a accepté votre devis — la mission est confirmée.',
+    },
+    otherProviderChosen: {
+      client: 'Vous avez confirmé un autre prestataire pour cette demande.',
+      provider: 'Le client a choisi un autre prestataire pour cette demande.',
+    },
+    quoteDeclined: {
+      client: 'Vous avez refusé le devis.',
+      provider: 'Le client a refusé votre devis.',
+    },
+    bookingCancelled: {
+      client: 'Vous avez annulé cette réservation.',
+      provider: 'Le client a annulé cette demande.',
+    },
+    jobStarted: {
+      client: 'Le prestataire a commencé l’intervention.',
+      provider: 'Vous avez commencé l’intervention.',
+    },
+    jobCompleted: {
+      client: 'Intervention terminée.',
+      provider: 'Intervention terminée.',
+    },
+  },
   services: {
     plumber: {
       name: 'Plombier',

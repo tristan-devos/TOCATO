@@ -18,6 +18,7 @@ import type {
   PriceRange,
   QuoteStatus,
   ServiceId,
+  SystemMessageKey,
   TimeSlotId,
 } from '@/lib/types';
 
@@ -163,6 +164,7 @@ export interface Database {
           created_at: string;
           quote: Quote | null;
           document: Document | null;
+          system_key: SystemMessageKey | null;
         };
         Insert: {
           id?: string;
@@ -174,6 +176,7 @@ export interface Database {
           created_at?: string;
           quote?: Quote | null;
           document?: Document | null;
+          system_key?: SystemMessageKey | null;
         };
         Update: Partial<Database['public']['Tables']['messages']['Insert']>;
         Relationships: [];

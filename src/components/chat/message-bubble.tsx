@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
+import { useSystemMessageText } from '@/hooks/use-message-text';
 import type { Message } from '@/lib/types';
 
 interface MessageBubbleProps {
@@ -20,11 +21,14 @@ export function MessageBubble({ message, onQuoteResponse }: MessageBubbleProps) 
   const { t } = useTranslation();
   const { formatPrice, formatTime } = useFormats();
   const mine = message.senderId === 'me';
+  const systemText = useSystemMessageText();
 
   if (message.type === 'system') {
     return (
       <View style={styles.systemRow}>
-        <Text style={[styles.systemText, { color: colors.textSecondary }]}>{message.text}</Text>
+        <Text style={[styles.systemText, { color: colors.textSecondary }]}>
+          {systemText(message)}
+        </Text>
       </View>
     );
   }

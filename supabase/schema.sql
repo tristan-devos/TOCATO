@@ -165,9 +165,28 @@ create table if not exists public.messages (
   text            text not null default '',
   created_at      timestamptz not null default now(),
   quote           jsonb,
-  document        jsonb
+  document        jsonb,
+  -- Messages système : clé traduite par l'app selon la langue ET le rôle de celui
+  -- qui lit (« Vous avez refusé le devis » / « Le client a refusé votre devis »).
+  -- `text` garde la version française côté client (anciennes versions de l'app).
+  system_key      text
 );
 create index if not exists messages_conversation_id_idx on public.messages (conversation_id);
+alter table public.messages add column if not exists system_key text;
+alter table public.messages drop constraint if exists messages_system_key_valid;
+alter table public.messages add constraint messages_system_key_valid check (
+  system_key in ('quoteAccepted', 'otherProviderChosen', 'quoteDeclined', 'bookingCancelled', 'jobStarted', 'jobCompleted')
+);
+-- Migration : clé retrouvée d'après le texte des messages système déjà en base.
+update public.messages set system_key = case text
+    when 'Devis accepté — votre réservation est confirmée.' then 'quoteAccepted'
+    when 'Vous avez confirmé un autre prestataire pour cette demande.' then 'otherProviderChosen'
+    when 'Vous avez refusé le devis.' then 'quoteDeclined'
+    when 'Vous avez annulé cette réservation.' then 'bookingCancelled'
+    when 'Le prestataire a commencé l''intervention.' then 'jobStarted'
+    when 'Intervention terminée.' then 'jobCompleted'
+  end
+where sender_kind = 'system' and system_key is null;
 
 -- =============================================================================
 -- Realtime : le client s'abonne aux changements (messages, bookings,

@@ -107,7 +107,9 @@ select set_config('request.jwt.claim.sub', :'paul', false) \g /dev/null
 select complete_job(:'bk');
 select complete_job(:'bk');
 select status from bookings where id = :'bk';
-select text from messages where conversation_id = :'conv' and sender_kind = 'system' order by created_at;
+select system_key, text from messages where conversation_id = :'conv' and sender_kind = 'system' order by created_at;
+\echo '--- Devis de Paul : sans texte (la carte s''affiche dans la langue de chacun)'
+select text = '' as sans_texte from messages where conversation_id = :'conv' and type = 'quote';
 \echo '--- Paul ne voit que SES conversations (1), aucune de Marc/Amadou/Sophie'
 select count(*) as conversations_paul from conversations;
 
