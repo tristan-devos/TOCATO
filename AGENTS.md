@@ -44,7 +44,11 @@ plombier, déménageur, jardinier.
   Realtime). Deux
   dépendances ajoutées, justifiées : `@supabase/supabase-js` (client officiel) et
   `react-native-url-polyfill` (fournit `URL`/`URLSearchParams` que Hermes n'expose pas
-  complètement, requis par supabase-js sous React Native). État de la migration :
+  complètement, requis par supabase-js sous React Native). **`expo-crypto`** ajouté,
+  justifié : Hermes n'expose pas WebCrypto, donc supabase-js dégradait le PKCE
+  (`code_verifier` via `Math.random()`, méthode `plain`). `src/lib/crypto-polyfill.ts`
+  fournit `crypto.getRandomValues` + `crypto.subtle.digest` sur natif (compatible Expo
+  Go), importé en tête de `src/lib/supabase.ts`. État de la migration :
   **migration store terminée** : auth, profil/adresses, et bookings/conversations/messages
   passent tous par Supabase (lectures + Realtime + écritures). La simulation des réponses
   prestataire vit désormais côté serveur (Edge Function `provider-reply` + service_role +
