@@ -96,7 +96,7 @@ export const useProviderStore = create<ProviderState>((set) => ({
   clear: () => set({ openRequests: [], clientNames: {} }),
 }));
 
-// ——— Sélecteurs ———
+// --- Sélecteurs ---
 
 export function useOpenRequests(): OpenRequest[] {
   return useProviderStore((s) => s.openRequests);

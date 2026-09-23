@@ -18,9 +18,9 @@ const SIGNED_URL_TTL = 60 * 60; // 1 h, suffisant pour la consultation d'un écr
 
 /** Image choisie dans le wizard, pas encore téléversée. */
 export interface LocalPhoto {
-  /** URI locale (file://) — pour l'aperçu dans le wizard. */
+  /** URI locale (file://) : pour l'aperçu dans le wizard. */
   uri: string;
-  /** Contenu encodé en base64 — pour l'upload vers Storage. */
+  /** Contenu encodé en base64 : pour l'upload vers Storage. */
   base64: string;
 }
 
@@ -55,7 +55,7 @@ function base64ToBytes(base64: string): Uint8Array {
 /**
  * Téléverse les photos d'une réservation et renvoie leurs chemins Storage.
  * Best-effort : une photo qui échoue est simplement omise (la réservation a déjà
- * été créée — on ne bloque pas le flux pour un upload partiel).
+ * été créée : on ne bloque pas le flux pour un upload partiel).
  */
 export async function uploadBookingPhotos(
   userId: string,

@@ -1,5 +1,5 @@
 -- =============================================================================
--- TOCATO — règles d'accès : RLS + Storage (à exécuter EN DERNIER, après providers.sql)
+-- TOCATO : règles d'accès : RLS + Storage (à exécuter EN DERNIER, après providers.sql)
 -- =============================================================================
 -- Lecture : policies `select` ci-dessous, côté client (owner) et côté prestataire
 -- (current_provider_id(), providers.sql). Écriture : aucune policy update ; seuls

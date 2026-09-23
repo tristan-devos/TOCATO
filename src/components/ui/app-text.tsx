@@ -7,7 +7,7 @@ type Variant = 'title' | 'heading' | 'subheading' | 'body' | 'secondary' | 'smal
 
 interface AppTextProps extends TextProps {
   variant?: Variant;
-  /** Couleur explicite — sinon dérivée du variant */
+  /** Couleur explicite : sinon dérivée du variant */
   color?: string;
 }
 

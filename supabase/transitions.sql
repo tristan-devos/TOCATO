@@ -1,5 +1,5 @@
 -- =============================================================================
--- TOCATO — transitions d'état (à exécuter APRÈS schema.sql puis rpc.sql)
+-- TOCATO : transitions d'état (à exécuter APRÈS schema.sql puis rpc.sql)
 -- =============================================================================
 -- Règle : l'app ne fait AUCUN update direct sur bookings / conversations /
 -- messages (les policies d'update sont supprimées dans schema.sql). Toute
@@ -7,12 +7,12 @@
 -- (auth.uid()) et SI la transition est permise, puis l'applique atomiquement.
 --
 -- `security definer` : la fonction s'exécute avec les droits de son
--- propriétaire (RLS contournée) — d'où les vérifications explicites sur
+-- propriétaire (RLS contournée) : d'où les vérifications explicites sur
 -- auth.uid() (lu dans le JWT, indépendant du rôle d'exécution).
 -- Idempotent : `create or replace`, ré-exécutable. Voir docs/interface-prestataire.md §6.
 -- =============================================================================
 
--- ——— accept_quote : le client accepte un devis ———————————————————————————
+-- --- accept_quote : le client accepte un devis ---------------------------
 -- Appel d'offres : devis -> accepted ; réservation -> confirmed + agreed_price +
 -- provider_id (le prestataire de ce devis) ; devis concurrents en attente ->
 -- declined ; message système dans la conversation retenue ET dans celles des
@@ -65,7 +65,7 @@ begin
 
   insert into public.messages (conversation_id, sender_kind, type, text, system_key)
   values (v_conversation, 'system', 'system',
-          'Devis accepté — votre réservation est confirmée.', 'quoteAccepted');
+          'Devis accepté. Votre réservation est confirmée.', 'quoteAccepted');
 
   insert into public.messages (conversation_id, sender_kind, type, text, system_key)
   select c.id, 'system', 'system',
@@ -75,7 +75,7 @@ begin
 end;
 $$;
 
--- ——— decline_quote : le client refuse un devis —————————————————————————————
+-- --- decline_quote : le client refuse un devis -----------------------------
 create or replace function public.decline_quote(p_message_id uuid)
 returns void
 language plpgsql
@@ -105,7 +105,7 @@ begin
 end;
 $$;
 
--- ——— cancel_booking : le client annule une réservation active ————————————
+-- --- cancel_booking : le client annule une réservation active ------------
 -- Possible tant que l'intervention n'a pas commencé (pending ou confirmed) :
 -- une fois in_progress (start_job, providers.sql), le prestataire est sur place. Les devis encore en attente passent à declined pour qu'on
 -- ne puisse plus les accepter. Message système dans chaque conversation.
@@ -140,7 +140,7 @@ begin
 end;
 $$;
 
--- ——— set_booking_photos : rattache les photos téléversées à la réservation —
+-- --- set_booking_photos : rattache les photos téléversées à la réservation ---
 -- Les chemins doivent être dans le dossier Storage du client et de cette
 -- réservation ({user}/{booking}/…), comme l'impose la policy du bucket.
 create or replace function public.set_booking_photos(p_booking_id uuid, p_photos text[])
@@ -165,7 +165,7 @@ begin
 end;
 $$;
 
--- ——— mark_conversation_read : remet à zéro les non-lus de l'appelant ————————
+-- --- mark_conversation_read : remet à zéro les non-lus de l'appelant --------
 -- Client de la conversation -> client_unread_count ; prestataire -> provider_unread_count.
 create or replace function public.mark_conversation_read(p_conversation_id uuid)
 returns void
@@ -184,7 +184,7 @@ begin
 end;
 $$;
 
--- ——— Droits d'exécution : utilisateurs connectés uniquement ———————————————
+-- --- Droits d'exécution : utilisateurs connectés uniquement ---------------
 revoke execute on function public.accept_quote(uuid) from public, anon;
 revoke execute on function public.decline_quote(uuid) from public, anon;
 revoke execute on function public.cancel_booking(uuid) from public, anon;

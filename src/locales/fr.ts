@@ -90,9 +90,9 @@ const fr = {
     scheduleUrgentNote: 'Les demandes urgentes peuvent entraîner une majoration.',
     reviewTitle: 'Récapitulatif',
     reviewSubtitle:
-      'Vérifiez votre demande — elle sera envoyée aux prestataires disponibles.',
+      'Vérifiez votre demande. Elle sera envoyée aux prestataires disponibles.',
     reviewProvidersNote:
-      'Votre demande sera envoyée aux prestataires disponibles en {{service}} — ils vous contacteront dans Messages avec leur offre.',
+      'Votre demande sera envoyée aux prestataires disponibles en {{service}}. Ils vous contacteront dans Messages avec leur offre.',
     estimate: 'Estimation',
     estimateNote: 'Le prix final sera confirmé par devis dans le chat.',
   },
@@ -215,10 +215,10 @@ const fr = {
     contactButton: 'Écrire au support',
     faq0q: 'Comment se passe une réservation ?',
     faq0a:
-      'Vous décrivez votre besoin en répondant à quelques questions, puis un prestataire vérifié vous envoie un devis dans le chat. Vous acceptez le devis quand il vous convient — la réservation est alors confirmée.',
+      'Vous décrivez votre besoin en répondant à quelques questions, puis un prestataire vérifié vous envoie un devis dans le chat. Vous acceptez le devis quand il vous convient, et la réservation est alors confirmée.',
     faq1q: 'Quand est-ce que je paie ?',
     faq1a:
-      'Toujours après avoir accepté le devis, jamais avant. Le prix convenu dans le chat est le prix final — pas de frais cachés.',
+      'Toujours après avoir accepté le devis, jamais avant. Le prix convenu dans le chat est le prix final, sans frais cachés.',
     faq2q: 'Puis-je annuler une réservation ?',
     faq2a:
       'Oui, depuis la page de la réservation, tant que la prestation n’a pas commencé. Le prestataire est automatiquement prévenu dans le chat.',
@@ -313,8 +313,8 @@ const fr = {
   },
   systemMessages: {
     quoteAccepted: {
-      client: 'Devis accepté — votre réservation est confirmée.',
-      provider: 'Le client a accepté votre devis — la mission est confirmée.',
+      client: 'Devis accepté. Votre réservation est confirmée.',
+      provider: 'Le client a accepté votre devis. La mission est confirmée.',
     },
     otherProviderChosen: {
       client: 'Vous avez confirmé un autre prestataire pour cette demande.',
@@ -379,7 +379,7 @@ const fr = {
       questions: {
         housingSize: {
           title: 'Quelle taille de logement ?',
-          subtitle: 'Format québécois — comptez les pièces et demies.',
+          subtitle: 'Format québécois : comptez les pièces et demies.',
           options: {
             studio: { label: 'Studio / 1½ – 2½' },
             threeToFour: { label: '3½ – 4½' },

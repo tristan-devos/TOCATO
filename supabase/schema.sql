@@ -1,5 +1,5 @@
 -- =============================================================================
--- TOCATO — schéma Postgres (Supabase)
+-- TOCATO : schéma Postgres (Supabase)
 -- =============================================================================
 -- Miroir de src/lib/types.ts (source de vérité du domaine) et de
 -- src/lib/database.types.ts. Appliqué par supabase/apply.sh (ou le SQL editor).
@@ -12,7 +12,7 @@
 -- sauf l'envoi d'un message texte (voir policies.sql).
 -- =============================================================================
 
--- ——— profiles : 1:1 avec auth.users ———————————————————————————————————————
+-- --- profiles : 1:1 avec auth.users ---------------------------------------
 create table if not exists public.profiles (
   id         uuid primary key references auth.users (id) on delete cascade,
   name       text not null,
@@ -52,7 +52,7 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- ——— addresses ———————————————————————————————————————————————————————————
+-- --- addresses -----------------------------------------------------------
 create table if not exists public.addresses (
   id          uuid primary key default gen_random_uuid(),
   user_id     uuid not null references public.profiles (id) on delete cascade,
@@ -64,7 +64,7 @@ create table if not exists public.addresses (
 );
 create index if not exists addresses_user_id_idx on public.addresses (user_id);
 
--- ——— providers : catalogue, lecture publique ——————————————————————————————
+-- --- providers : catalogue, lecture publique ------------------------------
 create table if not exists public.providers (
   id             text primary key,
   name           text not null,
@@ -86,7 +86,7 @@ create table if not exists public.providers (
 alter table public.providers
   add column if not exists user_id uuid unique references public.profiles (id) on delete set null;
 
--- ——— bookings ————————————————————————————————————————————————————————————
+-- --- bookings ------------------------------------------------------------
 -- Appel d'offres : provider_id est null tant qu'aucun devis n'est accepté. Les
 -- prestataires intéressés ouvrent chacun une conversation (conversations.booking_id,
 -- N par demande) ; accept_quote fixe le prestataire.
@@ -114,7 +114,7 @@ create index if not exists bookings_user_id_idx on public.bookings (user_id);
 alter table public.bookings add column if not exists photos text[] not null default '{}';
 alter table public.bookings drop column if exists photo_count;
 
--- ——— conversations ———————————————————————————————————————————————————————
+-- --- conversations -------------------------------------------------------
 create table if not exists public.conversations (
   id              uuid primary key default gen_random_uuid(),
   user_id         uuid not null references public.profiles (id) on delete cascade,
@@ -151,7 +151,7 @@ update public.bookings set provider_id = null where status = 'pending' and provi
 create unique index if not exists conversations_booking_provider_key
   on public.conversations (booking_id, provider_id);
 
--- ——— messages ————————————————————————————————————————————————————————————
+-- --- messages ------------------------------------------------------------
 -- sender_kind remplace le `senderId` magique ('me') du domaine.
 create table if not exists public.messages (
   id              uuid primary key default gen_random_uuid(),
@@ -176,7 +176,7 @@ alter table public.messages add constraint messages_system_key_valid check (
 );
 -- Migration : clé retrouvée d'après le texte des messages système déjà en base.
 update public.messages set system_key = case text
-    when 'Devis accepté — votre réservation est confirmée.' then 'quoteAccepted'
+    when 'Devis accepté — votre réservation est confirmée.' then 'quoteAccepted'  -- texte historique exact, ne pas modifier
     when 'Vous avez confirmé un autre prestataire pour cette demande.' then 'otherProviderChosen'
     when 'Vous avez refusé le devis.' then 'quoteDeclined'
     when 'Vous avez annulé cette réservation.' then 'bookingCancelled'
@@ -187,7 +187,7 @@ where sender_kind = 'system' and system_key is null;
 
 -- =============================================================================
 -- Realtime : le client s'abonne aux changements (messages, bookings,
--- conversations). Idempotent — n'ajoute la table que si absente de la publication.
+-- conversations). Idempotent : n'ajoute la table que si absente de la publication.
 -- =============================================================================
 do $$
 declare

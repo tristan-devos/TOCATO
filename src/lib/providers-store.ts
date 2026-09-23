@@ -32,7 +32,7 @@ export const useProvidersStore = create<ProvidersState>((set) => ({
   clear: () => set({ providers: [] }),
 }));
 
-// ——— Sélecteurs (renvoient des objets existants, jamais un tableau neuf) ———
+// --- Sélecteurs (renvoient des objets existants, jamais un tableau neuf) ---
 
 export function useProvider(providerId: string | undefined): Provider | undefined {
   return useProvidersStore((s) =>

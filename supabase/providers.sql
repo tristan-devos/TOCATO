@@ -1,5 +1,5 @@
 -- =============================================================================
--- TOCATO — comptes prestataires (à exécuter APRÈS transitions.sql, AVANT policies.sql)
+-- TOCATO : comptes prestataires (à exécuter APRÈS transitions.sql, AVANT policies.sql)
 -- =============================================================================
 -- Être prestataire = avoir une fiche `providers` dont user_id = auth.uid(). Le lien
 -- n'est posé que par un admin (admin_link_provider, SQL editor) : aucune colonne
@@ -13,7 +13,7 @@
 -- Idempotent : `create or replace`, ré-exécutable.
 -- =============================================================================
 
--- ——— Aides (utilisées par les policies et les RPC) ————————————————————————
+-- --- Aides (utilisées par les policies et les RPC) ------------------------
 -- Fiche prestataire du compte connecté, ou null.
 create or replace function public.current_provider_id()
 returns text
@@ -49,7 +49,7 @@ as $$
   );
 $$;
 
--- ——— list_open_requests : demandes ouvertes dans ses services ————————————
+-- --- list_open_requests : demandes ouvertes dans ses services ------------
 -- Sans adresse exacte ni nom du client. my_conversation_id / my_quote_status :
 -- sa propre offre sur la demande, s'il en a fait une.
 create or replace function public.list_open_requests()
@@ -92,7 +92,7 @@ as $$
   order by b.created_at desc;
 $$;
 
--- ——— send_quote : le prestataire envoie un devis sur une demande ouverte ——
+-- --- send_quote : le prestataire envoie un devis sur une demande ouverte --
 -- Ouvre sa conversation si besoin (une par demande et par prestataire). Refuse
 -- s'il a déjà un devis en attente sur cette demande. Renvoie la conversation.
 create or replace function public.send_quote(
@@ -149,7 +149,7 @@ begin
 end;
 $$;
 
--- ——— start_job / complete_job : le prestataire retenu fait avancer le travail —
+-- --- start_job / complete_job : le prestataire retenu fait avancer le travail ---
 create or replace function public.start_job(p_booking_id uuid)
 returns void
 language plpgsql
@@ -188,7 +188,7 @@ begin
 end;
 $$;
 
--- ——— provider_conversation_clients : prénom du client de ses conversations —
+-- --- provider_conversation_clients : prénom du client de ses conversations ---
 -- profiles reste owner-only ; le prestataire n'obtient que le prénom.
 create or replace function public.provider_conversation_clients()
 returns table (conversation_id uuid, client_first_name text)
@@ -203,7 +203,7 @@ as $$
   where c.provider_id = public.current_provider_id();
 $$;
 
--- ——— admin_link_provider : relier un compte à une fiche (ADMIN SEULEMENT) ——
+-- --- admin_link_provider : relier un compte à une fiche (ADMIN SEULEMENT) --
 -- À lancer dans le SQL editor (rôle postgres). Non exécutable depuis l'app.
 -- Exemple : select admin_link_provider('p-paul', 'paul@exemple.ca');
 -- La fiche doit exister (insert into providers ... ; voir AGENTS.md). Un compte ne
@@ -225,7 +225,7 @@ begin
 end;
 $$;
 
--- ——— Droits d'exécution ——————————————————————————————————————————————————
+-- --- Droits d'exécution --------------------------------------------------
 revoke execute on function public.current_provider_id() from public, anon;
 revoke execute on function public.provider_can_see_booking(text) from public, anon;
 revoke execute on function public.list_open_requests() from public, anon;

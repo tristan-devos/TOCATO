@@ -6,7 +6,7 @@ import { Radius, Spacing } from '@/constants/theme';
 import { getBookingPhotoUrls } from '@/lib/photo-upload';
 
 interface BookingPhotosProps {
-  /** Chemins Storage des photos (bucket privé) — résolus en URLs signées. */
+  /** Chemins Storage des photos (bucket privé) : résolus en URLs signées. */
   photos: string[];
 }
 

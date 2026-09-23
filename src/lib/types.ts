@@ -50,19 +50,19 @@ export interface Booking {
   serviceId: ServiceId;
   status: BookingStatus;
   createdAt: string; // ISO
-  /** Requested date (ISO date-only) — absent when "as soon as possible" */
+  /** Requested date (ISO date-only): absent when "as soon as possible" */
   scheduledDate?: string;
   timeSlot?: TimeSlotId;
   address: Address;
   answers: BookingAnswer[];
   description: string;
-  /** Storage paths of attached photos (bucket booking-photos) — viewed via signed URLs */
+  /** Storage paths of attached photos (bucket booking-photos): viewed via signed URLs */
   photos: string[];
   estimate: PriceRange;
   /** Final price when a quote has been accepted */
   agreedPrice?: number;
   /**
-   * Provider confirmed for the job — set when the client accepts a quote.
+   * Provider confirmed for the job: set when the client accepts a quote.
    * While the request is open, interested providers each open a conversation
    * (see Conversation.bookingId); there is no assigned provider yet.
    */
@@ -126,7 +126,7 @@ export type Role = 'client' | 'provider';
 
 /**
  * An open request as a provider sees it (RPC list_open_requests): never the exact
- * address nor the client's name — only the city and postal sector (e.g. H2J).
+ * address nor the client's name: only the city and postal sector (e.g. H2J).
  */
 export interface OpenRequest {
   id: string;

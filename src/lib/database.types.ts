@@ -196,7 +196,7 @@ export interface Database {
         };
         Returns: string;
       };
-      // Transitions d'état (supabase/transitions.sql) — lèvent une exception si
+      // Transitions d'état (supabase/transitions.sql) : lèvent une exception si
       // l'appelant n'a pas le droit ou si la transition n'est pas permise.
       accept_quote: {
         Args: { p_message_id: string };
@@ -218,7 +218,7 @@ export interface Database {
         Args: { p_conversation_id: string };
         Returns: undefined;
       };
-      // Côté prestataire (supabase/providers.sql) — consommées par l'interface
+      // Côté prestataire (supabase/providers.sql) : consommées par l'interface
       // prestataire (lot 4).
       current_provider_id: {
         Args: Record<string, never>;

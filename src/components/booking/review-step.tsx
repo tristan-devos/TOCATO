@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/card';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
+import { formatAddress } from '@/lib/format';
 import { estimatePrice, TIME_SLOTS, type ServiceDefinition } from '@/lib/services';
 import type { Address, BookingAnswer, TimeSlotId } from '@/lib/types';
 
@@ -48,11 +49,11 @@ export function ReviewStep({
   const estimate = estimatePrice(service.id);
   const slot = TIME_SLOTS.find((s) => s.id === timeSlot);
 
-  const scheduleLabel = asap
-    ? t('common.asap')
-    : scheduledDate
-      ? `${formatDateLong(scheduledDate)}${slot ? ` · ${t(`timeSlots.${slot.id}`).toLowerCase()} (${t(`timeSlots.${slot.id}Hours`)})` : ''}`
-      : '—';
+  // Pas de date = « dès que possible » (voir Booking.scheduledDate).
+  const scheduleLabel =
+    asap || !scheduledDate
+      ? t('common.asap')
+      : `${formatDateLong(scheduledDate)}${slot ? ` · ${t(`timeSlots.${slot.id}`).toLowerCase()} (${t(`timeSlots.${slot.id}Hours`)})` : ''}`;
 
   return (
     <View style={styles.base}>
@@ -92,7 +93,7 @@ export function ReviewStep({
         ) : null}
         <ReviewRow icon={<MapPin size={16} color={colors.textSecondary} />}>
           <AppText variant="secondary">
-            {address.label} — {address.street}, {address.city} {address.postalCode}
+            {formatAddress(address)}
           </AppText>
         </ReviewRow>
         <ReviewRow icon={<Calendar size={16} color={colors.textSecondary} />}>

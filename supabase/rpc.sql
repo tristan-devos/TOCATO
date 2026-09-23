@@ -1,8 +1,8 @@
 -- =============================================================================
--- TOCATO — fonctions & triggers (à exécuter APRÈS schema.sql, idempotent)
+-- TOCATO : fonctions & triggers (à exécuter APRÈS schema.sql, idempotent)
 -- =============================================================================
 
--- ——— Trigger : tenir conversations à jour à chaque message ————————————————
+-- --- Trigger : tenir conversations à jour à chaque message ----------------
 -- Met à jour last_message_at et incrémente le compteur de non-lus du
 -- DESTINATAIRE : message prestataire -> client_unread_count, message client ->
 -- provider_unread_count (les messages système ne comptent pas).
@@ -31,7 +31,7 @@ create trigger on_message_created
   after insert on public.messages
   for each row execute function public.handle_new_message();
 
--- ——— create_booking : crée une demande ouverte (appel d'offres) ——————————————
+-- --- create_booking : crée une demande ouverte (appel d'offres) --------------
 -- Pas de prestataire à la création : les prestataires intéressés ouvrent chacun
 -- leur conversation avec un devis (send_quote, providers.sql).
 -- security definer : le client n'a pas de policy d'insert sur bookings. La
@@ -84,5 +84,5 @@ grant execute on function public.create_booking(
   text, date, text, jsonb, jsonb, text, numeric, numeric
 ) to authenticated;
 
--- ——— seed_demo : supprimé (lot 5, fin de la simulation) ——————————————————
+-- --- seed_demo : supprimé (lot 5, fin de la simulation) ------------------
 drop function if exists public.seed_demo();

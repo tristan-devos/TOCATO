@@ -5,8 +5,8 @@ import { useAuthStatus } from '@/lib/auth-store';
 import { useRole } from '@/lib/profile-store';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
-// Premier segment des routes réservées à chaque rôle (les autres — chat,
-// profil public d'un prestataire — sont partagées).
+// Premier segment des routes réservées à chaque rôle (les autres, chat et
+// profil public d'un prestataire, sont partagées).
 const CLIENT_ONLY = new Set(['(tabs)', 'booking', 'reservation', 'profile']);
 const PROVIDER_ONLY = new Set(['(provider)', 'request', 'job']);
 

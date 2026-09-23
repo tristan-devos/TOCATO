@@ -79,7 +79,7 @@ export const SERVICES: Record<ServiceId, ServiceDefinition> = {
       {
         id: 'housingSize',
         title: 'Quelle taille de logement ?',
-        subtitle: 'Format québécois — comptez les pièces et demies.',
+        subtitle: 'Format québécois : comptez les pièces et demies.',
         type: 'single',
         options: [
           { id: 'studio', label: 'Studio / 1½ – 2½' },

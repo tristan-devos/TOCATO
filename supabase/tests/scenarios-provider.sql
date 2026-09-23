@@ -8,7 +8,7 @@
 \set paul  '33333333-3333-3333-3333-333333333333'
 \set gina  '44444444-4444-4444-4444-444444444444'
 
--- ——— Mise en place (rôle postgres = admin, comme dans le SQL editor) ———
+-- --- Mise en place (rôle postgres = admin, comme dans le SQL editor) ---
 reset role;
 insert into auth.users (id, email, raw_user_meta_data) values
  (:'paul', 'paul@test.ca', '{"name":"Paul Plombier"}'),
@@ -115,7 +115,7 @@ select text = '' as sans_texte from messages where conversation_id = :'conv' and
 \echo '--- Paul ne voit que SES conversations (1), aucune de Marc/Amadou/Sophie'
 select count(*) as conversations_paul from conversations;
 
-\echo '--- Anon (non connecté) : tout vide, pas d''erreur (0, 0, 0, 0 — providers compris)'
+\echo '--- Anon (non connecté) : tout vide, pas d''erreur (0, 0, 0, 0 : providers compris)'
 reset role; set role anon;
 select set_config('request.jwt.claim.sub', '', false) \g /dev/null
 select (select count(*) from bookings) as b, (select count(*) from conversations) as c,

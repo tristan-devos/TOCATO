@@ -44,7 +44,7 @@ interface AppState {
   bookings: Booking[];
   conversations: Conversation[];
   messages: Message[];
-  /** Currently open conversation — used to mark incoming messages as read. */
+  /** Currently open conversation: used to mark incoming messages as read. */
   activeConversationId: string | null;
 
   loadAll: () => Promise<void>;
@@ -57,7 +57,7 @@ interface AppState {
   setActiveConversation: (conversationId: string | null) => void;
 }
 
-// ——— Lectures (RLS restreint déjà aux données de l'utilisateur) ———
+// --- Lectures (RLS restreint déjà aux données de l'utilisateur) ---
 // Client : ses demandes et conversations. Prestataire : ses conversations et
 // les réservations où il est retenu (les demandes ouvertes : provider-store).
 
@@ -99,7 +99,7 @@ async function refreshMessages(): Promise<void> {
   useAppStore.setState({ messages: await fetchMessages() });
 }
 
-// ——— Realtime : tout changement déclenche un rechargement ciblé ———
+// --- Realtime : tout changement déclenche un rechargement ciblé ---
 
 let channel: RealtimeChannel | null = null;
 
@@ -247,7 +247,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 }));
 
-// ——— Selectors ———
+// --- Selectors ---
 
 export function useBooking(bookingId: string | undefined) {
   return useAppStore((s) => s.bookings.find((b) => b.id === bookingId));

@@ -121,7 +121,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
     set({ profile: null, addresses: [], loading: false, role: null, providerId: null }),
 }));
 
-// ——— Sélecteurs ———
+// --- Sélecteurs ---
 
 export function useProfile(): Profile | null {
   return useProfileStore((s) => s.profile);
