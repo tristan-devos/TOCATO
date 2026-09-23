@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 
 import { BookingPhotos } from '@/components/booking/booking-photos';
 import { ProviderRow } from '@/components/provider-row';
+import { ProviderOffers } from '@/components/reservation/provider-offers';
 import { StatusTimeline } from '@/components/reservation/status-timeline';
 import { ServiceIcon } from '@/components/service-icon';
 import { AppText } from '@/components/ui/app-text';
@@ -28,19 +29,22 @@ export default function ReservationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const booking = useBooking(id);
+  const conversations = useAppStore((s) => s.conversations);
   const cancelBooking = useAppStore((s) => s.cancelBooking);
 
   if (!booking) {
     return <Redirect href="/(tabs)/reservations" />;
   }
 
-  const provider = getProvider(booking.providerId);
+  // Prestataire confirmé (devis accepté) et sa conversation ; tant que la
+  // demande est ouverte, les offres reçues sont listées par ProviderOffers.
+  const provider = booking.providerId ? getProvider(booking.providerId) : undefined;
+  const providerConversation = conversations.find(
+    (c) => c.bookingId === booking.id && c.providerId === booking.providerId,
+  );
   const status = BOOKING_STATUS[booking.status];
   const slot = TIME_SLOTS.find((s) => s.id === booking.timeSlot);
   const cancelled = booking.status === 'cancelled';
-
-  const openChat = () =>
-    router.push({ pathname: '/chat/[id]', params: { id: booking.conversationId } });
 
   const confirmCancel = () => {
     Alert.alert(t('reservationDetail.cancelTitle'), t('reservationDetail.cancelMessage'), [
@@ -101,12 +105,18 @@ export default function ReservationDetailScreen() {
             <AppText variant="label" style={styles.sectionLabel} color={colors.textSecondary}>
               {t('reservationDetail.providerSection')}
             </AppText>
-            <Card style={styles.providerCard}>
+            <Card
+              style={styles.providerCard}
+              onPress={() =>
+                router.push({ pathname: '/provider/[id]', params: { id: provider.id } })
+              }>
               <ProviderRow provider={provider} />
               <AppText variant="secondary">{provider.bio}</AppText>
             </Card>
           </View>
-        ) : null}
+        ) : cancelled ? null : (
+          <ProviderOffers bookingId={booking.id} />
+        )}
 
         <View>
           <AppText variant="label" style={styles.sectionLabel} color={colors.textSecondary}>
@@ -176,7 +186,18 @@ export default function ReservationDetailScreen() {
         </View>
 
         <View style={styles.actions}>
-          <Button title={t('reservationDetail.openChat')} size="lg" onPress={openChat} />
+          {providerConversation ? (
+            <Button
+              title={t('reservationDetail.openChat')}
+              size="lg"
+              onPress={() =>
+                router.push({
+                  pathname: '/chat/[id]',
+                  params: { id: providerConversation.id },
+                })
+              }
+            />
+          ) : null}
           {isActiveStatus(booking.status) ? (
             <Button
               title={t('reservationDetail.cancelBooking')}

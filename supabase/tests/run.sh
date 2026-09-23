@@ -40,4 +40,4 @@ docker exec "$NAME" psql -U postgres -d mig -At -c \
   "select tablename || '.' || policyname || ' (' || cmd || ')' from pg_policies where schemaname = 'public' order by 1"
 
 echo '== 3. Scénarios'
-docker exec -i "$NAME" psql -U postgres -q < tests/scenarios.sql 2>&1
+docker exec -i "$NAME" sh -c 'psql -U postgres -q 2>&1' < tests/scenarios.sql

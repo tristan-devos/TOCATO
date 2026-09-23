@@ -1,11 +1,16 @@
 // =============================================================================
 // Edge Function `provider-reply` — simulation des réponses prestataire (serveur)
 // =============================================================================
-// Remplace l'ancien `src/lib/provider-sim.ts` (setTimeout côté client). L'app
-// invoque cette fonction (« réponds dans cette conversation, type initial|canned »)
-// ; la fonction insère les messages « du prestataire » avec la clé service_role
-// (donc hors RLS — le client n'a plus le droit d'insérer un message `provider`).
-// Le Realtime répercute ensuite ces messages dans l'app comme avant.
+// L'app invoque cette fonction et la simulation insère les données « du
+// prestataire » avec la clé service_role (hors RLS — le client n'a pas le droit
+// d'insérer un message `provider` ni une conversation qu'il n'initie pas).
+// Deux kinds :
+//   - `initial` (bookingId) : chaque prestataire du service « vient vers le
+//     client » — ouvre sa conversation sur la demande, envoie une intro puis un
+//     devis. C'est le cœur du flux multi-prestataires.
+//   - `canned` (conversationId) : réponse passe-partout dans une conversation
+//     existante, quand le client écrit.
+// Le Realtime répercute ensuite ces insertions dans l'app.
 //
 // Runtime : Deno (Supabase Edge Runtime). Ce dossier est exclu du tsconfig de
 // l'app (code Deno, imports distants). Déploiement :
@@ -33,22 +38,30 @@ const CANNED_REPLIES: string[] = [
   "Merci pour la précision, ça m'aide à bien préparer l'intervention.",
 ];
 
-const ACK_DELAY_MS = 2_500;
-const QUOTE_DELAY_MS = 9_000;
+const FIRST_CONTACT_DELAY_MS = 2_500;
+const QUOTE_DELAY_MS = 6_500;
+const PROVIDER_STAGGER_MS = 6_000;
 
 const CORS_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface ConversationRow {
+interface BookingRow {
   id: string;
   user_id: string;
-  provider_id: string;
-  booking_id: string;
+  service_id: string;
+  estimate_min: number;
+  estimate_max: number;
+}
+
+interface ProviderRow {
+  id: string;
+  hourly_rate: number;
 }
 
 type ReplyKind = 'initial' | 'canned';
+type Admin = ReturnType<typeof createClient>;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -63,8 +76,9 @@ function json(body: unknown, status = 200): Response {
 
 /** Insère un message prestataire (échoue silencieusement si la conv a disparu). */
 async function insertProviderMessage(
-  admin: ReturnType<typeof createClient>,
-  conv: ConversationRow,
+  admin: Admin,
+  conversationId: string,
+  providerId: string,
   message: {
     type: 'text' | 'quote';
     text: string;
@@ -72,44 +86,54 @@ async function insertProviderMessage(
   },
 ): Promise<void> {
   await admin.from('messages').insert({
-    conversation_id: conv.id,
+    conversation_id: conversationId,
     sender_kind: 'provider',
-    provider_id: conv.provider_id,
+    provider_id: providerId,
     type: message.type,
     text: message.text,
     quote: message.quote ?? null,
   });
 }
 
-/** Accusé de réception (2,5 s) puis devis chiffré (9 s), dérivés de la base. */
-async function runInitial(
-  admin: ReturnType<typeof createClient>,
-  conv: ConversationRow,
+/**
+ * Un prestataire se manifeste sur une demande : ouvre sa conversation, se
+ * présente, puis envoie un devis dérivé de l'estimation (varié par prestataire).
+ */
+async function runProviderContact(
+  admin: Admin,
+  booking: BookingRow,
+  provider: ProviderRow,
+  index: number,
 ): Promise<void> {
-  const { data: booking } = await admin
-    .from('bookings')
-    .select('estimate_min, estimate_max')
-    .eq('id', conv.booking_id)
+  await sleep(FIRST_CONTACT_DELAY_MS + index * PROVIDER_STAGGER_MS);
+
+  const { data: conv } = await admin
+    .from('conversations')
+    .insert({ user_id: booking.user_id, provider_id: provider.id, booking_id: booking.id })
+    .select('id')
     .single();
+  if (!conv) return;
+  const conversationId = String(conv.id);
+
   const { data: profile } = await admin
     .from('profiles')
     .select('name')
-    .eq('id', conv.user_id)
+    .eq('id', booking.user_id)
     .single();
-
-  const min = Number(booking?.estimate_min ?? 0);
-  const max = Number(booking?.estimate_max ?? 0);
   const firstName = String(profile?.name ?? '').split(' ')[0] ?? '';
 
-  await sleep(ACK_DELAY_MS);
-  await insertProviderMessage(admin, conv, {
+  await insertProviderMessage(admin, conversationId, provider.id, {
     type: 'text',
-    text: `Bonjour ${firstName} ! J'ai bien reçu votre demande, je la regarde et je vous envoie un devis rapidement.`,
+    text: `Bonjour ${firstName} ! J'ai vu votre demande, elle correspond à ce que je fais. Je vous prépare un devis.`,
   });
 
-  await sleep(QUOTE_DELAY_MS - ACK_DELAY_MS);
-  const amount = Math.round((min + max) / 2 / 5) * 5;
-  await insertProviderMessage(admin, conv, {
+  await sleep(QUOTE_DELAY_MS);
+  // Montant ancré au milieu de l'estimation, modulé par le taux horaire du
+  // prestataire pour que les offres diffèrent, arrondi aux 5 $.
+  const mid = (Number(booking.estimate_min) + Number(booking.estimate_max)) / 2;
+  const spread = (index % 2 === 0 ? 1 : -1) * Number(provider.hourly_rate) * 0.2;
+  const amount = Math.max(5, Math.round((mid + spread) / 5) * 5);
+  await insertProviderMessage(admin, conversationId, provider.id, {
     type: 'quote',
     text: 'Voici mon devis détaillé pour votre demande.',
     quote: {
@@ -121,15 +145,34 @@ async function runInitial(
   });
 }
 
+/** Tous les prestataires du service répondent à la demande, en décalé. */
+async function runInitial(admin: Admin, booking: BookingRow): Promise<void> {
+  const { data: providers } = await admin
+    .from('providers')
+    .select('id, hourly_rate')
+    .contains('services', [booking.service_id]);
+
+  const tasks = (providers ?? []).map((provider, index) =>
+    runProviderContact(
+      admin,
+      booking,
+      { id: String(provider.id), hourly_rate: Number(provider.hourly_rate) },
+      index,
+    ),
+  );
+  await Promise.all(tasks);
+}
+
 /** Réponse passe-partout, l'index étant le nombre de messages client de la conv. */
 async function runCanned(
-  admin: ReturnType<typeof createClient>,
-  conv: ConversationRow,
+  admin: Admin,
+  conversationId: string,
+  providerId: string,
 ): Promise<void> {
   const { count } = await admin
     .from('messages')
     .select('id', { count: 'exact', head: true })
-    .eq('conversation_id', conv.id)
+    .eq('conversation_id', conversationId)
     .eq('sender_kind', 'client');
 
   const index = (count ?? 1) - 1;
@@ -138,7 +181,7 @@ async function runCanned(
     'Bien reçu, merci !';
 
   await sleep(2_000 + Math.random() * 1_500);
-  await insertProviderMessage(admin, conv, { type: 'text', text });
+  await insertProviderMessage(admin, conversationId, providerId, { type: 'text', text });
 }
 
 Deno.serve(async (req: Request): Promise<Response> => {
@@ -146,19 +189,18 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return json({ error: 'method_not_allowed' }, 405);
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return json({ error: 'not_configured' }, 500);
 
-  let payload: { conversationId?: unknown; kind?: unknown };
+  let payload: { bookingId?: unknown; conversationId?: unknown; kind?: unknown };
   try {
     payload = await req.json();
   } catch {
     return json({ error: 'invalid_json' }, 400);
   }
 
-  const conversationId = typeof payload.conversationId === 'string' ? payload.conversationId : '';
   const kind: ReplyKind | null =
     payload.kind === 'initial' || payload.kind === 'canned' ? payload.kind : null;
-  if (!conversationId || !kind) return json({ error: 'bad_request' }, 400);
+  if (!kind) return json({ error: 'bad_request' }, 400);
 
-  // Auth : on vérifie que l'appelant possède bien la conversation visée.
+  // Auth : on vérifie que l'appelant possède bien la ressource visée.
   const authHeader = req.headers.get('Authorization') ?? '';
   const userClient = createClient(SUPABASE_URL, ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
@@ -169,24 +211,42 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (!user) return json({ error: 'unauthorized' }, 401);
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+  if (kind === 'initial') {
+    const bookingId = typeof payload.bookingId === 'string' ? payload.bookingId : '';
+    if (!bookingId) return json({ error: 'bad_request' }, 400);
+
+    const { data: booking } = await admin
+      .from('bookings')
+      .select('id, user_id, service_id, estimate_min, estimate_max')
+      .eq('id', bookingId)
+      .single();
+    if (!booking || booking.user_id !== user.id) return json({ error: 'not_found' }, 404);
+
+    // Travail en arrière-plan : on répond tout de suite, les conversations et
+    // messages arrivent après délai (le worker reste vivant grâce à waitUntil).
+    EdgeRuntime.waitUntil(
+      runInitial(admin, {
+        id: String(booking.id),
+        user_id: String(booking.user_id),
+        service_id: String(booking.service_id),
+        estimate_min: Number(booking.estimate_min),
+        estimate_max: Number(booking.estimate_max),
+      }),
+    );
+    return json({ ok: true });
+  }
+
+  const conversationId = typeof payload.conversationId === 'string' ? payload.conversationId : '';
+  if (!conversationId) return json({ error: 'bad_request' }, 400);
+
   const { data: conv } = await admin
     .from('conversations')
-    .select('id, user_id, provider_id, booking_id')
+    .select('id, user_id, provider_id')
     .eq('id', conversationId)
     .single();
   if (!conv || conv.user_id !== user.id) return json({ error: 'not_found' }, 404);
 
-  const conversation: ConversationRow = {
-    id: String(conv.id),
-    user_id: String(conv.user_id),
-    provider_id: String(conv.provider_id),
-    booking_id: String(conv.booking_id),
-  };
-
-  // Travail en arrière-plan : on répond tout de suite, les messages arrivent
-  // après délai (le worker reste vivant grâce à waitUntil).
-  const task = kind === 'initial' ? runInitial(admin, conversation) : runCanned(admin, conversation);
-  EdgeRuntime.waitUntil(task);
-
+  EdgeRuntime.waitUntil(runCanned(admin, String(conv.id), String(conv.provider_id)));
   return json({ ok: true });
 });

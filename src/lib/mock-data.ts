@@ -1,17 +1,18 @@
 /**
  * Catalogue de prestataires de démo — marché de Montréal.
  *
- * C'est le seul mock restant : les prestataires affichés et assignés côté client.
- * Tout le reste (réservations, conversations, messages) vit dans Supabase, et le
- * seed de démo (avec dates relatives) est dans `supabase/rpc.sql` (`seed_demo`).
+ * C'est le seul mock restant : les fiches prestataires affichées côté client
+ * (conversations, offres, profil). Tout le reste (réservations, conversations,
+ * messages) vit dans Supabase, et le seed de démo (avec dates relatives) est
+ * dans `supabase/rpc.sql` (`seed_demo`).
  *
  * INVARIANT : ces IDs doivent refléter les prestataires seedés dans
- * `supabase/schema.sql`. `createBooking` envoie `provider.id` à la RPC
- * `create_booking`, où `bookings.provider_id` référence la table `providers` —
- * un ID absent de la base casse la clé étrangère.
+ * `supabase/schema.sql`. Les conversations et réservations créées côté serveur
+ * (Edge Function provider-reply, acceptation d'un devis) portent ces
+ * `provider_id` — un ID absent d'un côté rend la fiche introuvable à l'affichage.
  */
 
-import type { Provider, ServiceId } from '@/lib/types';
+import type { Provider } from '@/lib/types';
 
 export const PROVIDERS: Provider[] = [
   {
@@ -96,10 +97,4 @@ export const PROVIDERS: Provider[] = [
 
 export function getProvider(id: string): Provider | undefined {
   return PROVIDERS.find((p) => p.id === id);
-}
-
-export function providersForService(serviceId: ServiceId): Provider[] {
-  return PROVIDERS.filter((p) => p.services.includes(serviceId)).sort(
-    (a, b) => b.rating - a.rating,
-  );
 }

@@ -112,7 +112,12 @@ export default function HomeScreen() {
               {index > 0 ? (
                 <View style={[styles.divider, { backgroundColor: colors.border }]} />
               ) : null}
-              <ProviderRow provider={provider} />
+              <Pressable
+                onPress={() =>
+                  router.push({ pathname: '/provider/[id]', params: { id: provider.id } })
+                }>
+                <ProviderRow provider={provider} />
+              </Pressable>
             </View>
           ))}
         </Card>
