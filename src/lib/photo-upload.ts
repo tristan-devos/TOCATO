@@ -33,7 +33,8 @@ const B64_LOOKUP = (() => {
   return table;
 })();
 
-function base64ToBytes(base64: string): Uint8Array {
+/** Décode du base64 en octets (partagé avec document-upload). */
+export function base64ToBytes(base64: string): Uint8Array {
   const padding = base64.indexOf('=');
   const clean = padding === -1 ? base64 : base64.slice(0, padding);
   const bytes = new Uint8Array(Math.floor((clean.length * 3) / 4));

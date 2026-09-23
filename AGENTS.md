@@ -56,6 +56,9 @@ plombier, déménageur, jardinier.
   **Supabase Storage** (bucket privé `booking-photos`, RLS par dossier `{user}/{booking}/`,
   affichées via URLs signées) : la migration store est désormais complète.
 - React Compiler (expérimental) et typed routes activés (`app.json > experiments`).
+  **Piège vérifié** : après l'ajout d'une route, `tsc` refuse `router.replace('/nouvelle')`
+  tant que `.expo/types/router.d.ts` n'est pas régénéré ; `npx expo export` ne le fait pas,
+  `npx expo start` si (quelques secondes suffisent, puis Ctrl+C).
 
 ## Commandes
 
@@ -192,7 +195,8 @@ src/app/                    Routes expo-router
   _layout.tsx               Stack racine (thème nav + routes, modal booking, garde auth)
   +not-found.tsx            Écran 404 (EmptyState, retour vers les onglets)
   (auth)/_layout.tsx        Stack des écrans d'auth (sans header)
-  (auth)/{login,signup}.tsx Connexion / inscription (email + mot de passe, + Google OAuth)
+  (auth)/{login,signup}.tsx Connexion / inscription (email + mot de passe, + Google OAuth).
+                            Inscription : « Je cherche un service / Je suis prestataire ».
   (tabs)/_layout.tsx        5 onglets : Accueil, Messages, Réserver (bouton central logo),
                             Réservations, Profil
   (tabs)/{index,chats,reserver,reservations,profil}.tsx
@@ -201,6 +205,9 @@ src/app/                    Routes expo-router
                             Noms distincts de (tabs) : un groupe n'ajoute pas de segment
                             d'URL, deux `index`/`chats` entreraient en conflit. messages
                             ré-exporte (tabs)/chats (rôle géré par use-counterpart).
+  apply.tsx                 Demandeur d'adhésion (rôle applicant, seul écran accessible) :
+                            formulaire tant que rien n'est envoyé, puis statut (en examen,
+                            ou refus avec motif et « Corriger et renvoyer »)
   request/[id].tsx          Prestataire : demande ouverte (ville + secteur) + formulaire de devis
   job/[id].tsx              Prestataire : mission retenue (adresse exacte, commencer/terminer)
   booking/[service].tsx     Wizard de réservation multi-étapes (modal)
@@ -225,6 +232,9 @@ src/components/             Composants métier (booking-card, provider-row, serv
   provider/                 request-card (demande ouverte) + quote-form (devis, send_quote)
   profile/                  account-actions (Langue + Se déconnecter, profils client et
                             prestataire)
+  apply/                    Formulaire d'adhésion : application-form (orchestrateur, 4 étapes)
+                            + business-step, legal-step, documents-step (document-picker),
+                            application-review, application-status, step-header
   chat/                     message-bubble (texte / devis / document / système ; les
                             boutons d'un devis n'existent que côté client)
   ui/                       Primitives (button, card, chip, badge, avatar, screen,
@@ -240,9 +250,20 @@ src/lib/
                             messages. Charge à la connexion (loadAll), écoute le Realtime,
                             écrit via RPC (create_booking, accept/decline_quote,
                             cancel_booking…) ; seul l'envoi d'un message texte est un insert.
-  profile-store.ts          Profil + adresses + **rôle** (client/prestataire, via la RPC
-                            current_provider_id) de l'utilisateur connecté. Chargé EN PREMIER
-                            à la connexion : le store en dépend pour savoir qui est « moi ».
+  profile-store.ts          Profil + adresses + **rôle** de l'utilisateur connecté : provider
+                            (RPC current_provider_id), applicant (demande en cours ou refusée,
+                            ou intention « Je suis prestataire » pas encore envoyée), sinon
+                            client. Chargé EN PREMIER à la connexion : le store en dépend pour
+                            savoir qui est « moi ».
+  application-store.ts      Demande d'adhésion du compte : chargement, envoi (pièces puis RPC
+                            submit_provider_application), Realtime sur sa ligne (la décision
+                            de l'admin recharge la session, donc le rôle).
+  application-draft.ts      Brouillon du formulaire d'adhésion et règles de validation (mêmes
+                            que le serveur).
+  signup-intent.ts          Intention « Je suis prestataire » (AsyncStorage) le temps que la
+                            demande soit envoyée ; effacée à la déconnexion.
+  document-upload.ts        Pièces justificatives vers le bucket privé provider-documents +
+                            URL signée (demandeur pour la sienne, admin pour toutes).
   providers-store.ts        Fiches prestataires lues depuis la table providers ;
                             useProvider(id) / useProviders().
   provider-store.ts         Rôle prestataire : demandes ouvertes (list_open_requests, pas de
@@ -278,9 +299,9 @@ src/constants/theme.ts      Design tokens (couleurs light/dark, spacing, radius,
 src/hooks/use-color-scheme.ts  Color scheme actif (variante .web.ts pour le rendu web)
 src/hooks/use-theme.ts      Accès au thème selon le color scheme
 src/hooks/use-formats.ts    Formatters (prix/dates) liés à la langue active (fr-CA / en-CA)
-src/hooks/use-auth-guard.ts Redirige selon la session ET le rôle : connexion, app client ou
-                            onglets prestataire ; sort chacun des routes de l'autre rôle
-                            (inactif sans Supabase)
+src/hooks/use-auth-guard.ts Redirige selon la session ET le rôle : connexion, app client,
+                            onglets prestataire ou /apply (demandeur) ; sort chacun des routes
+                            des autres rôles (inactif sans Supabase)
 src/hooks/use-counterpart.ts Nom de « l'autre » dans une conversation selon le rôle
                             (prestataire pour un client, prénom du client pour un prestataire)
 supabase/schema.sql         Schéma Postgres : tables + migrations + Realtime + bucket Storage

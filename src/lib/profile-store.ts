@@ -1,14 +1,18 @@
 /**
  * Profil, adresses et rôle de l'utilisateur connecté (adossé à Supabase).
  *
- * Chargé à la connexion (depuis auth-store) et vidé à la déconnexion. Le rôle
- * vient de la RPC `current_provider_id` : un compte relié à une fiche prestataire
- * (par un admin) est prestataire, tout autre compte est client. Tant que le rôle
- * n'est pas connu (`role === null`), la navigation attend (use-auth-guard).
+ * Chargé à la connexion (depuis auth-store) et vidé à la déconnexion. Le rôle :
+ *  - 'provider' : compte relié à une fiche (RPC `current_provider_id`) ;
+ *  - 'applicant' : demande d'adhésion en cours ou refusée, ou intention
+ *    « Je suis prestataire » choisie à l'inscription et demande pas encore envoyée ;
+ *  - 'client' : tout autre compte.
+ * Tant que le rôle n'est pas connu (`role === null`), la navigation attend (use-auth-guard).
  */
 
 import { create } from 'zustand';
 
+import { useApplicationStore } from '@/lib/application-store';
+import { clearProviderIntent, hasProviderIntent, setProviderIntent } from '@/lib/signup-intent';
 import { supabase } from '@/lib/supabase';
 import type { Address, Role } from '@/lib/types';
 
@@ -49,7 +53,19 @@ interface ProfileState {
   /** Insère une adresse ; renvoie son id, ou null en cas d'échec. */
   addAddress: (input: Omit<Address, 'id'>) => Promise<string | null>;
   removeAddress: (addressId: string) => Promise<void>;
+  /** « Proposer mes services » : le compte devient demandeur (formulaire d'adhésion). */
+  becomeApplicant: () => Promise<void>;
+  /** Abandon avant tout envoi : le compte redevient client. */
+  stayClient: () => Promise<void>;
   clear: () => void;
+}
+
+/** Rôle d'un compte sans fiche prestataire : demandeur ou client. */
+async function nonProviderRole(userId: string): Promise<Role> {
+  await useApplicationStore.getState().load(userId);
+  const application = useApplicationStore.getState().application;
+  if (application) return application.status === 'approved' ? 'client' : 'applicant';
+  return (await hasProviderIntent()) ? 'applicant' : 'client';
 }
 
 export const useProfileStore = create<ProfileState>((set) => ({
@@ -79,11 +95,13 @@ export const useProfileStore = create<ProfileState>((set) => ({
     ]);
 
     const providerId = providerResult.data ?? null;
+    if (providerId) void clearProviderIntent();
+    const role: Role = providerId ? 'provider' : await nonProviderRole(userId);
     set({
       profile: profileResult.data ?? null,
       addresses: (addressResult.data ?? []).map(toAddress),
       loading: false,
-      role: providerId ? 'provider' : 'client',
+      role,
       providerId,
     });
   },
@@ -115,6 +133,16 @@ export const useProfileStore = create<ProfileState>((set) => ({
     const { error } = await supabase.from('addresses').delete().eq('id', addressId);
     if (error) return;
     set((s) => ({ addresses: s.addresses.filter((a) => a.id !== addressId) }));
+  },
+
+  becomeApplicant: async () => {
+    await setProviderIntent();
+    set({ role: 'applicant' });
+  },
+
+  stayClient: async () => {
+    await clearProviderIntent();
+    set({ role: 'client' });
   },
 
   clear: () =>

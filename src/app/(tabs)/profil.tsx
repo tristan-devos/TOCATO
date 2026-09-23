@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { CircleHelp, CreditCard, MapPin } from 'lucide-react-native';
+import { Briefcase, CircleHelp, CreditCard, MapPin } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -11,7 +11,8 @@ import { ListItem } from '@/components/ui/list-item';
 import { Screen } from '@/components/ui/screen';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useAddresses, useProfile } from '@/lib/profile-store';
+import { useAddresses, useProfile, useProfileStore } from '@/lib/profile-store';
+import { useAppStore } from '@/lib/store';
 
 export default function ProfilScreen() {
   const colors = useTheme();
@@ -19,6 +20,8 @@ export default function ProfilScreen() {
   const { t } = useTranslation();
   const profile = useProfile();
   const addresses = useAddresses();
+  const bookings = useAppStore((s) => s.bookings);
+  const becomeApplicant = useProfileStore((s) => s.becomeApplicant);
 
   return (
     <Screen>
@@ -50,6 +53,15 @@ export default function ProfilScreen() {
             leading={<CreditCard size={20} color={colors.primary} />}
             onPress={() => router.push('/profile/payments')}
           />
+          {/* Un compte avec des réservations reste client (règle v1, refusé côté serveur). */}
+          {bookings.length === 0 ? (
+            <ListItem
+              title={t('profile.becomeProvider')}
+              subtitle={t('profile.becomeProviderSubtitle')}
+              leading={<Briefcase size={20} color={colors.primary} />}
+              onPress={() => void becomeApplicant()}
+            />
+          ) : null}
         </Card>
       </View>
 
