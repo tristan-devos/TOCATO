@@ -12,6 +12,7 @@ import { FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useCounterpartName } from '@/hooks/use-counterpart';
 import { useFormats } from '@/hooks/use-formats';
+import { useSystemMessageText } from '@/hooks/use-message-text';
 import { useRole } from '@/lib/profile-store';
 import { useOpenRequests } from '@/lib/provider-store';
 import { useAppStore } from '@/lib/store';
@@ -34,6 +35,7 @@ export default function ChatsScreen() {
   const bookings = useAppStore((s) => s.bookings);
   const role = useRole();
   const counterpartName = useCounterpartName();
+  const systemText = useSystemMessageText();
   // Prestataire : une demande encore ouverte n'est connue que par list_open_requests.
   const openRequests = useOpenRequests();
 
@@ -42,7 +44,12 @@ export default function ChatsScreen() {
       if (!message) return t('common.newConversation');
       switch (message.type) {
         case 'quote':
-          return t('chats.quoteReceived');
+          // Côté prestataire, le dernier devis de la conversation est le sien.
+          return message.senderId === 'me'
+            ? t('providerApp.quoteSentBadge')
+            : t('chats.quoteReceived');
+        case 'system':
+          return systemText(message);
         case 'document':
           return message.document?.name ?? 'Document';
         default:
@@ -66,7 +73,7 @@ export default function ChatsScreen() {
           preview: previewOf(lastMessage),
         };
       });
-  }, [conversations, messages, bookings, openRequests, counterpartName, t]);
+  }, [conversations, messages, bookings, openRequests, counterpartName, systemText, t]);
 
   return (
     <Screen scroll={false}>

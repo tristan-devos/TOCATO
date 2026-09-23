@@ -306,6 +306,32 @@ const en = {
     editNote: 'To update your profile, contact the TOCATO team.',
     settingsSection: 'SETTINGS',
   },
+  systemMessages: {
+    quoteAccepted: {
+      client: 'Quote accepted — your booking is confirmed.',
+      provider: 'The client accepted your quote — the job is confirmed.',
+    },
+    otherProviderChosen: {
+      client: 'You confirmed another provider for this request.',
+      provider: 'The client chose another provider for this request.',
+    },
+    quoteDeclined: {
+      client: 'You declined the quote.',
+      provider: 'The client declined your quote.',
+    },
+    bookingCancelled: {
+      client: 'You cancelled this booking.',
+      provider: 'The client cancelled this request.',
+    },
+    jobStarted: {
+      client: 'The provider has started the job.',
+      provider: 'You started the job.',
+    },
+    jobCompleted: {
+      client: 'Job completed.',
+      provider: 'Job completed.',
+    },
+  },
   services: {
     plumber: {
       name: 'Plumber',

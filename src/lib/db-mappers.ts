@@ -70,6 +70,7 @@ export function rowToMessage(row: MessageRow, role: Role): Message {
     createdAt: row.created_at,
     quote: row.quote ?? undefined,
     document: row.document ?? undefined,
+    systemKey: row.system_key ?? undefined,
   };
 }
 

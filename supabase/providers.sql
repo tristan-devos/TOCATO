@@ -141,7 +141,8 @@ begin
   end if;
 
   insert into public.messages (conversation_id, sender_kind, provider_id, type, text, quote)
-  values (v_conversation, 'provider', v_provider, 'quote', 'Voici mon devis.',
+  -- Pas de texte : la carte de devis s'affiche seule, dans la langue de chacun.
+  values (v_conversation, 'provider', v_provider, 'quote', '',
           jsonb_build_object('amount', p_amount, 'details', coalesce(p_details, ''),
                              'status', 'pending'));
   return v_conversation;
@@ -161,8 +162,8 @@ begin
     and provider_id = public.current_provider_id();
   if not found then raise exception 'job_not_startable'; end if;
 
-  insert into public.messages (conversation_id, sender_kind, type, text)
-  select c.id, 'system', 'system', 'Le prestataire a commencé l''intervention.'
+  insert into public.messages (conversation_id, sender_kind, type, text, system_key)
+  select c.id, 'system', 'system', 'Le prestataire a commencé l''intervention.', 'jobStarted'
   from public.conversations c
   where c.booking_id = p_booking_id and c.provider_id = public.current_provider_id();
 end;
@@ -180,8 +181,8 @@ begin
     and provider_id = public.current_provider_id();
   if not found then raise exception 'job_not_completable'; end if;
 
-  insert into public.messages (conversation_id, sender_kind, type, text)
-  select c.id, 'system', 'system', 'Intervention terminée.'
+  insert into public.messages (conversation_id, sender_kind, type, text, system_key)
+  select c.id, 'system', 'system', 'Intervention terminée.', 'jobCompleted'
   from public.conversations c
   where c.booking_id = p_booking_id and c.provider_id = public.current_provider_id();
 end;

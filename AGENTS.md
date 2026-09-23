@@ -295,6 +295,15 @@ les dépendances `i18next` / `react-i18next` / `expo-localization`.
 - **Langue** : détectée depuis l'appareil au premier lancement, surchargée et persistée via
   le sélecteur dans `profil.tsx` (`changeLanguage`), restaurée par `loadSavedLanguage()`.
 - **Ajouter un texte** : ajouter la clé dans `fr.ts` **et** `en.ts` (sinon fallback FR).
+- **Messages système** (« Devis accepté… », « Intervention terminée »…) : écrits par les RPC
+  avec une **clé** `messages.system_key` (+ le texte FR côté client dans `text`, pour les
+  anciennes versions de l'app). L'app les affiche via `useSystemMessageText()`
+  (`hooks/use-message-text.ts`) : clé `systemMessages.<clé>.<client|provider>`, donc dans
+  la langue active **et** du point de vue de celui qui lit. Ajouter un message système =
+  ajouter la clé à la contrainte `messages_system_key_valid` (schema.sql), au type
+  `SystemMessageKey` (types.ts) et aux deux catalogues (versions client et prestataire).
+  Les réponses des prestataires **simulés** (Edge Function) restent en français : ce sont
+  des propos de prestataires montréalais, pas des textes de l'app.
 
 ## Login social (OAuth Google)
 

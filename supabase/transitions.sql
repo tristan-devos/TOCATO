@@ -63,13 +63,13 @@ begin
     and m.type = 'quote'
     and m.quote ->> 'status' = 'pending';
 
-  insert into public.messages (conversation_id, sender_kind, type, text)
+  insert into public.messages (conversation_id, sender_kind, type, text, system_key)
   values (v_conversation, 'system', 'system',
-          'Devis accepté — votre réservation est confirmée.');
+          'Devis accepté — votre réservation est confirmée.', 'quoteAccepted');
 
-  insert into public.messages (conversation_id, sender_kind, type, text)
+  insert into public.messages (conversation_id, sender_kind, type, text, system_key)
   select c.id, 'system', 'system',
-         'Vous avez confirmé un autre prestataire pour cette demande.'
+         'Vous avez confirmé un autre prestataire pour cette demande.', 'otherProviderChosen'
   from public.conversations c
   where c.booking_id = v_booking and c.id <> v_conversation;
 end;
@@ -100,8 +100,8 @@ begin
   set quote = jsonb_set(quote, '{status}', '"declined"')
   where id = p_message_id;
 
-  insert into public.messages (conversation_id, sender_kind, type, text)
-  values (v_conversation, 'system', 'system', 'Vous avez refusé le devis.');
+  insert into public.messages (conversation_id, sender_kind, type, text, system_key)
+  values (v_conversation, 'system', 'system', 'Vous avez refusé le devis.', 'quoteDeclined');
 end;
 $$;
 
@@ -133,8 +133,8 @@ begin
     and m.type = 'quote'
     and m.quote ->> 'status' = 'pending';
 
-  insert into public.messages (conversation_id, sender_kind, type, text)
-  select c.id, 'system', 'system', 'Vous avez annulé cette réservation.'
+  insert into public.messages (conversation_id, sender_kind, type, text, system_key)
+  select c.id, 'system', 'system', 'Vous avez annulé cette réservation.', 'bookingCancelled'
   from public.conversations c
   where c.booking_id = p_booking_id;
 end;

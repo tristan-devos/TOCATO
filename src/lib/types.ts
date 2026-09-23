@@ -73,6 +73,18 @@ export type MessageType = 'text' | 'quote' | 'document' | 'system';
 
 export type QuoteStatus = 'pending' | 'accepted' | 'declined';
 
+/**
+ * Automatic (system) messages, written by server-side RPCs. The app renders them
+ * in the active language AND from the reader's side (client or provider).
+ */
+export type SystemMessageKey =
+  | 'quoteAccepted'
+  | 'otherProviderChosen'
+  | 'quoteDeclined'
+  | 'bookingCancelled'
+  | 'jobStarted'
+  | 'jobCompleted';
+
 export interface Message {
   id: string;
   conversationId: string;
@@ -90,6 +102,8 @@ export interface Message {
     name: string;
     size: string;
   };
+  /** System messages only; absent on old rows (fall back to `text`). */
+  systemKey?: SystemMessageKey;
 }
 
 export interface Conversation {

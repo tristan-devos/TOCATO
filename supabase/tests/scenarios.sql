@@ -48,7 +48,7 @@ select status, agreed_price, provider_id from bookings where service_id='plumber
 select c.provider_id, m.quote->>'status' as statut_devis from messages m
   join conversations c on c.id=m.conversation_id where m.type='quote' order by 1;
 \echo '--- Dernier message système de chaque conversation'
-select distinct on (c.provider_id) c.provider_id, m.text from messages m
+select distinct on (c.provider_id) c.provider_id, m.system_key, m.text from messages m
   join conversations c on c.id=m.conversation_id where m.sender_kind='system'
   order by c.provider_id, m.created_at desc;
 \echo '--- Accepter ensuite l''offre de Marc (doit échouer)'
