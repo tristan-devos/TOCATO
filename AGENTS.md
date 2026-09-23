@@ -159,8 +159,16 @@ pas de build natif pour l'instant, et **pas de `eas.json`** à la racine.
   restent alignés).
 - **Publier le code committé** (= « déployer sur Expo ») :
   `npx eas-cli update --branch preview --environment preview --message "<résumé>"`.
-  Sans `--environment`, eas-cli demande l'environnement (aucune variable n'est stockée sur
-  EAS : l'app lit le `.env` local, le choix ne change rien — `preview` par cohérence).
+  **Variables d'environnement** : `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+  sont **stockées sur EAS** (environnements `preview`, `development` et `production`,
+  visibilité plaintext — la clé anon est publique par design). La publication ne dépend
+  donc plus du `.env` de la personne qui publie. Vérifier : `npx eas-cli env:list
+  --environment preview`. **Piège vérifié** (eas-cli 24.7) : avec l'option
+  `--environment`, eas-cli pose `EXPO_NO_DOTENV=1` et **ignore le `.env` local** ; sans
+  variables sur EAS, l'app publiée démarre en mode « Supabase non configuré » (pas de
+  garde de connexion, déconnexion impossible). Le choix dans le menu interactif, lui,
+  garde le `.env`. Si l'URL ou la clé change : `eas env:update` dans les trois
+  environnements **et** le `.env` local (utilisé par `npx expo start`).
   Pas `--non-interactive` (non supporté ici) ; utiliser `$CI=1` si besoin. L'iPhone récupère l'update au prochain
   lancement d'Expo Go (fermer/rouvrir l'app).
 - **Avant tout build natif** (TestFlight, APK) il faudra d'abord créer un `eas.json`.
