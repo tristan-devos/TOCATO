@@ -159,7 +159,9 @@ export interface ProviderApplication {
   rbqLicence: string | null;
   hourlyRate: number;
   bio: string;
-  idDocumentPath: string;
+  /** Null once purged, 30 days after the decision (privacy law, Loi 25). */
+  idDocumentPath: string | null;
+  idDocumentPurgedAt: string | null;
   insurancePath: string;
   rbqCheck: RbqCheck | null;
   submittedAt: string;

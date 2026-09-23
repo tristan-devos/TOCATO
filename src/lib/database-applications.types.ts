@@ -29,7 +29,8 @@ type ProviderApplicationRow = {
   rbq_licence: string | null;
   hourly_rate: number;
   bio: string;
-  id_document_path: string;
+  id_document_path: string | null;
+  id_document_purged_at: string | null;
   insurance_path: string;
   rbq_check: RbqCheckJson | null;
   submitted_at: string;
@@ -64,7 +65,7 @@ export type ApplicationFunctions = {
       p_rbq_licence: string | null;
       p_hourly_rate: number;
       p_bio: string;
-      p_id_document_path: string;
+      p_id_document_path: string | null;
       p_insurance_path: string;
     };
     Returns: string;

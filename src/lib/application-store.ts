@@ -31,6 +31,7 @@ export function rowToApplication(row: ApplicationRow): ProviderApplication {
     hourlyRate: row.hourly_rate,
     bio: row.bio,
     idDocumentPath: row.id_document_path,
+    idDocumentPurgedAt: row.id_document_purged_at,
     insurancePath: row.insurance_path,
     rbqCheck: row.rbq_check
       ? {

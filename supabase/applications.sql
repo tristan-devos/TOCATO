@@ -51,7 +51,10 @@ create table if not exists public.provider_applications (
   hourly_rate      numeric(10, 2) not null check (hourly_rate > 0 and hourly_rate < 1000),
   bio              text not null default '',
   -- Chemins Storage (bucket privé provider-documents), {user_id}/....
-  id_document_path text not null,
+  -- La pièce d'identité est effacée 30 jours après la décision (Loi 25, Edge Function
+  -- purge-documents) : chemin remis à null, date gardée comme trace.
+  id_document_path text,
+  id_document_purged_at timestamptz,
   insurance_path   text not null,
   -- Résultat de la vérification RBQ au moment de l'envoi (null hors plomberie).
   rbq_check        jsonb,
@@ -61,6 +64,10 @@ create table if not exists public.provider_applications (
   rejection_reason text,
   provider_id      text references public.providers (id)
 );
+
+-- Migration (lot 5) : pièce d'identité effaçable.
+alter table public.provider_applications alter column id_document_path drop not null;
+alter table public.provider_applications add column if not exists id_document_purged_at timestamptz;
 
 -- Realtime : le demandeur voit la décision arriver (approbation ou refus).
 do $$
@@ -182,7 +189,8 @@ begin
     status = 'submitted', business_name = excluded.business_name,
     services = excluded.services, neq = excluded.neq, rbq_licence = excluded.rbq_licence,
     hourly_rate = excluded.hourly_rate, bio = excluded.bio,
-    id_document_path = excluded.id_document_path, insurance_path = excluded.insurance_path,
+    id_document_path = excluded.id_document_path, id_document_purged_at = null,
+    insurance_path = excluded.insurance_path,
     rbq_check = excluded.rbq_check, submitted_at = now(),
     decided_at = null, decided_by = null, rejection_reason = null
   returning a.id into v_id;

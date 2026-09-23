@@ -1,0 +1,28 @@
+# Suppression nocturne des pièces justificatives échues (Loi 25) : appelle l'Edge
+# Function purge-documents. Voir supabase/functions/purge-documents/index.ts.
+# Variables requises (Settings > Secrets and variables > Actions > Variables) :
+# SUPABASE_URL et SUPABASE_ANON_KEY, les mêmes valeurs publiques que le .env de l'app.
+# En cas d'échec, GitHub envoie un courriel au propriétaire du repo.
+name: Purge des pièces
+
+on:
+  schedule:
+    - cron: '30 8 * * *' # 8 h 30 UTC, après l'import RBQ
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Appeler purge-documents
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          test -n "$SUPABASE_URL" && test -n "$SUPABASE_ANON_KEY" || { echo "Variables SUPABASE_URL / SUPABASE_ANON_KEY manquantes."; exit 1; }
+          curl -fsS -X POST "$SUPABASE_URL/functions/v1/purge-documents" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" -H "Content-Type: application/json" -d '{}'

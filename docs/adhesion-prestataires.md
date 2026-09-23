@@ -179,8 +179,15 @@ par … », pas l'image). À refléter dans la politique de confidentialité.
    `admin_list_applicants` (nom et courriel des demandeurs, `profiles` étant owner-only)
    et `admin_rbq_registry_status` (date du dernier import, nombre de licences). La liste
    se recharge à chaque ouverture de l'écran (pas de Realtime côté admin).
-5. **Vie privée** : suppression des pièces d'identité 30 jours après décision (tâche
+5. ✅ **Vie privée** : suppression des pièces d'identité 30 jours après décision (tâche
    planifiée), mise à jour de la politique de confidentialité.
+   **Réalisé :** Edge Function `purge-documents`, appelée chaque nuit par une GitHub
+   Action (API Storage : la suppression SQL dans `storage.objects` est interdite par
+   Supabase et laisserait le fichier). Elle efface aussi les fichiers orphelins (pièce
+   remplacée lors d'un renvoi, demande supprimée). `id_document_path` devient nullable et
+   `id_document_purged_at` garde la trace ; un renvoi après suppression exige une nouvelle
+   pièce. **Reste à faire, hors code :** la politique de confidentialité (point de
+   réunion).
 
 ## 10. Choix par défaut (modifiables, à confirmer en réunion)
 
