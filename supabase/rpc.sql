@@ -64,6 +64,11 @@ begin
   if public.current_provider_id() is not null then
     raise exception 'providers_cannot_book';
   end if;
+  -- Un demandeur d'adhésion non plus (applications.sql, table créée après ce fichier :
+  -- plpgsql ne la résout qu'à l'exécution).
+  if exists (select 1 from public.provider_applications where user_id = auth.uid()) then
+    raise exception 'applicants_cannot_book';
+  end if;
 
   insert into public.bookings (
     user_id, service_id, status, scheduled_date, time_slot, address,

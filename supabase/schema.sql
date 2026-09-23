@@ -6,7 +6,7 @@
 -- Idempotent autant que possible (IF NOT EXISTS / ON CONFLICT).
 --
 -- Ordre d'exécution (tous idempotents) : schema.sql (tables, migrations, Storage)
--- -> rpc.sql -> transitions.sql -> providers.sql -> policies.sql (RLS + Storage,
+-- -> rpc.sql -> transitions.sql -> providers.sql -> applications.sql -> policies.sql (RLS + Storage,
 -- en dernier car les policies appellent les fonctions des fichiers précédents).
 -- Écritures sur bookings / conversations / messages : uniquement via les RPC,
 -- sauf l'envoi d'un message texte (voir policies.sql).

@@ -12,7 +12,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 NAME=tocato-sqltest
 # Ordre d'exécution, identique à celui du SQL editor (voir AGENTS.md > Commandes).
-FILES="schema rpc transitions providers policies"
+FILES="schema rpc transitions providers applications policies"
 docker run -d --rm --name "$NAME" -e POSTGRES_PASSWORD=pw postgres:16-alpine >/dev/null
 trap 'docker stop "$NAME" >/dev/null' EXIT
 until docker exec "$NAME" pg_isready -U postgres -q; do sleep 1; done
@@ -48,7 +48,7 @@ docker exec "$NAME" psql -U postgres -d mig -At -c \
 
 echo '== 3. Scénarios'
 # Ordre explicite : les scénarios prestataire réutilisent les comptes créés avant.
-for f in tests/scenarios.sql tests/scenarios-provider.sql; do
+for f in tests/scenarios.sql tests/scenarios-provider.sql tests/scenarios-applications.sql; do
   echo "--- $f"
   docker exec -i "$NAME" sh -c 'psql -U postgres -q 2>&1' < "$f"
 done

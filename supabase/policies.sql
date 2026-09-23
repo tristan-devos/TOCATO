@@ -1,5 +1,5 @@
 -- =============================================================================
--- TOCATO : règles d'accès : RLS + Storage (à exécuter EN DERNIER, après providers.sql)
+-- TOCATO : règles d'accès : RLS + Storage (à exécuter EN DERNIER, après applications.sql)
 -- =============================================================================
 -- Lecture : policies `select` ci-dessous, côté client (owner) et côté prestataire
 -- (current_provider_id(), providers.sql). Écriture : aucune policy update ; seuls
@@ -16,6 +16,17 @@ alter table public.providers     enable row level security;
 alter table public.bookings      enable row level security;
 alter table public.conversations enable row level security;
 alter table public.messages      enable row level security;
+alter table public.admins        enable row level security;
+alter table public.rbq_licences  enable row level security;
+alter table public.provider_applications enable row level security;
+-- admins, rbq_licences : AUCUNE policy. Lus seulement par is_admin() et
+-- rbq_check_licence (security definer), écrits par l'admin et rbq-import.sh.
+
+-- provider_applications : le demandeur lit la sienne, l'admin les lit toutes.
+-- Écritures : uniquement via submit_provider_application et les RPC admin.
+drop policy if exists "provider_applications_select" on public.provider_applications;
+create policy "provider_applications_select" on public.provider_applications
+  for select to authenticated using (user_id = auth.uid() or public.is_admin());
 
 -- profiles : chacun gère son propre profil.
 drop policy if exists "profiles_select_own" on public.profiles;
@@ -130,4 +141,26 @@ create policy "booking_photos_select_provider" on storage.objects
   for select to authenticated using (
     bucket_id = 'booking-photos'
     and public.provider_can_see_booking((storage.foldername(name))[2])
+  );
+
+-- =============================================================================
+-- Storage : bucket privé provider-documents (pièce d'identité, assurance),
+-- chemin {user_id}/.... Le demandeur gère son dossier ; seul l'admin lit les autres.
+-- Pas d'update : un renvoi téléverse de nouveaux fichiers (nouveaux chemins).
+-- =============================================================================
+drop policy if exists "provider_documents_select" on storage.objects;
+create policy "provider_documents_select" on storage.objects
+  for select to authenticated using (
+    bucket_id = 'provider-documents'
+    and ((storage.foldername(name))[1] = auth.uid()::text or public.is_admin())
+  );
+drop policy if exists "provider_documents_insert_own" on storage.objects;
+create policy "provider_documents_insert_own" on storage.objects
+  for insert to authenticated with check (
+    bucket_id = 'provider-documents' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+drop policy if exists "provider_documents_delete_own" on storage.objects;
+create policy "provider_documents_delete_own" on storage.objects
+  for delete to authenticated using (
+    bucket_id = 'provider-documents' and (storage.foldername(name))[1] = auth.uid()::text
   );
