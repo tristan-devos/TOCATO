@@ -106,8 +106,8 @@ end;
 $$;
 
 -- ——— cancel_booking : le client annule une réservation active ————————————
--- Possible tant que la réservation n'est ni annulée ni terminée (comportement
--- actuel de l'app). Les devis encore en attente passent à declined pour qu'on
+-- Possible tant que l'intervention n'a pas commencé (pending ou confirmed) :
+-- une fois in_progress (start_job, providers.sql), le prestataire est sur place. Les devis encore en attente passent à declined pour qu'on
 -- ne puisse plus les accepter. Message système dans chaque conversation.
 create or replace function public.cancel_booking(p_booking_id uuid)
 returns void
@@ -119,7 +119,7 @@ begin
   perform 1 from public.bookings
   where id = p_booking_id
     and user_id = auth.uid()
-    and status in ('pending', 'confirmed', 'in_progress')
+    and status in ('pending', 'confirmed')
   for update;
   if not found then raise exception 'booking_not_cancellable'; end if;
 
@@ -165,7 +165,8 @@ begin
 end;
 $$;
 
--- ——— mark_conversation_read : remet à zéro les non-lus du client ——————————
+-- ——— mark_conversation_read : remet à zéro les non-lus de l'appelant ————————
+-- Client de la conversation -> client_unread_count ; prestataire -> provider_unread_count.
 create or replace function public.mark_conversation_read(p_conversation_id uuid)
 returns void
 language plpgsql
@@ -174,8 +175,12 @@ set search_path = public
 as $$
 begin
   update public.conversations
-  set unread_count = 0
+  set client_unread_count = 0
   where id = p_conversation_id and user_id = auth.uid();
+
+  update public.conversations
+  set provider_unread_count = 0
+  where id = p_conversation_id and provider_id = public.current_provider_id();
 end;
 $$;
 

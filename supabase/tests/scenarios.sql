@@ -56,9 +56,9 @@ select accept_quote((select m.id from messages m join conversations c on c.id=m.
   where m.type='quote' and c.provider_id='p-marc'));
 
 \echo '--- Non-lus : Alice les remet à zéro (1 -> 0)'
-select unread_count from conversations where provider_id='p-marc';
+select client_unread_count from conversations where provider_id='p-marc';
 select mark_conversation_read((select id from conversations where provider_id='p-marc'));
-select unread_count from conversations where provider_id='p-marc';
+select client_unread_count from conversations where provider_id='p-marc';
 
 \echo '--- Nouvelle demande via create_booking + photos'
 select create_booking('mover', null, null, '{"id":"a","label":"x","street":"s","city":"Montréal","postalCode":"H2J 2L2"}', '[]', 'd', 100, 200) as bk \gset

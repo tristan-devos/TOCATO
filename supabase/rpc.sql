@@ -3,8 +3,9 @@
 -- =============================================================================
 
 -- ——— Trigger : tenir conversations à jour à chaque message ————————————————
--- Met à jour last_message_at et incrémente unread_count pour les messages
--- entrants (prestataire). Évite de gérer ces champs côté client.
+-- Met à jour last_message_at et incrémente le compteur de non-lus du
+-- DESTINATAIRE : message prestataire -> client_unread_count, message client ->
+-- provider_unread_count (les messages système ne comptent pas).
 -- security definer : le client n'a plus de policy d'update sur conversations
 -- (transitions via RPC, voir transitions.sql) ; le trigger doit pouvoir écrire.
 create or replace function public.handle_new_message()
@@ -16,7 +17,10 @@ as $$
 begin
   update public.conversations
   set last_message_at = new.created_at,
-      unread_count = unread_count + case when new.sender_kind = 'provider' then 1 else 0 end
+      client_unread_count = client_unread_count
+        + case when new.sender_kind = 'provider' then 1 else 0 end,
+      provider_unread_count = provider_unread_count
+        + case when new.sender_kind = 'client' then 1 else 0 end
   where id = new.conversation_id;
   return new;
 end;
@@ -56,6 +60,10 @@ declare
   v_booking uuid;
 begin
   if auth.uid() is null then raise exception 'not_authenticated'; end if;
+  -- v1 : un compte prestataire n'est pas aussi client (docs, §10).
+  if public.current_provider_id() is not null then
+    raise exception 'providers_cannot_book';
+  end if;
 
   insert into public.bookings (
     user_id, service_id, status, scheduled_date, time_slot, address,
@@ -140,9 +148,9 @@ begin
     (v_cjard, 'provider', 'p-sophie', 'document', 'Voici votre facture.', now() - interval '11 days',
      '{"name":"Facture-TOCATO-0214.pdf","size":"86 Ko"}'::jsonb);
 
-  -- Le trigger a recalculé unread_count/last_message_at ; on fixe l'état voulu.
-  update public.conversations set unread_count = 1, last_message_at = now() - interval '2 hours' where id = v_cmarc;
-  update public.conversations set unread_count = 1, last_message_at = now() - interval '1 day 4 hours' where id = v_camadou;
-  update public.conversations set unread_count = 0, last_message_at = now() - interval '11 days' where id = v_cjard;
+  -- Le trigger a recalculé les non-lus/last_message_at ; on fixe l'état voulu.
+  update public.conversations set client_unread_count = 1, provider_unread_count = 0, last_message_at = now() - interval '2 hours' where id = v_cmarc;
+  update public.conversations set client_unread_count = 1, provider_unread_count = 0, last_message_at = now() - interval '1 day 4 hours' where id = v_camadou;
+  update public.conversations set client_unread_count = 0, provider_unread_count = 0, last_message_at = now() - interval '11 days' where id = v_cjard;
 end;
 $$;

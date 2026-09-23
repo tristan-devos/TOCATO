@@ -1,6 +1,6 @@
 # Conception — interface prestataire (appel d'offres)
 
-> **Statut : validé**, en cours de réalisation — lots 1 et 2 faits (voir §9).
+> **Statut : validé**, en cours de réalisation — lots 1, 2 et 3 faits (voir §9).
 > Rédigé le 2026-09-23. Chaque lot ci-dessous devient une PR, et `AGENTS.md` est mis à
 > jour dans la PR qui change le comportement décrit. Les écarts au plan sont notés
 > « **Réalisé :** » dans la section concernée.
@@ -107,6 +107,23 @@ le nom du client ne sont visibles qu'**après acceptation du devis**.
 Le prénom du client doit s'afficher dans le chat côté prestataire : exposé via
 `list_provider_conversations()` (prénom seul), `profiles` restant owner-only.
 
+**Réalisé (lot 3) — écarts :**
+- `bookings` select prestataire : **seulement** les réservations où il est retenu, pas
+  celles « où il a une conversation » (le tableau ci-dessus) — sinon la ligne entière,
+  adresse exacte comprise, serait lisible dès son offre, contrairement à la règle
+  ci-dessus. Tant que la demande est ouverte, il la voit via `list_open_requests`, qui
+  renvoie aussi `my_conversation_id` / `my_quote_status` (sa propre offre).
+- Storage : lecture si la demande est ouverte dans un de ses services ou lui est confiée
+  (pas « s'il y a une conversation », même raison).
+- La RPC s'appelle `provider_conversation_clients()` (renvoie conversation + prénom).
+- Toutes les policies sont regroupées dans `supabase/policies.sql`, exécuté en dernier.
+- `create_booking` refuse un compte prestataire (question §10.5 tranchée : v1 = non).
+- `cancel_booking` : plus possible une fois `in_progress` (règle du §2, désormais
+  appliquée puisque `start_job` existe).
+- **Reporté au lot 4** : l'app lit encore les fiches dans `mock-data.ts`, qui ne contient
+  que les fiches de démo. Une fiche réelle n'y apparaît pas : le lot 4 doit charger les
+  fiches depuis la table `providers` avant le test de bout en bout.
+
 ## 6. Fonctions serveur (RPC)
 
 | RPC | Appelant | Effet (atomique) |
@@ -171,12 +188,12 @@ Chaque lot : `tsc` + export web + `expo-doctor` OK, fichiers < 300 lignes,
    suppression des `update` directs côté app et des policies d'update.
 2. ✅ **Appel d'offres côté client** (reprise de la PR #8) : schéma N conversations,
    wizard sans choix, offres reçues, profil prestataire, simulation adaptée.
-3. **Comptes prestataires côté serveur** : `providers.user_id`, `is_demo`,
+3. ✅ **Comptes prestataires côté serveur** : `providers.user_id`, `is_demo`,
    `current_provider_id()`, policies prestataire, `list_open_requests`,
    `send_quote`, `start_job` / `complete_job`, Storage, compteurs par côté,
    procédure SQL documentée pour relier un compte.
 4. **Interface prestataire** : navigation par rôle, onglets et écrans du §7, i18n
-   FR/EN.
+   FR/EN, **fiches prestataires lues depuis la base** (au lieu de `mock-data.ts`).
 5. **Nettoyage** : fin de la simulation, suppression de `mock-data.ts`.
 
 Test de bout en bout après le lot 4 : ton collègue = client, un compte de test =

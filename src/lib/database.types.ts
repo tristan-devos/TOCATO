@@ -16,6 +16,7 @@ import type {
   BookingStatus,
   Message,
   PriceRange,
+  QuoteStatus,
   ServiceId,
   TimeSlotId,
 } from '@/lib/types';
@@ -82,6 +83,10 @@ export interface Database {
           hourly_rate: number;
           bio: string;
           member_since: string;
+          /** Compte relié (prestataire réel) ; null pour une fiche de démo. */
+          user_id: string | null;
+          /** Fiche simulée par l'Edge Function provider-reply. */
+          is_demo: boolean;
         };
         Insert: Database['public']['Tables']['providers']['Row'];
         Update: Partial<Database['public']['Tables']['providers']['Row']>;
@@ -131,7 +136,8 @@ export interface Database {
           user_id: string;
           provider_id: string;
           booking_id: string;
-          unread_count: number;
+          client_unread_count: number;
+          provider_unread_count: number;
           last_message_at: string;
         };
         Insert: {
@@ -139,7 +145,8 @@ export interface Database {
           user_id: string;
           provider_id: string;
           booking_id: string;
-          unread_count?: number;
+          client_unread_count?: number;
+          provider_unread_count?: number;
           last_message_at?: string;
         };
         Update: Partial<Database['public']['Tables']['conversations']['Insert']>;
@@ -213,6 +220,48 @@ export interface Database {
       mark_conversation_read: {
         Args: { p_conversation_id: string };
         Returns: undefined;
+      };
+      // Côté prestataire (supabase/providers.sql) — consommées par l'interface
+      // prestataire (lot 4).
+      current_provider_id: {
+        Args: Record<string, never>;
+        Returns: string | null;
+      };
+      list_open_requests: {
+        Args: Record<string, never>;
+        Returns: {
+          id: string;
+          service_id: ServiceId;
+          created_at: string;
+          scheduled_date: string | null;
+          time_slot: TimeSlotId | null;
+          city: string | null;
+          /** 3 premiers caractères du code postal (ex. H2J), jamais l'adresse. */
+          postal_sector: string;
+          answers: BookingAnswer[];
+          description: string;
+          photos: string[];
+          estimate_min: number;
+          estimate_max: number;
+          my_conversation_id: string | null;
+          my_quote_status: QuoteStatus | null;
+        }[];
+      };
+      send_quote: {
+        Args: { p_booking_id: string; p_amount: number; p_details: string };
+        Returns: string;
+      };
+      start_job: {
+        Args: { p_booking_id: string };
+        Returns: undefined;
+      };
+      complete_job: {
+        Args: { p_booking_id: string };
+        Returns: undefined;
+      };
+      provider_conversation_clients: {
+        Args: Record<string, never>;
+        Returns: { conversation_id: string; client_first_name: string }[];
       };
     };
     Enums: Record<never, never>;

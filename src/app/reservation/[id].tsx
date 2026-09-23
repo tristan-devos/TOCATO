@@ -16,7 +16,7 @@ import { Card } from '@/components/ui/card';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
-import { BOOKING_STATUS, isActiveStatus } from '@/lib/booking-status';
+import { BOOKING_STATUS, isCancellableStatus } from '@/lib/booking-status';
 import { getProvider } from '@/lib/mock-data';
 import { TIME_SLOTS } from '@/lib/services';
 import { useAppStore, useBooking } from '@/lib/store';
@@ -198,7 +198,7 @@ export default function ReservationDetailScreen() {
               }
             />
           ) : null}
-          {isActiveStatus(booking.status) ? (
+          {isCancellableStatus(booking.status) ? (
             <Button
               title={t('reservationDetail.cancelBooking')}
               variant="destructive"

@@ -10,6 +10,14 @@ export const BOOKING_STATUS: Record<BookingStatus, { tone: Tone }> = {
   cancelled: { tone: 'neutral' },
 };
 
+/**
+ * Statuses where the client can still cancel: before the provider has started
+ * (mirrors cancel_booking in supabase/transitions.sql).
+ */
+export function isCancellableStatus(status: BookingStatus): boolean {
+  return status === 'pending' || status === 'confirmed';
+}
+
 /** Statuses where the booking is still active. */
 export function isActiveStatus(status: BookingStatus): boolean {
   return status === 'pending' || status === 'confirmed' || status === 'in_progress';
