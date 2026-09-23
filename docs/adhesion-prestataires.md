@@ -21,6 +21,7 @@ le droit d'exercer. Objectif : un prestataire **demande** à adhérer depuis l'a
 | Validation | **Vérification automatique + approbation de l'admin.** Personne n'entre sans validation humaine au lancement. |
 | Outil de l'admin | **Écran admin dans l'app** (plus de SQL à la main). |
 | Pièces exigées | **NEQ**, **assurance responsabilité civile**, **pièce d'identité** ; en plus, pour la plomberie, **licence RBQ avec la sous-catégorie 15.5**. |
+| Admin | **Tristan seul.** |
 
 ## 3. Ce que dit la loi, ce qu'on peut vérifier
 
@@ -87,24 +88,28 @@ Faite **côté serveur** dans `submit_provider_application`, à partir de `rbq_l
 | `missing_subcategory` | licence active sans la 15.5 |
 | `restricted` | licence avec restriction en cours |
 | `neq_mismatch` | NEQ saisi différent de celui du registre |
+| `registry_unavailable` | registre jamais importé (table vide) |
 
 Le résultat est **indicatif** : l'admin décide. Le détail (nom au registre, date de
 l'import) est gardé dans `rbq_check` pour la trace. L'écran admin affiche l'attribution
 « Source : Régie du bâtiment du Québec, Données Québec (CC-BY 4.0) ».
 
-**Import manuel** (décision du 2026-09-24, pas d'automatisation pour l'instant) :
-l'équipe lance `supabase/rbq-import.sh` depuis son poste, sur le modèle de `apply.sh`
-(Docker, `SUPABASE_DB_URL` lu dans `.env`, rien dans les secrets GitHub). Le script
-télécharge le zip, filtre en streaming les lignes utiles et remplace le contenu de
-`rbq_licences` dans une transaction. Le lancer **avant d'examiner des demandes** de
-plombiers, idéalement chaque semaine.
+**Import nocturne** (décision du 2026-09-24) : une GitHub Action planifiée lance
+chaque nuit `supabase/rbq-import.sh`. Le script télécharge le zip, filtre en streaming
+les lignes utiles et remplace le contenu de `rbq_licences` dans une transaction. Il se
+lance aussi à la main, sur le modèle de `apply.sh` (Docker, `SUPABASE_DB_URL` lu dans
+`.env`), en secours ou pour tester.
 
-Conséquence : le registre local peut dater. Une licence révoquée depuis le dernier
-import passerait encore pour `ok`. D'où deux garde-fous : `rbq_check` garde la date de
-l'import utilisé, et l'écran admin affiche « Registre importé il y a N jours » (en
-alerte au-delà de 7 jours) avec le lien de vérification en ligne de la RBQ.
-Écartés pour l'instant : une GitHub Action nocturne (mot de passe de la base dans les
-secrets GitHub) et une Edge Function planifiée (340 Mo de CSV, limites mémoire et durée).
+L'Action a besoin de `SUPABASE_DB_URL` dans les **secrets GitHub** (chiffré, jamais
+affiché, même aux collaborateurs du repo). C'est le seul nouvel endroit où vit le mot
+de passe de la base. Si le compte GitHub était compromis, la base le serait aussi :
+risque accepté, parce qu'une vérification de licence vieille d'un mois ne légitime rien.
+
+Garde-fous si l'import échoue plusieurs nuits : `rbq_check` garde la date de l'import
+utilisé, et l'écran admin affiche « Registre importé il y a N jours » (en alerte au-delà
+de 3 jours) avec le lien de vérification en ligne de la RBQ. Si la table est vide (jamais
+importée), le résultat vaut `registry_unavailable`.
+Écartée : une Edge Function planifiée (340 Mo de CSV, limites mémoire et durée).
 
 ## 7. Sécurité (règles de `AGENTS.md` appliquées)
 
@@ -149,19 +154,19 @@ par … », pas l'image). À refléter dans la politique de confidentialité.
 ## 9. Découpage en PR (lots)
 
 1. **Serveur** : tables, `is_admin`, RPC, policies, bucket, scénarios SQL.
-2. **Registre RBQ** : `rbq-import.sh` (import manuel) et sa doc dans `AGENTS.md`.
+2. **Registre RBQ** : `rbq-import.sh`, GitHub Action nocturne, secret et doc dans `AGENTS.md`.
 3. **App, côté demandeur** : choix à l'inscription, formulaire, écran de statut, rôle
    `applicant`.
 4. **App, côté admin** : liste et détail des adhésions, approbation, refus.
 5. **Vie privée** : suppression des pièces d'identité 30 jours après décision (tâche
    planifiée), mise à jour de la politique de confidentialité.
 
-## 10. Questions ouvertes
+## 10. Choix par défaut (modifiables, à confirmer en réunion)
 
-1. Les plombiers fournissent-ils aussi pièce d'identité et assurance, en plus de la
-   licence RBQ ? Proposition : oui, mêmes pièces pour tous.
-2. Nom affiché aux clients : nom de l'entreprise, ou prénom + nom ?
-3. Durée de conservation des pièces : 30 jours après décision, ça te va ?
-4. Faut-il prévenir le demandeur de la décision autrement que dans l'app (courriel) ?
-   Pas de push dans Expo Go ; un courriel demande un fournisseur d'envoi (hors v1).
-5. Qui est admin : toi seul, ou aussi ton collègue ?
+Pour ne pas bloquer le développement, les propositions suivantes sont appliquées :
+
+1. **Mêmes pièces pour tous**, plombiers compris (pièce d'identité et assurance en plus
+   de la licence RBQ).
+2. **Nom affiché aux clients** : le nom de l'entreprise saisi dans la demande.
+3. **Pièces d'identité supprimées 30 jours après la décision** (lot 5).
+4. **Pas de courriel** de décision en v1 : le demandeur voit le résultat dans l'app.
