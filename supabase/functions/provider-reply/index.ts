@@ -10,6 +10,9 @@
 //     devis. C'est le cœur du flux multi-prestataires.
 //   - `canned` (conversationId) : réponse passe-partout dans une conversation
 //     existante, quand le client écrit.
+// Seules les fiches de DÉMO (providers.is_demo) sont simulées : `initial` ne fait
+// répondre la démo que si aucun vrai prestataire (fiche reliée à un compte) ne
+// couvre le service, et `canned` ne répond jamais à la place d'un vrai prestataire.
 // Le Realtime répercute ensuite ces insertions dans l'app.
 //
 // Runtime : Deno (Supabase Edge Runtime). Ce dossier est exclu du tsconfig de
@@ -145,12 +148,24 @@ async function runProviderContact(
   });
 }
 
-/** Tous les prestataires du service répondent à la demande, en décalé. */
+/**
+ * Les prestataires de démo du service répondent à la demande, en décalé — sauf
+ * si un vrai prestataire couvre le service : c'est alors à lui de répondre.
+ */
 async function runInitial(admin: Admin, booking: BookingRow): Promise<void> {
+  const { count: realProviders } = await admin
+    .from('providers')
+    .select('id', { count: 'exact', head: true })
+    .contains('services', [booking.service_id])
+    .eq('is_demo', false)
+    .not('user_id', 'is', null);
+  if ((realProviders ?? 0) > 0) return;
+
   const { data: providers } = await admin
     .from('providers')
     .select('id, hourly_rate')
-    .contains('services', [booking.service_id]);
+    .contains('services', [booking.service_id])
+    .eq('is_demo', true);
 
   const tasks = (providers ?? []).map((provider, index) =>
     runProviderContact(
@@ -246,6 +261,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
     .eq('id', conversationId)
     .single();
   if (!conv || conv.user_id !== user.id) return json({ error: 'not_found' }, 404);
+
+  // Jamais de réponse simulée à la place d'un vrai prestataire.
+  const { data: provider } = await admin
+    .from('providers')
+    .select('is_demo')
+    .eq('id', conv.provider_id)
+    .single();
+  if (!provider?.is_demo) return json({ ok: true, simulated: false });
 
   EdgeRuntime.waitUntil(runCanned(admin, String(conv.id), String(conv.provider_id)));
   return json({ ok: true });

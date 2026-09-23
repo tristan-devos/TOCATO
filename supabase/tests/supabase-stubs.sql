@@ -10,5 +10,7 @@ create table storage.buckets (id text primary key, name text, public boolean);
 create table storage.objects (id serial, bucket_id text, name text);
 create function storage.foldername(name text) returns text[] language sql as $$ select string_to_array(name, '/') $$;
 alter table storage.objects enable row level security;
+-- Comme sur Supabase : droits de table accordés, l'accès réel est filtré par la RLS.
+grant select, insert, delete on storage.objects to authenticated;
 create publication supabase_realtime;
 alter default privileges in schema public grant all on tables to anon, authenticated;

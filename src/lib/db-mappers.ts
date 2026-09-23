@@ -34,7 +34,8 @@ export function rowToConversation(row: ConversationRow): Conversation {
     id: row.id,
     providerId: row.provider_id,
     bookingId: row.booking_id,
-    unreadCount: row.unread_count,
+    // Côté client ; l'interface prestataire (lot 4) lira provider_unread_count.
+    unreadCount: row.client_unread_count,
     lastMessageAt: row.last_message_at,
   };
 }

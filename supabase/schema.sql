@@ -5,10 +5,11 @@
 -- src/lib/database.types.ts. À exécuter dans le SQL editor d'un projet Supabase.
 -- Idempotent autant que possible (IF NOT EXISTS / ON CONFLICT).
 --
--- Modèle : une app côté client. Chaque utilisateur ne voit que ses propres
--- données (RLS owner-only). Le catalogue `providers` est en lecture publique.
--- Écritures sur bookings / conversations / messages : uniquement via les RPC
--- (rpc.sql, transitions.sql), sauf l'envoi d'un message texte par le client.
+-- Ordre d'exécution (tous idempotents) : schema.sql (tables, migrations, seed)
+-- -> rpc.sql -> transitions.sql -> providers.sql -> policies.sql (RLS + Storage,
+-- en dernier car les policies appellent les fonctions des fichiers précédents).
+-- Écritures sur bookings / conversations / messages : uniquement via les RPC,
+-- sauf l'envoi d'un message texte (voir policies.sql).
 -- =============================================================================
 
 -- ——— profiles : 1:1 avec auth.users ———————————————————————————————————————
@@ -76,9 +77,17 @@ create table if not exists public.providers (
   hourly_rate    numeric(10, 2) not null default 0,
   bio            text not null default '',
   member_since   text not null default '',
+  -- Compte relié (prestataire réel), renseigné par un admin via
+  -- admin_link_provider (providers.sql). Null pour les fiches de démo.
+  user_id        uuid unique references public.profiles (id) on delete set null,
+  -- Fiche de démo : répond via la simulation (Edge Function provider-reply).
+  is_demo        boolean not null default false,
   constraint providers_services_valid
     check (services <@ array['plumber', 'mover', 'gardener']::text[])
 );
+alter table public.providers
+  add column if not exists user_id uuid unique references public.profiles (id) on delete set null;
+alter table public.providers add column if not exists is_demo boolean not null default false;
 
 -- ——— bookings ————————————————————————————————————————————————————————————
 -- Appel d'offres : provider_id est null tant qu'aucun devis n'est accepté. Les
@@ -114,10 +123,24 @@ create table if not exists public.conversations (
   user_id         uuid not null references public.profiles (id) on delete cascade,
   provider_id     text not null references public.providers (id),
   booking_id      uuid not null references public.bookings (id) on delete cascade,
-  unread_count    integer not null default 0,
+  -- Non-lus de chaque côté : le trigger handle_new_message incrémente le compteur
+  -- du destinataire, mark_conversation_read remet à zéro celui de l'appelant.
+  client_unread_count   integer not null default 0,
+  provider_unread_count integer not null default 0,
   last_message_at timestamptz not null default now()
 );
+-- Migration : l'ancien compteur unique (côté client) devient client_unread_count.
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public'
+             and table_name = 'conversations' and column_name = 'unread_count') then
+    alter table public.conversations rename column unread_count to client_unread_count;
+  end if;
+end $$;
+alter table public.conversations
+  add column if not exists provider_unread_count integer not null default 0;
 create index if not exists conversations_user_id_idx on public.conversations (user_id);
+create index if not exists conversations_provider_id_idx on public.conversations (provider_id);
 -- Migration des bases déjà déployées vers l'appel d'offres : le prestataire n'est
 -- plus fixé à la création, et une demande a N conversations au lieu d'une seule.
 -- (Remplace la réparation temporaire de conversation_id du 2026-09-23.)
@@ -147,80 +170,6 @@ create table if not exists public.messages (
 create index if not exists messages_conversation_id_idx on public.messages (conversation_id);
 
 -- =============================================================================
--- Row Level Security
--- =============================================================================
-alter table public.profiles      enable row level security;
-alter table public.addresses     enable row level security;
-alter table public.providers     enable row level security;
-alter table public.bookings      enable row level security;
-alter table public.conversations enable row level security;
-alter table public.messages      enable row level security;
-
--- profiles : chacun gère son propre profil.
-drop policy if exists "profiles_select_own" on public.profiles;
-create policy "profiles_select_own" on public.profiles
-  for select using (auth.uid() = id);
-drop policy if exists "profiles_update_own" on public.profiles;
-create policy "profiles_update_own" on public.profiles
-  for update using (auth.uid() = id);
-
--- addresses : owner-only (toutes opérations).
-drop policy if exists "addresses_all_own" on public.addresses;
-create policy "addresses_all_own" on public.addresses
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
--- providers : catalogue en lecture pour tout utilisateur connecté.
-drop policy if exists "providers_select_all" on public.providers;
-create policy "providers_select_all" on public.providers
-  for select using (true);
-
--- bookings : lecture owner-only. AUCUNE écriture directe : l'ancienne policy
--- `for all` laissait le client écrire status / agreed_price (se confirmer une
--- réservation au prix de son choix). Création via create_booking, transitions
--- via transitions.sql.
-drop policy if exists "bookings_all_own" on public.bookings;
-drop policy if exists "bookings_select_own" on public.bookings;
-create policy "bookings_select_own" on public.bookings
-  for select using (auth.uid() = user_id);
-
--- conversations : lecture owner-only, écritures via RPC (create_booking,
--- mark_conversation_read) et trigger handle_new_message.
-drop policy if exists "conversations_all_own" on public.conversations;
-drop policy if exists "conversations_select_own" on public.conversations;
-create policy "conversations_select_own" on public.conversations
-  for select using (auth.uid() = user_id);
-
--- messages : accès via la conversation possédée par l'utilisateur.
-drop policy if exists "messages_select_own" on public.messages;
-create policy "messages_select_own" on public.messages
-  for select using (
-    exists (
-      select 1 from public.conversations c
-      where c.id = messages.conversation_id and c.user_id = auth.uid()
-    )
-  );
--- Le client n'insère que des messages texte signés 'client'. Les messages
--- 'system' viennent des RPC (security definer), les messages 'provider' du
--- serveur (Edge Function provider-reply, service_role) : ni un faux devis ni un
--- faux « Devis accepté » ne peuvent être forgés depuis l'app.
-drop policy if exists "messages_insert_own" on public.messages;
-create policy "messages_insert_own" on public.messages
-  for insert with check (
-    messages.sender_kind = 'client'
-    and messages.type = 'text'
-    and messages.quote is null
-    and messages.document is null
-    and exists (
-      select 1 from public.conversations c
-      where c.id = messages.conversation_id and c.user_id = auth.uid()
-    )
-  );
--- Pas d'update direct : l'ancienne policy laissait le client modifier
--- n'importe quel message, y compris le montant d'un devis du prestataire.
--- Le statut d'un devis change via accept_quote / decline_quote.
-drop policy if exists "messages_update_own" on public.messages;
-
--- =============================================================================
 -- Realtime : le client s'abonne aux changements (messages, bookings,
 -- conversations). Idempotent — n'ajoute la table que si absente de la publication.
 -- =============================================================================
@@ -240,28 +189,13 @@ end $$;
 
 -- =============================================================================
 -- Storage : photos jointes aux demandes de réservation (bucket privé).
--- Chemin : {user_id}/{booking_id}/{n}.jpg — le 1er segment porte le RLS owner-only.
+-- Chemin : {user_id}/{booking_id}/{n}.jpg. Policies d'accès : voir policies.sql.
 -- L'app lit via URLs signées (createSignedUrls), jamais en accès public.
 -- =============================================================================
 insert into storage.buckets (id, name, public)
 values ('booking-photos', 'booking-photos', false)
 on conflict (id) do nothing;
 
-drop policy if exists "booking_photos_select_own" on storage.objects;
-create policy "booking_photos_select_own" on storage.objects
-  for select to authenticated using (
-    bucket_id = 'booking-photos' and (storage.foldername(name))[1] = auth.uid()::text
-  );
-drop policy if exists "booking_photos_insert_own" on storage.objects;
-create policy "booking_photos_insert_own" on storage.objects
-  for insert to authenticated with check (
-    bucket_id = 'booking-photos' and (storage.foldername(name))[1] = auth.uid()::text
-  );
-drop policy if exists "booking_photos_delete_own" on storage.objects;
-create policy "booking_photos_delete_own" on storage.objects
-  for delete to authenticated using (
-    bucket_id = 'booking-photos' and (storage.foldername(name))[1] = auth.uid()::text
-  );
 
 -- =============================================================================
 -- Seed du catalogue prestataires (miroir de src/lib/mock-data.ts)
@@ -295,3 +229,6 @@ values
    'Aménagement paysager et entretien saisonnier. Devis gratuit sur photos.',
    '2023')
 on conflict (id) do nothing;
+-- Les six fiches ci-dessus sont des fiches de démo (simulation provider-reply).
+update public.providers set is_demo = true
+where id in ('p-marc', 'p-amadou', 'p-jp', 'p-kevin', 'p-sophie', 'p-maria') and not is_demo;

@@ -77,11 +77,12 @@ plombier, déménageur, jardinier.
   dashboard, Supabase répond du HTML et l'app affiche `JSON parse error: Unexpected
   character: <` à l'inscription/connexion. Vérif rapide :
   `curl https://<ref>.supabase.co/auth/v1/health` doit répondre du **JSON** (401 sans clé).
-  Exécuter
-  `supabase/schema.sql`, puis `supabase/rpc.sql`, puis `supabase/transitions.sql` dans le
-  SQL editor (tables + RLS + Realtime + seed, puis fonctions/triggers, puis transitions
-  d'état ; tous idempotents et ré-exécutables). **Après toute PR qui touche `supabase/`**,
-  ré-exécuter les trois fichiers dans cet ordre.
+  Exécuter dans le SQL editor, **dans cet ordre** : `supabase/schema.sql` (tables,
+  migrations, Realtime, seed) → `rpc.sql` (trigger, create_booking, seed_demo) →
+  `transitions.sql` (transitions côté client) → `providers.sql` (comptes et actions
+  prestataire) → `policies.sql` (RLS + Storage, **en dernier** : les policies appellent
+  les fonctions des fichiers précédents). Tous idempotents et ré-exécutables. **Après
+  toute PR qui touche `supabase/`**, ré-exécuter les cinq fichiers dans cet ordre.
   **Règle : la base Supabase partagée reflète toujours `main`.** Ne jamais y exécuter le
   SQL d'une branche non mergée (tester avec `supabase/tests/run.sh`). **Piège vérifié** : le
   SQL de la PR #8 (jamais mergée) y avait été exécuté et avait supprimé
@@ -96,9 +97,10 @@ plombier, déménageur, jardinier.
   Types DB régénérables via `npx supabase gen types typescript --project-id <ref>`
   (réimporter ensuite les unions de `lib/types.ts` dans `lib/database.types.ts`).
 - **Tests SQL** : `supabase/tests/run.sh` (Docker requis, ne touche pas au projet réel).
-  Joue les trois fichiers dans un Postgres jetable (install neuve + ré-exécution + mise à
+  Joue les cinq fichiers dans un Postgres jetable (install neuve + ré-exécution + mise à
   jour depuis `main`), puis les scénarios RLS/RPC de `supabase/tests/scenarios.sql`
-  (chaque bloc annonce le résultat attendu). **À lancer avant de conclure toute modif SQL** ;
+  (client) et `scenarios-provider.sql` (prestataire) — chaque bloc annonce le résultat
+  attendu ; le script échoue à la moindre erreur SQL d'installation. **À lancer avant de conclure toute modif SQL** ;
   ajouter un scénario pour chaque nouvelle policy ou RPC.
 - **Edge Functions** : `supabase functions deploy provider-reply --project-ref <ref>`
   (déploiement seul, sans Docker ; `supabase login` requis). `SUPABASE_URL` /
@@ -211,10 +213,10 @@ src/hooks/use-color-scheme.ts  Color scheme actif (variante .web.ts pour le rend
 src/hooks/use-theme.ts      Accès au thème selon le color scheme
 src/hooks/use-formats.ts    Formatters (prix/dates) liés à la langue active (fr-CA / en-CA)
 src/hooks/use-auth-guard.ts Redirige login <-> app selon la session (inactif sans Supabase)
-supabase/schema.sql         Schéma Postgres : tables + RLS + Realtime + bucket Storage
-                            booking-photos (privé, RLS owner-only) + seed prestataires
-                            (idempotent, ré-exécutable). Miroir de lib/types.ts. Les IDs
-                            prestataires doivent rester synchrones avec lib/mock-data.ts.
+supabase/schema.sql         Schéma Postgres : tables + migrations + Realtime + bucket Storage
+                            booking-photos + seed prestataires de démo (is_demo). Miroir de
+                            lib/types.ts. Les IDs prestataires doivent rester synchrones
+                            avec lib/mock-data.ts. Pas de policies (voir policies.sql).
 supabase/rpc.sql            Fonctions/triggers (create_booking = demande ouverte sans
                             prestataire, seed_demo, trigger messages)
                             — à exécuter APRÈS schema.sql. seed_demo charge le scénario de
@@ -222,9 +224,14 @@ supabase/rpc.sql            Fonctions/triggers (create_booking = demande ouverte
 supabase/transitions.sql    Transitions d'état (security definer, à exécuter APRÈS rpc.sql) :
                             accept_quote, decline_quote, cancel_booking, set_booking_photos,
                             mark_conversation_read. Voir section Sécurité des données.
+supabase/providers.sql      Comptes prestataires : current_provider_id, list_open_requests
+                            (sans adresse exacte), send_quote, start_job, complete_job,
+                            provider_conversation_clients, admin_link_provider (admin).
+supabase/policies.sql       Toutes les policies RLS + Storage (client et prestataire), en
+                            dernier. Voir section Sécurité des données.
 supabase/tests/             Tests SQL hors projet réel : run.sh (Postgres Docker),
                             supabase-stubs.sql (auth.uid, rôles, storage simulés),
-                            scenarios.sql (scénarios RLS/RPC).
+                            scenarios.sql (client), scenarios-provider.sql (prestataire).
 supabase/functions/         Edge Functions (Deno). provider-reply : simule les prestataires
                             (ouvre leurs conversations, insère intro + devis, service_role)
                             — exclu du tsconfig de l'app.
@@ -298,18 +305,29 @@ Le typage strict est une exigence forte de Tristan. Le projet compile avec `stri
 La clé anon est publique : **tout ce que la RLS permet, n'importe qui peut le faire**
 depuis un client modifié, pas seulement depuis l'app. D'où la règle :
 
-- **Lecture** : policies RLS `select` (owner-only aujourd'hui).
+- **Lecture** (`policies.sql`) : le client lit ses données (owner). Le prestataire
+  (`current_provider_id()`) lit ses conversations et leurs messages, et **seulement** les
+  réservations où il est **retenu**. Une demande ouverte ne lui est **jamais** lisible en
+  ligne entière (l'adresse y figure) : il passe par `list_open_requests` (ville + secteur
+  postal, ex. `H2J`). Photos : lisibles par le prestataire si la demande est ouverte dans
+  un de ses services ou lui est confiée. `profiles` reste owner-only (prénom du client
+  via `provider_conversation_clients`).
 - **Écriture** : **aucune policy `update`** sur `bookings`, `conversations`, `messages`,
   et pas d'`insert` direct sur `bookings` / `conversations`. Toute transition d'état
   passe par une fonction `security definer` (`rpc.sql`, `transitions.sql`) qui vérifie
   **qui** appelle (`auth.uid()`) et **si** la transition est permise, puis l'applique
-  atomiquement. Seule exception : le client insère ses messages **texte** (`sender_kind =
-  'client'`, `type = 'text'`). Les messages `system` viennent des RPC, les `provider` du
-  serveur.
+  atomiquement. Seule exception : les messages **texte**, insérés directement par le
+  client (`sender_kind = 'client'`) ou le prestataire (`'provider'`, à son nom), chacun
+  dans ses conversations. Les messages `system` et les devis viennent des RPC
+  (`send_quote`), les réponses simulées de l'Edge Function (service_role).
+- **Rôle prestataire** : une fiche `providers` avec `user_id` = le compte. Aucune colonne
+  de rôle modifiable par l'utilisateur ; seul `admin_link_provider` (exécutable par
+  l'admin uniquement) pose le lien. v1 : un compte prestataire ne peut pas créer de
+  demande (`create_booking` refuse).
 - Chaque nouvelle RPC : `security definer` + `set search_path = public`, vérification
   explicite d'`auth.uid()`, `revoke execute ... from public, anon` + `grant ... to
   authenticated`, type ajouté dans `database.types.ts > Functions`, scénario ajouté dans
-  `supabase/tests/scenarios.sql`.
+  `supabase/tests/scenarios.sql` ou `scenarios-provider.sql`.
 - Historique : avant septembre 2026, `bookings_all_own` et `messages_update_own` laissaient
   le client écrire `status` / `agreed_price` et modifier le montant d'un devis. Corrigé
   (lot 1 de `docs/interface-prestataire.md`).
@@ -357,11 +375,31 @@ Ces règles sont non négociables :
 
 L'état applicatif (réservations, conversations, messages) vit dans **Supabase** — le store
 n'est **pas** persisté en AsyncStorage. Le seul mock restant est le **catalogue de
-prestataires** (`lib/mock-data.ts`), pour afficher les fiches. Tant qu'il n'y a pas de
-vrais prestataires (lot 3), l'Edge Function `provider-reply` fait répondre **tous** les
-prestataires de démo du service à chaque nouvelle demande. Ses IDs doivent refléter les
-prestataires seedés dans `supabase/schema.sql` (FK `bookings.provider_id`,
+prestataires** (`lib/mock-data.ts`), pour afficher les fiches — il ne contient que les
+fiches de démo ; les fiches réelles seront lues depuis la base au lot 4. Ses IDs doivent
+refléter les prestataires seedés dans `supabase/schema.sql` (FK `bookings.provider_id`,
 `conversations.provider_id`).
+
+**Simulation** (Edge Function `provider-reply`) : seules les fiches `is_demo` répondent.
+À chaque nouvelle demande, les prestataires de démo du service répondent **sauf si un
+vrai prestataire** (fiche reliée à un compte) couvre ce service — c'est alors à lui de
+répondre. Et la simulation ne répond jamais dans la conversation d'un vrai prestataire.
+
+## Relier un prestataire réel (admin)
+
+Dans le SQL editor (rôle admin), une fois que la personne s'est **inscrite dans l'app** :
+
+```sql
+-- 1. Créer sa fiche (id libre, préfixe p-, services parmi plumber/mover/gardener)
+insert into providers (id, name, services, hourly_rate, bio, member_since, verified)
+values ('p-prenom', 'Prénom Nom', array['plumber'], 90, 'Présentation…', '2026', true);
+-- 2. La relier à son compte (courriel utilisé à l'inscription)
+select admin_link_provider('p-prenom', 'courriel@exemple.ca');
+-- Délier : update providers set user_id = null where id = 'p-prenom';
+```
+
+Un compte ne peut être relié qu'à une fiche, et jamais à une fiche de démo. Tant que
+l'interface prestataire (lot 4) n'existe pas, ce compte voit l'app client.
 
 « Profil → Réinitialiser la démo » appelle la RPC **`seed_demo`** (côté serveur, dans
 `supabase/rpc.sql`) puis recharge depuis Supabase. C'est `seed_demo` qui contient le scénario
