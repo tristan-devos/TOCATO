@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import type { ReactElement, ReactNode } from 'react';
+import { ScrollView, StyleSheet, View, type RefreshControlProps } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { Spacing } from '@/constants/theme';
@@ -10,10 +10,12 @@ interface ScreenProps {
   /** ScrollView par défaut ; false pour les écrans à FlatList */
   scroll?: boolean;
   edges?: Edge[];
+  /** « Tirer pour rafraîchir » (écrans en ScrollView seulement). */
+  refreshControl?: ReactElement<RefreshControlProps>;
 }
 
 /** Conteneur d'écran : fond, safe area et padding standards. */
-export function Screen({ children, scroll = true, edges = ['top'] }: ScreenProps) {
+export function Screen({ children, scroll = true, edges = ['top'], refreshControl }: ScreenProps) {
   const colors = useTheme();
 
   return (
@@ -21,6 +23,7 @@ export function Screen({ children, scroll = true, edges = ['top'] }: ScreenProps
       {scroll ? (
         <ScrollView
           contentContainerStyle={styles.scrollContent}
+          refreshControl={refreshControl}
           showsVerticalScrollIndicator={false}>
           {children}
         </ScrollView>

@@ -1,12 +1,18 @@
 import type { Address } from '@/lib/types';
 
 export interface Formatters {
+  /** Locale active (fr-CA / en-CA) : premier jour de la semaine du calendrier. */
+  locale: string;
   formatPrice: (amount: number) => string;
   formatPriceRange: (range: { min: number; max: number }) => string;
   formatDateLong: (iso: string) => string;
   formatDateShort: (iso: string) => string;
   formatTime: (iso: string) => string;
   formatRelative: (iso: string) => string;
+  /** « Septembre 2026 » (en-tête du calendrier). */
+  formatMonthYear: (date: Date) => string;
+  /** Initiale du jour (« L », « M »…) pour l'en-tête des colonnes. */
+  formatWeekdayNarrow: (date: Date) => string;
 }
 
 export function createFormatters(locale: string): Formatters {
@@ -22,8 +28,12 @@ export function createFormatters(locale: string): Formatters {
   });
   const dateShort = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' });
   const time = new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' });
+  const monthYear = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' });
+  const weekdayNarrow = new Intl.DateTimeFormat(locale, { weekday: 'narrow' });
 
   return {
+    locale,
+
     formatPrice(amount: number): string {
       return cad.format(amount);
     },
@@ -60,6 +70,15 @@ export function createFormatters(locale: string): Formatters {
       if (dayDiff < 7)
         return new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(date);
       return dateShort.format(date);
+    },
+
+    formatMonthYear(date: Date): string {
+      const label = monthYear.format(date);
+      return label.charAt(0).toUpperCase() + label.slice(1);
+    },
+
+    formatWeekdayNarrow(date: Date): string {
+      return weekdayNarrow.format(date).toUpperCase();
     },
   };
 }

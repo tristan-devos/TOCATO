@@ -210,6 +210,20 @@ fichiers non référencés après 24 h.
   bouton vers Demandes.
 - Tirer pour rafraîchir recharge les demandes ouvertes (comme l'onglet Demandes).
 
+**Réalisé :** tel que prévu, avec ces précisions. La prochaine mission est celle en
+cours, sinon la confirmée la plus proche ; une mission confirmée dont la date est passée
+passe en premier (en retard). Changement de semaine ou de mois par les flèches (pas de
+glissement : conflit avec le défilement de l'écran) ; toucher le mois revient à
+aujourd'hui. Le calendrier montre aussi les missions terminées (historique du mois),
+jamais les annulées. Tuiles : « à venir » et « terminé ce mois » ouvrent Mes travaux,
+« devis en attente » ouvre Messages ; pas de tuile « demandes ouvertes » (onglet voisin).
+Nouveau prestataire (ni mission ni devis) : carte d'invitation vers Demandes et message
+d'accueil, sans calendrier ; l'illustration attend le lot 4. Tirer pour rafraîchir
+recharge réservations et messages (les demandes ouvertes ne sont pas sur cet écran).
+`completed_at` est posé par `complete_job` ; les missions terminées avant n'entrent dans
+aucun mois. Textes au vouvoiement, comme le reste de l'interface prestataire (§9 pas
+encore tranché).
+
 ## 7. Lot 4 : moments clés côté client
 
 - **Célébrations** (lot 1 requis) : `BookingSuccess` animé (coche qui se dessine en SVG,
@@ -231,7 +245,7 @@ fichiers non référencés après 24 h.
    `lib/haptics.ts`, squelettes. Pas de SQL.
 2. ✅ **Photos des prestataires** : SQL (bucket, colonnes, RPC, policies, scénarios),
    formulaire d'adhésion, admin, profil prestataire, `Avatar` avec photo, purge.
-3. **Tableau de bord prestataire** : onglet Accueil, calendrier, tuiles, `completed_at`.
+3. ✅ **Tableau de bord prestataire** : onglet Accueil, calendrier, tuiles, `completed_at`.
 4. **Moments clés côté client** : célébrations, offres reçues, statuts humains,
    illustrations.
 

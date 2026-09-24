@@ -14,7 +14,7 @@ const APPLICANT_ONLY = new Set(['apply']);
 // Écran « Adhésions » : réservé aux comptes de la table admins (is_admin).
 const ADMIN_ONLY = new Set(['admin']);
 
-type Target = '/login' | '/' | '/apply' | '/requests';
+type Target = '/login' | '/' | '/apply' | '/home';
 
 /**
  * Où envoyer l'utilisateur : 'wait' tant que la session ou le rôle charge,
@@ -39,7 +39,7 @@ function redirectFor(
     role === 'provider' &&
     (inAuthGroup || first === '' || CLIENT_ONLY.has(first) || APPLICANT_ONLY.has(first))
   ) {
-    return '/requests';
+    return '/home';
   }
   if (role === 'client' && (inAuthGroup || PROVIDER_ONLY.has(first) || APPLICANT_ONLY.has(first))) {
     return '/';
@@ -51,7 +51,7 @@ function redirectFor(
  * Redirige selon l'état de session et le rôle :
  *  - non connecté hors du groupe (auth) -> écran de connexion ;
  *  - connecté : attend que le rôle soit chargé, puis envoie un prestataire vers
- *    ses onglets (demandes) et un client vers l'app client, en les sortant des
+ *    ses onglets (accueil) et un client vers l'app client, en les sortant des
  *    routes réservées à l'autre rôle (et du groupe (auth)) ; un demandeur
  *    d'adhésion reste cantonné au formulaire / statut de sa demande (/apply).
  *

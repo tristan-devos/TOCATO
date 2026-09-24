@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Briefcase, Inbox, MessageCircle, UserRound } from 'lucide-react-native';
+import { Briefcase, House, Inbox, MessageCircle, UserRound } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Font, FontSize } from '@/constants/theme';
@@ -21,6 +21,13 @@ export default function ProviderTabsLayout() {
         tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border },
         tabBarLabelStyle: { fontSize: 11, ...Font.semibold },
       }}>
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: t('providerApp.tabHome'),
+          tabBarIcon: ({ color, size }) => <House color={color} size={size} />,
+        }}
+      />
       <Tabs.Screen
         name="requests"
         options={{

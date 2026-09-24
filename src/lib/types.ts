@@ -69,6 +69,8 @@ export interface Booking {
    * (see Conversation.bookingId); there is no assigned provider yet.
    */
   providerId?: string;
+  /** End of the job (ISO), set by complete_job; absent for jobs completed before it existed. */
+  completedAt?: string;
 }
 
 export type MessageType = 'text' | 'quote' | 'document' | 'system';

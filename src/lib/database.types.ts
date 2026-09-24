@@ -111,6 +111,8 @@ export interface Database {
           estimate_max: number;
           agreed_price: number | null;
           provider_id: string | null;
+          /** Fin de l'intervention (complete_job) ; null avant son ajout. */
+          completed_at: string | null;
         };
         Insert: {
           id?: string;
@@ -128,6 +130,7 @@ export interface Database {
           estimate_max: number;
           agreed_price?: number | null;
           provider_id?: string | null;
+          completed_at?: string | null;
         };
         Update: Partial<Database['public']['Tables']['bookings']['Insert']>;
         Relationships: [];

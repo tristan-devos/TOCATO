@@ -223,7 +223,11 @@ src/app/                    Routes expo-router
   (tabs)/_layout.tsx        5 onglets : Accueil, Messages, Réserver (bouton central logo),
                             Réservations, Profil
   (tabs)/{index,chats,reserver,reservations,profil}.tsx
-  (provider)/_layout.tsx    4 onglets prestataire : Demandes, Mes travaux, Messages, Profil
+  (provider)/_layout.tsx    5 onglets prestataire : Accueil, Demandes, Mes travaux, Messages,
+                            Profil. Un prestataire arrive sur Accueil (garde d'auth).
+  (provider)/home.tsx       Tableau de bord : prochaine mission, chiffres clés (à venir,
+                            devis en attente, terminé ce mois), calendrier semaine/mois,
+                            missions du jour choisi, missions « À planifier » (sans date).
   (provider)/{requests,jobs,messages,account}.tsx
                             Noms distincts de (tabs) : un groupe n'ajoute pas de segment
                             d'URL, deux `index`/`chats` entreraient en conflit. messages
@@ -259,6 +263,8 @@ src/components/             Composants métier (booking-card, provider-row, serv
                             (réponses, description, photos, lieu, date) : partagés client,
                             demande ouverte et mission prestataire
   provider/                 request-card (demande ouverte) + quote-form (devis, send_quote)
+                            + tableau de bord : next-mission-card, stat-tiles,
+                            mission-calendar (+ calendar-day), mission-list
   profile/                  account-actions (Langue + Se déconnecter, profils client et
                             prestataire) + provider-photo-card (« Ma photo » du prestataire :
                             proposer une photo, état en attente / refusée)
@@ -274,8 +280,8 @@ src/components/             Composants métier (booking-card, provider-row, serv
                             photo-change-row
   chat/                     message-bubble (texte / devis / document / système ; les
                             boutons d'un devis n'existent que côté client)
-  ui/                       Primitives (button, card, chip, badge, avatar, screen,
-                            text-field, segmented-control…) + pressable-scale (Pressable
+  ui/                       Primitives (button, card, chip, badge, avatar, screen (option
+                            refreshControl), text-field, segmented-control…) + pressable-scale (Pressable
                             qui se contracte au toucher : base de Button, Card, Chip),
                             skeleton (Skeleton, ListSkeleton : listes tant que dataReady
                             est faux), fade-in-item (entrée décalée des 8 premiers éléments)
@@ -324,7 +330,12 @@ src/lib/
                             inline (pas de dépendance ajoutée).
   format.ts                 createFormatters(locale) : formatage fr-CA / en-CA (prix CAD,
                             dates), via le hook use-formats (langue active) ; formatAddress,
-                            formatSector (ville · secteur), parseAmountInput (montant saisi).
+                            formatSector (ville · secteur), parseAmountInput (montant saisi),
+                            formatMonthYear / formatWeekdayNarrow (calendrier), locale.
+  calendar.ts               Dates du calendrier, en heure locale, sans dépendance : clés
+                            YYYY-MM-DD, semaine (lundi en fr, dimanche en en), grille du mois.
+  provider-dashboard.ts     Calculs purs du tableau de bord prestataire (prochaine mission,
+                            compteurs, missions par jour, à planifier).
   booking-status.ts         Libellés/tons des statuts de réservation
   supabase.ts               Client Supabase (auth/DB/realtime) ; `isSupabaseConfigured`
                             reste false tant que .env est vide (app fonctionnelle sans).
@@ -351,7 +362,7 @@ src/hooks/use-press-scale.ts Contraction au toucher (reanimated), coupée si « 
                             animations » est actif
 src/hooks/use-formats.ts    Formatters (prix/dates) liés à la langue active (fr-CA / en-CA)
 src/hooks/use-auth-guard.ts Redirige selon la session ET le rôle : connexion, app client,
-                            onglets prestataire ou /apply (demandeur) ; sort chacun des routes
+                            onglets prestataire (Accueil) ou /apply (demandeur) ; sort chacun des routes
                             des autres rôles ; /admin réservé aux admins (inactif sans Supabase).
                             Renvoie « route posée » : _layout garde l'écran de démarrage
                             jusque-là et jusqu'au premier chargement des données
@@ -364,6 +375,8 @@ src/hooks/use-auth-guard.ts Redirige selon la session ET le rôle : connexion, a
                             encore le Stack, et naviguer avant son montage lève une erreur.
 src/hooks/use-counterpart.ts Nom de « l'autre » dans une conversation selon le rôle
                             (prestataire pour un client, prénom du client pour un prestataire)
+src/hooks/use-provider-dashboard.ts  Données de l'Accueil prestataire (store + calculs).
+src/hooks/use-mission-when.ts  « jeudi 25 septembre · matin », ou « Dès que possible ».
 supabase/schema.sql         Schéma Postgres : tables + migrations + Realtime + bucket Storage
                             booking-photos. Miroir de lib/types.ts. Pas de policies (voir
                             policies.sql).
@@ -625,7 +638,8 @@ select admin_link_provider('p-prenom', 'courriel@exemple.ca');
 
 Un compte ne peut être relié qu'à une fiche. À la
 connexion suivante (ou relance de l'app), il bascule sur l'**interface prestataire**
-(onglets Demandes / Mes travaux / Messages / Profil) ; il ne peut plus créer de demande.
+(onglets Accueil / Demandes / Mes travaux / Messages / Profil) ; il ne peut plus créer de
+demande.
 
 ## Notes
 

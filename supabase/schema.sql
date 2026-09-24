@@ -112,11 +112,15 @@ create table if not exists public.bookings (
   estimate_min    numeric(10, 2) not null,
   estimate_max    numeric(10, 2) not null,
   agreed_price    numeric(10, 2),
-  provider_id     text references public.providers (id)
+  provider_id     text references public.providers (id),
+  -- Fin de l'intervention, posée par complete_job : « terminé ce mois-ci » du tableau
+  -- de bord prestataire. Null pour les missions terminées avant son ajout.
+  completed_at    timestamptz
 );
 create index if not exists bookings_user_id_idx on public.bookings (user_id);
 -- Migration des bases déjà déployées : photo_count (entier) -> photos (chemins Storage).
 alter table public.bookings add column if not exists photos text[] not null default '{}';
+alter table public.bookings add column if not exists completed_at timestamptz;
 alter table public.bookings drop column if exists photo_count;
 
 -- --- conversations -------------------------------------------------------
