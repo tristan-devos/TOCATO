@@ -62,6 +62,8 @@ export default function ChatsScreen() {
           return message.document?.name ?? 'Document';
         case 'reschedule':
           return t('reschedule.cardTitle');
+        case 'review_request':
+          return t('review.preview');
         default:
           return message.text;
       }

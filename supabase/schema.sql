@@ -6,7 +6,8 @@
 -- Idempotent autant que possible (IF NOT EXISTS / ON CONFLICT).
 --
 -- Ordre d'exécution (tous idempotents) : schema.sql (tables, migrations, Storage)
--- -> rpc.sql -> transitions.sql -> providers.sql -> quotes.sql -> applications.sql -> photos.sql
+-- -> rpc.sql -> transitions.sql -> providers.sql -> quotes.sql -> reviews.sql
+-- -> applications.sql -> photos.sql
 -- -> admin.sql -> policies.sql (RLS + Storage, en dernier car les policies appellent
 -- les fonctions des fichiers précédents).
 -- Écritures sur bookings / conversations / messages : uniquement via les RPC,
@@ -168,7 +169,7 @@ create table if not exists public.messages (
   sender_kind     text not null check (sender_kind in ('client', 'provider', 'system')),
   provider_id     text references public.providers (id),
   type            text not null
-    check (type in ('text', 'quote', 'document', 'system', 'reschedule')),
+    check (type in ('text', 'quote', 'document', 'system', 'reschedule', 'review_request')),
   text            text not null default '',
   created_at      timestamptz not null default now(),
   quote           jsonb,
@@ -187,7 +188,7 @@ alter table public.messages add column if not exists system_key text;
 alter table public.messages add column if not exists reschedule jsonb;
 alter table public.messages drop constraint if exists messages_type_check;
 alter table public.messages add constraint messages_type_check
-  check (type in ('text', 'quote', 'document', 'system', 'reschedule'));
+  check (type in ('text', 'quote', 'document', 'system', 'reschedule', 'review_request'));
 alter table public.messages drop constraint if exists messages_system_key_valid;
 alter table public.messages add constraint messages_system_key_valid check (
   system_key in ('quoteAccepted', 'otherProviderChosen', 'quoteDeclined', 'bookingCancelled',

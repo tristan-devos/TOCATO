@@ -104,6 +104,13 @@ const fr = {
     placeholder: 'Écrivez votre message…',
     attachTitle: 'Bientôt disponible',
     attachMessage: 'L’envoi de documents et de photos arrive très vite.',
+    closesAt: 'Conversation ouverte jusqu’au {{date}}, {{time}}',
+    closed: {
+      completed: 'Intervention terminée : conversation fermée. L’historique reste consultable.',
+      cancelled: 'Demande annulée : conversation fermée.',
+      otherProvider: 'Un autre prestataire a été retenu : conversation fermée.',
+      unavailable: 'Cette demande n’est plus ouverte : conversation fermée.',
+    },
   },
   reservationDetail: {
     title: 'Réservation',
@@ -185,6 +192,22 @@ const fr = {
     duration_one: 'Durée estimée : {{count}} h',
     duration_other: 'Durée estimée : {{count}} h',
   },
+  review: {
+    preview: 'Comment s’est passée l’intervention ?',
+    question: 'Comment s’est passée l’intervention avec {{name}} ?',
+    starLabel_one: '{{count}} étoile',
+    starLabel_other: '{{count}} étoiles',
+    commentLabel: 'Un commentaire ? (facultatif)',
+    commentPlaceholder: 'Ponctualité, qualité du travail, propreté…',
+    send: 'Envoyer ma note',
+    given_one: 'Vous avez donné {{count}} étoile',
+    given_other: 'Vous avez donné {{count}} étoiles',
+    received_one: 'Le client vous a donné {{count}} étoile',
+    received_other: 'Le client vous a donné {{count}} étoiles',
+    awaiting: 'En attente de l’avis du client.',
+    windowClosed: 'Le délai pour noter cette intervention (30 jours) est dépassé.',
+    error: 'La note n’a pas pu être envoyée. Réessayez.',
+  },
   reschedule: {
     cardTitle: 'Nouvelle date proposée',
     insteadOf: 'Au lieu de : {{when}}',
@@ -228,7 +251,8 @@ const fr = {
       '{{name}} vous écrira pour convenir d’une date. Vous pouvez aussi lui écrire dans la conversation.',
     jobCompletedTitle: 'Mission terminée !',
     jobCompletedProvider: 'Beau travail. Le client est prévenu, la mission rejoint votre historique.',
-    jobCompletedClient: '{{name}} a terminé l’intervention. Merci d’avoir fait confiance à TOCATO.',
+    jobCompletedClient:
+      '{{name}} a terminé l’intervention. Merci d’avoir fait confiance à TOCATO : dites-nous comment ça s’est passé dans la conversation.',
   },
   providerProfile: {
     title: 'Profil du prestataire',

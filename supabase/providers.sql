@@ -126,8 +126,18 @@ begin
     and provider_id = public.current_provider_id();
   if not found then raise exception 'job_not_completable'; end if;
 
+  -- Compteur de la fiche (« Prestations réalisées »), enfin tenu à jour.
+  update public.providers set jobs_completed = jobs_completed + 1
+  where id = public.current_provider_id();
+
   insert into public.messages (conversation_id, sender_kind, type, text, system_key)
   select c.id, 'system', 'system', 'Intervention terminée.', 'jobCompleted'
+  from public.conversations c
+  where c.booking_id = p_booking_id and c.provider_id = public.current_provider_id();
+
+  -- Carte « Comment s'est passée l'intervention ? » (reviews.sql, submit_review).
+  insert into public.messages (conversation_id, sender_kind, type, text)
+  select c.id, 'system', 'review_request', ''
   from public.conversations c
   where c.booking_id = p_booking_id and c.provider_id = public.current_provider_id();
 end;

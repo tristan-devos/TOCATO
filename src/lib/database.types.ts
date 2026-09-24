@@ -53,6 +53,20 @@ export type RescheduleJson = {
 export interface Database {
   public: {
     Tables: {
+      reviews: {
+        Row: {
+          booking_id: string;
+          provider_id: string;
+          client_id: string;
+          rating: number;
+          comment: string;
+          created_at: string;
+        };
+        // Aucune écriture directe (RLS) : submit_review.
+        Insert: Record<string, never>;
+        Update: Record<string, never>;
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
@@ -302,6 +316,11 @@ export interface Database {
       };
       complete_job: {
         Args: { p_booking_id: string };
+        Returns: undefined;
+      };
+      /** Client : note le prestataire retenu (1 à 5), une fois, 30 jours au plus après la fin. */
+      submit_review: {
+        Args: { p_booking_id: string; p_rating: number; p_comment: string };
         Returns: undefined;
       };
       provider_conversation_clients: {

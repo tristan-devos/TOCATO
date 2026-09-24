@@ -1,6 +1,6 @@
 # Conception : devis complet, date d'intervention, fin de mission
 
-> **Statut : validé** (2026-09-24, choix du §9 confirmés), en cours de réalisation (§8).
+> **Statut : validé** (2026-09-24, choix du §9 confirmés), lots 1 à 3 faits (§8).
 > Rédigé le 2026-09-24. Chaque lot (§8) devient une PR, et `AGENTS.md` est mis à jour
 > dans la PR qui change le comportement décrit. Les écarts au plan seront notés
 > « **Réalisé :** » dans la section concernée.
@@ -120,6 +120,19 @@ proposition attend. Colonne `messages.reschedule` (jsonb), type de message
   samedi 18 h ». Sans délai, il faudra un canal « Signaler un problème » vers l'équipe,
   qui n'existe pas.
 
+**Réalisé (lot 3) :** fichier `supabase/reviews.sql` (table `reviews`, `submit_review`,
+`conversation_open`, délais `review_window` 30 j et `chat_grace` 48 h), entre `quotes.sql`
+et `applications.sql`. Pas de messages système `reviewRequested` / `reviewSubmitted` :
+la carte `review_request` (posée par `complete_job`) change d'elle-même d'état (« Vous
+avez donné 4 étoiles », « Le client vous a donné 4 étoiles »). `complete_job` incrémente
+`jobs_completed`. La règle de fermeture est dans les deux policies d'insertion des
+messages (`messages_insert_own` passe `to authenticated`, comme l'autre) ; l'app la
+reproduit dans `lib/conversation-state.ts` pour afficher « Conversation ouverte
+jusqu'au … » puis le bandeau de fermeture (zone de saisie extraite dans
+`chat/chat-composer.tsx`). Côté prestataire, une demande qu'il ne lit plus (confiée à
+un autre ou annulée) affiche un message neutre : il ne peut pas savoir laquelle. La
+célébration « mission terminée » du client l'invite à noter dans la conversation.
+
 ## 7. Sécurité et données
 
 - Toutes les écritures passent par des RPC `security definer` (règle du projet) :
@@ -141,7 +154,7 @@ proposition attend. Colonne `messages.reschedule` (jsonb), type de message
    avec la date proposée, phrase de statut.
 2. ✅ **Changer la date** : message `reschedule`, deux RPC, bouton côté mission, carte dans
    le chat, calendrier mis à jour.
-3. **Fin de mission** : `reviews`, `submit_review`, recalcul de la fiche,
+3. ✅ **Fin de mission** : `reviews`, `submit_review`, recalcul de la fiche,
    `jobs_completed`, carte de notation dans le chat, conversations fermées (RLS + bandeau).
 
 Chaque lot : `tsc`, export web, `supabase/tests/run.sh`, test sur iPhone via EAS Update.

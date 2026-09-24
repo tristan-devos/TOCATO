@@ -151,6 +151,61 @@ select complete_job(:'bk');
 select complete_job(:'bk');
 select status, completed_at is not null as date_de_fin from bookings where id = :'bk';
 select system_key, text from messages where conversation_id = :'conv' and sender_kind = 'system' order by created_at;
+
+\echo '--- Fin de mission : carte de notation (1), fiche de Paul : 1 prestation réalisée'
+select count(*) as cartes_notation from messages where conversation_id = :'conv' and type = 'review_request';
+select jobs_completed from providers where id = 'p-paul';
+\echo '--- Moins de 48 h après la fin : Alice et Paul écrivent encore (doivent réussir)'
+select set_config('request.jwt.claim.sub', :'alice', false) \g /dev/null
+insert into messages (conversation_id, sender_kind, type, text)
+  values (:'conv', 'client', 'text', 'Merci, tout fonctionne !');
+select set_config('request.jwt.claim.sub', :'paul', false) \g /dev/null
+insert into messages (conversation_id, sender_kind, provider_id, type, text)
+  values (:'conv', 'provider', 'p-paul', 'text', 'Avec plaisir.');
+\echo '--- Notes : Bob (doit échouer), note 6 (doit échouer), Alice 4 étoiles (doit réussir), 2e note (doit échouer)'
+select set_config('request.jwt.claim.sub', :'bob', false) \g /dev/null
+select submit_review(:'bk', 5, '');
+select set_config('request.jwt.claim.sub', :'alice', false) \g /dev/null
+select submit_review(:'bk', 6, '');
+select submit_review(:'bk', 4, 'Rapide et soigneux');
+select submit_review(:'bk', 5, '');
+\echo '--- Fiche de Paul recalculée : 4.0, 1 avis ; écriture directe d''un avis (doit échouer)'
+select rating, review_count from providers where id = 'p-paul';
+insert into reviews (booking_id, provider_id, client_id, rating) values (:'bk', 'p-paul', :'alice', 5);
+\echo '--- Paul lit son avis (1) ; Gina non (0)'
+select set_config('request.jwt.claim.sub', :'paul', false) \g /dev/null
+select count(*) as avis_paul from reviews;
+select set_config('request.jwt.claim.sub', :'gina', false) \g /dev/null
+select count(*) as avis_gina from reviews;
+\echo '--- Plus de 48 h après la fin : conversation fermée pour Alice et Paul (doivent échouer)'
+reset role;
+update bookings set completed_at = now() - interval '49 hours' where id = :'bk';
+set role authenticated;
+select set_config('request.jwt.claim.sub', :'alice', false) \g /dev/null
+insert into messages (conversation_id, sender_kind, type, text)
+  values (:'conv', 'client', 'text', 'Encore une question');
+select set_config('request.jwt.claim.sub', :'paul', false) \g /dev/null
+insert into messages (conversation_id, sender_kind, provider_id, type, text)
+  values (:'conv', 'provider', 'p-paul', 'text', 'Encore là');
+\echo '--- Plus de 30 jours après la fin : note refusée (review_window_closed)'
+reset role;
+delete from reviews where booking_id = :'bk';
+update bookings set completed_at = now() - interval '31 days' where id = :'bk';
+set role authenticated;
+select set_config('request.jwt.claim.sub', :'alice', false) \g /dev/null
+select submit_review(:'bk', 5, '');
+select set_config('request.jwt.claim.sub', :'paul', false) \g /dev/null
+\echo '--- Conversation fermée : prestataire non retenu (f), demande annulée (f)'
+reset role;
+insert into conversations (user_id, provider_id, booking_id)
+  values (:'alice', 'p-gina', :'bk') returning id as conv_gina \gset
+select conversation_open(:'conv_gina') as non_retenu;
+delete from conversations where id = :'conv_gina';
+update bookings set status = 'cancelled' where id = :'bk';
+select conversation_open(:'conv') as annulee;
+update bookings set status = 'completed' where id = :'bk';
+set role authenticated;
+select set_config('request.jwt.claim.sub', :'paul', false) \g /dev/null
 \echo '--- Devis de Paul : sans texte (la carte s''affiche dans la langue de chacun)'
 select text = '' as sans_texte from messages where conversation_id = :'conv' and type = 'quote';
 \echo '--- Paul ne voit que SES conversations (1), aucune de Marc/Amadou/Sophie'

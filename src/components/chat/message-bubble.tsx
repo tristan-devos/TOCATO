@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { QuoteCard } from '@/components/chat/quote-card';
 import { RescheduleCard } from '@/components/chat/reschedule-card';
+import { ReviewCard, type ReviewContext } from '@/components/chat/review-card';
 import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
@@ -15,12 +16,15 @@ interface MessageBubbleProps {
   onQuoteResponse?: (messageId: string, accept: boolean) => void;
   /** Client uniquement : accepter/refuser une nouvelle date. Absent = pas de boutons. */
   onRescheduleResponse?: (messageId: string, accept: boolean) => void;
+  /** Carte de fin de mission (note) : absente tant que la réservation n'est pas lisible. */
+  reviewContext?: ReviewContext;
 }
 
 export function MessageBubble({
   message,
   onQuoteResponse,
   onRescheduleResponse,
+  reviewContext,
 }: MessageBubbleProps) {
   const colors = useTheme();
   const { formatTime } = useFormats();
@@ -48,6 +52,10 @@ export function MessageBubble({
         />
       </View>
     );
+  }
+
+  if (message.type === 'review_request') {
+    return reviewContext ? <ReviewCard {...reviewContext} /> : null;
   }
 
   if (message.type === 'reschedule' && message.reschedule) {

@@ -1,26 +1,26 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Info, Paperclip, SendHorizontal } from 'lucide-react-native';
+import { ArrowLeft, Info } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { QuoteAcceptedCelebration } from '@/components/celebration/quote-accepted-celebration';
+import { ChatComposer } from '@/components/chat/chat-composer';
 import { MessageBubble } from '@/components/chat/message-bubble';
 import { ProviderAvatar } from '@/components/provider-avatar';
-import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
+import { Font, FontSize, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useCounterpartName } from '@/hooks/use-counterpart';
+import { conversationState, reviewWindowOpen } from '@/lib/conversation-state';
 import { haptics } from '@/lib/haptics';
 import { useRole } from '@/lib/profile-store';
 import { useOpenRequest } from '@/lib/provider-store';
@@ -48,8 +48,9 @@ export default function ChatScreen() {
   // Prestataire sur une demande encore ouverte : pas de ligne booking lisible.
   const openRequest = useOpenRequest(isProvider ? conversation?.bookingId : undefined);
 
-  const [draft, setDraft] = useState('');
   const [celebrating, setCelebrating] = useState(false);
+  // Fermeture de la conversation évaluée à l'ouverture de l'écran (le serveur fait foi).
+  const [now] = useState(() => new Date());
 
   const onRescheduleResponse = (messageId: string, accept: boolean) => {
     void respondToReschedule(messageId, accept).then((ok) => {
@@ -109,15 +110,6 @@ export default function ChatScreen() {
   };
   const hasDetails = isProvider ? Boolean(booking ?? openRequest) : Boolean(booking);
 
-  const send = () => {
-    void sendMessage(conversation.id, draft);
-    setDraft('');
-  };
-
-  const attachComingSoon = () => {
-    Alert.alert(t('chat.attachTitle'), t('chat.attachMessage'));
-  };
-
   return (
     <SafeAreaView
       edges={['top', 'bottom']}
@@ -169,46 +161,24 @@ export default function ChatScreen() {
               message={item}
               onQuoteResponse={isProvider ? undefined : onQuoteResponse}
               onRescheduleResponse={isProvider ? undefined : onRescheduleResponse}
+              reviewContext={
+                booking
+                  ? {
+                      bookingId: booking.id,
+                      viewer: isProvider ? 'provider' : 'client',
+                      providerName: name,
+                      canStillReview: reviewWindowOpen(booking, now),
+                    }
+                  : undefined
+              }
             />
           )}
         />
 
-        <View
-          style={[
-            styles.inputBar,
-            { borderTopColor: colors.border, backgroundColor: colors.card },
-          ]}>
-          <Pressable onPress={attachComingSoon} hitSlop={8} style={styles.attachButton}>
-            <Paperclip size={20} color={colors.textSecondary} />
-          </Pressable>
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            placeholder={t('chat.placeholder')}
-            placeholderTextColor={colors.textSecondary}
-            multiline
-            style={[
-              styles.input,
-              { backgroundColor: colors.backgroundElement, color: colors.text },
-            ]}
-          />
-          <Pressable
-            onPress={send}
-            disabled={draft.trim().length === 0}
-            hitSlop={8}
-            style={[
-              styles.sendButton,
-              {
-                backgroundColor:
-                  draft.trim().length > 0 ? colors.primary : colors.backgroundElement,
-              },
-            ]}>
-            <SendHorizontal
-              size={18}
-              color={draft.trim().length > 0 ? colors.onPrimary : colors.textSecondary}
-            />
-          </Pressable>
-        </View>
+        <ChatComposer
+          state={conversationState(conversation, booking, Boolean(openRequest), now)}
+          onSend={(text) => void sendMessage(conversation.id, text)}
+        />
       </KeyboardAvoidingView>
       <QuoteAcceptedCelebration
         visible={celebrating}
@@ -242,31 +212,5 @@ const styles = StyleSheet.create({
   headerName: { fontSize: FontSize.base, ...Font.semibold },
   headerSubtitle: { ...Font.regular, fontSize: FontSize.xs },
   listContent: { paddingVertical: Spacing.three },
-  inputBar: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: Spacing.two,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.two,
-    borderTopWidth: StyleSheet.hairlineWidth,
-  },
   attachButton: { padding: Spacing.two, paddingBottom: 12 },
-  input: {
-    flex: 1,
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.three,
-    paddingTop: 10,
-    paddingBottom: 10,
-    ...Font.regular,
-    fontSize: FontSize.base,
-    maxHeight: 110,
-  },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
 });
