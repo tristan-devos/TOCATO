@@ -37,6 +37,8 @@ export interface SignUpResult extends AuthResult {
 interface AuthState {
   session: Session | null;
   status: AuthStatus;
+  /** Données de la session (profil, réservations, demandes…) chargées une première fois. */
+  dataReady: boolean;
   signUp: (email: string, password: string, name: string) => Promise<SignUpResult>;
   signIn: (email: string, password: string) => Promise<AuthResult>;
   signInWithOAuth: (provider: OAuthProvider) => Promise<AuthResult>;
@@ -80,6 +82,7 @@ async function completeOAuthSession(url: string): Promise<string | null> {
 export const useAuthStore = create<AuthState>(() => ({
   session: null,
   status: 'loading',
+  dataReady: false,
 
   signUp: async (email, password, name) => {
     const { data, error } = await supabase.auth.signUp({
@@ -127,6 +130,9 @@ export const useAuthStore = create<AuthState>(() => ({
 }));
 
 let initialized = false;
+// Numéro du dernier chargement lancé : seul lui peut marquer les données prêtes
+// (getSession et onAuthStateChange lancent souvent deux chargements au démarrage).
+let loadCount = 0;
 
 /**
  * Charge les données de la session. Le profil (donc le rôle) d'abord : le store
@@ -164,7 +170,11 @@ export function initAuth(): void {
       status: session ? 'authenticated' : 'anonymous',
     });
     if (session) {
-      void loadSessionData();
+      const load = ++loadCount;
+      useAuthStore.setState({ dataReady: false });
+      void loadSessionData().finally(() => {
+        if (load === loadCount) useAuthStore.setState({ dataReady: true });
+      });
     } else {
       useProfileStore.getState().clear();
       useApplicationStore.getState().clear();
@@ -205,4 +215,8 @@ export function useSession(): Session | null {
 
 export function useAuthStatus(): AuthStatus {
   return useAuthStore((s) => s.status);
+}
+
+export function useDataReady(): boolean {
+  return useAuthStore((s) => s.dataReady);
 }
