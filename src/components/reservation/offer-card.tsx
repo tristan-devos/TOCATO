@@ -1,4 +1,4 @@
-import { BadgeCheck, ChevronRight, ShieldCheck } from 'lucide-react-native';
+import { BadgeCheck, CalendarDays, ChevronRight, ShieldCheck } from 'lucide-react-native';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -8,14 +8,18 @@ import { AppText } from '@/components/ui/app-text';
 import { Card } from '@/components/ui/card';
 import { Radius, Spacing } from '@/constants/theme';
 import { useFormats } from '@/hooks/use-formats';
+import { useMissionWhen } from '@/hooks/use-mission-when';
 import { useTheme } from '@/hooks/use-theme';
-import type { Provider, ServiceId } from '@/lib/types';
+import { differsFromRequested } from '@/lib/quote-draft';
+import type { Provider, Quote, ServiceId } from '@/lib/types';
 
 interface OfferCardProps {
   provider: Provider;
   serviceId: ServiceId;
-  /** Montant du devis en attente, s'il y en a un. */
-  quoteAmount: number | undefined;
+  /** Devis en attente, s'il y en a un. */
+  quote: Quote | undefined;
+  /** Date demandée par le client : signalée si le devis en propose une autre. */
+  requestedDate?: string;
   onPress: () => void;
 }
 
@@ -23,10 +27,18 @@ interface OfferCardProps {
  * Une offre reçue sur une demande ouverte : c'est ici que la confiance se décide.
  * Grand visage, vérifications visibles, montant mis en valeur.
  */
-export function OfferCard({ provider, serviceId, quoteAmount, onPress }: OfferCardProps) {
+export function OfferCard({
+  provider,
+  serviceId,
+  quote,
+  requestedDate,
+  onPress,
+}: OfferCardProps) {
   const colors = useTheme();
   const { t } = useTranslation();
   const { formatPrice } = useFormats();
+  const missionWhen = useMissionWhen();
+  const proposedDate = quote?.proposedDate;
   // En plomberie, l'approbation exige une licence RBQ (15.5) vérifiée au registre.
   const checks = provider.verified
     ? [
@@ -69,12 +81,25 @@ export function OfferCard({ provider, serviceId, quoteAmount, onPress }: OfferCa
       ) : null}
 
       <View style={[styles.footer, { borderTopColor: colors.border }]}>
-        {quoteAmount != null ? (
-          <View>
+        {quote ? (
+          <View style={styles.quote}>
             <AppText variant="small">{t('providerOffers.quoteLabel')}</AppText>
             <AppText variant="title" color={colors.primary}>
-              {formatPrice(quoteAmount)}
+              {formatPrice(quote.amount)}
             </AppText>
+            {proposedDate ? (
+              <View style={styles.date}>
+                <CalendarDays size={14} color={colors.textSecondary} />
+                <AppText variant="small" style={styles.flex}>
+                  {missionWhen({ scheduledDate: proposedDate, timeSlot: quote.proposedSlot })}
+                </AppText>
+              </View>
+            ) : null}
+            {proposedDate && differsFromRequested(proposedDate, requestedDate) ? (
+              <AppText variant="small" color={colors.warning}>
+                {t('providerOffers.otherDate')}
+              </AppText>
+            ) : null}
           </View>
         ) : (
           <AppText variant="secondary">{t('providerOffers.noQuoteYet')}</AppText>
@@ -113,4 +138,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.three,
   },
   cta: { flexDirection: 'row', alignItems: 'center', gap: Spacing.half },
+  quote: { flex: 1, gap: Spacing.half },
+  date: { flexDirection: 'row', alignItems: 'center', gap: Spacing.one },
+  flex: { flex: 1 },
 });

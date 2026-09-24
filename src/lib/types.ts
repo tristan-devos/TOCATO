@@ -77,6 +77,34 @@ export type MessageType = 'text' | 'quote' | 'document' | 'system';
 
 export type QuoteStatus = 'pending' | 'accepted' | 'declined';
 
+export type QuoteLineCategory = 'labor' | 'parts' | 'travel' | 'other';
+
+/** One priced line of a quote (labour, parts, travel…). */
+export interface QuoteLine {
+  label: string;
+  category: QuoteLineCategory;
+  amount: number;
+}
+
+/**
+ * A provider's quote. `lines`, `proposedDate`… exist on quotes sent since the full
+ * quote form (docs/devis-et-fin-de-mission.md §4); older quotes only have
+ * `amount` and `details`.
+ */
+export interface Quote {
+  /** Total, computed by the server from `lines`. Final price, taxes included. */
+  amount: number;
+  /** What the price includes (free text). */
+  details: string;
+  status: QuoteStatus;
+  lines?: QuoteLine[];
+  /** Proposed intervention date (YYYY-MM-DD): becomes the booking's date on acceptance. */
+  proposedDate?: string;
+  proposedSlot?: TimeSlotId;
+  durationHours?: number;
+  warranty?: string;
+}
+
 /**
  * Automatic (system) messages, written by server-side RPCs. The app renders them
  * in the active language AND from the reader's side (client or provider).
@@ -97,11 +125,7 @@ export interface Message {
   type: MessageType;
   text: string;
   createdAt: string; // ISO
-  quote?: {
-    amount: number;
-    details: string;
-    status: QuoteStatus;
-  };
+  quote?: Quote;
   document?: {
     name: string;
     size: string;

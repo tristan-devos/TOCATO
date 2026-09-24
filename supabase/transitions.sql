@@ -28,9 +28,12 @@ declare
   v_booking      uuid;
   v_provider     text;
   v_amount       numeric;
+  v_date         date;
+  v_slot         text;
 begin
-  select m.conversation_id, c.booking_id, c.provider_id, (m.quote ->> 'amount')::numeric
-    into v_conversation, v_booking, v_provider, v_amount
+  select m.conversation_id, c.booking_id, c.provider_id, (m.quote ->> 'amount')::numeric,
+         (m.quote ->> 'proposed_date')::date, m.quote ->> 'proposed_slot'
+    into v_conversation, v_booking, v_provider, v_amount, v_date, v_slot
   from public.messages m
   join public.conversations c on c.id = m.conversation_id
   where m.id = p_message_id
@@ -51,8 +54,12 @@ begin
   set quote = jsonb_set(quote, '{status}', '"accepted"')
   where id = p_message_id;
 
+  -- La date du devis devient celle de la mission (quotes.sql) ; un ancien devis
+  -- sans date garde celle de la demande (ou « dès que possible »).
   update public.bookings
-  set status = 'confirmed', agreed_price = v_amount, provider_id = v_provider
+  set status = 'confirmed', agreed_price = v_amount, provider_id = v_provider,
+      scheduled_date = coalesce(v_date, scheduled_date),
+      time_slot = case when v_date is not null then v_slot else time_slot end
   where id = v_booking;
 
   update public.messages m

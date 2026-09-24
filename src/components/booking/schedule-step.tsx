@@ -1,13 +1,14 @@
 import { Zap } from 'lucide-react-native';
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AppText } from '@/components/ui/app-text';
 import { Chip } from '@/components/ui/chip';
-import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
+import { DaySlotPicker } from '@/components/ui/day-slot-picker';
+import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { TIME_SLOTS } from '@/lib/services';
+import { addDays, toDateKey } from '@/lib/calendar';
 import type { TimeSlotId } from '@/lib/types';
 
 const DAYS_SHOWN = 14;
@@ -21,27 +22,10 @@ interface ScheduleStepProps {
   onTimeSlotChange: (slot: TimeSlotId) => void;
 }
 
-interface DayOption {
-  iso: string;
-  weekday: string;
-  day: number;
-  month: string;
-}
-
-function buildDays(locale: string): DayOption[] {
-  const weekdayFmt = new Intl.DateTimeFormat(locale, { weekday: 'short' });
-  const monthFmt = new Intl.DateTimeFormat(locale, { month: 'short' });
-  return Array.from({ length: DAYS_SHOWN }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() + 1 + i);
-    const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    return {
-      iso,
-      weekday: weekdayFmt.format(date).replace('.', ''),
-      day: date.getDate(),
-      month: monthFmt.format(date).replace('.', ''),
-    };
-  });
+/** Demain et les 13 jours suivants (le wizard ne propose pas aujourd'hui). */
+function nextDays(): string[] {
+  const today = new Date();
+  return Array.from({ length: DAYS_SHOWN }, (_, i) => toDateKey(addDays(today, i + 1)));
 }
 
 export function ScheduleStep({
@@ -53,9 +37,8 @@ export function ScheduleStep({
   onTimeSlotChange,
 }: ScheduleStepProps) {
   const colors = useTheme();
-  const { t, i18n } = useTranslation();
-  const locale = i18n.language === 'en' ? 'en-CA' : 'fr-CA';
-  const days = useMemo(() => buildDays(locale), [locale]);
+  const { t } = useTranslation();
+  const days = useMemo(() => nextDays(), []);
 
   return (
     <View style={styles.base}>
@@ -78,79 +61,14 @@ export function ScheduleStep({
         <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.daysRow}>
-        {days.map((dayOption) => {
-          const selected = !asap && scheduledDate === dayOption.iso;
-          return (
-            <Pressable
-              key={dayOption.iso}
-              onPress={() => onDateChange(dayOption.iso)}
-              style={[
-                styles.day,
-                {
-                  backgroundColor: selected ? colors.primary : colors.card,
-                  borderColor: selected ? colors.primary : colors.border,
-                },
-              ]}>
-              <Text
-                style={[
-                  styles.dayWeekday,
-                  { color: selected ? colors.onPrimary : colors.textSecondary },
-                ]}>
-                {dayOption.weekday}
-              </Text>
-              <Text
-                style={[
-                  styles.dayNumber,
-                  { color: selected ? colors.onPrimary : colors.text },
-                ]}>
-                {dayOption.day}
-              </Text>
-              <Text
-                style={[
-                  styles.dayMonth,
-                  { color: selected ? colors.onPrimary : colors.textSecondary },
-                ]}>
-                {dayOption.month}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
-      {!asap && scheduledDate ? (
-        <View style={styles.slots}>
-          <AppText variant="label">{t('wizard.schedulePreferredSlot')}</AppText>
-          <View style={styles.slotsRow}>
-            {TIME_SLOTS.map((slot) => {
-              const selected = timeSlot === slot.id;
-              return (
-                <Pressable
-                  key={slot.id}
-                  onPress={() => onTimeSlotChange(slot.id)}
-                  style={[
-                    styles.slot,
-                    {
-                      backgroundColor: selected ? colors.primaryMuted : colors.card,
-                      borderColor: selected ? colors.primary : colors.border,
-                    },
-                  ]}>
-                  <Text
-                    style={[styles.slotLabel, { color: selected ? colors.primary : colors.text }]}>
-                    {t(`timeSlots.${slot.id}`)}
-                  </Text>
-                  <Text style={[styles.slotHours, { color: colors.textSecondary }]}>
-                    {t(`timeSlots.${slot.id}Hours`)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
-      ) : null}
+      <DaySlotPicker
+        days={days}
+        date={asap ? null : scheduledDate}
+        onDateChange={onDateChange}
+        slot={timeSlot}
+        onSlotChange={onTimeSlotChange}
+        slotLabel={t('wizard.schedulePreferredSlot')}
+      />
 
       {asap ? (
         <View style={[styles.asapNote, { backgroundColor: colors.warningMuted }]}>
@@ -169,30 +87,6 @@ const styles = StyleSheet.create({
   titles: { gap: Spacing.two },
   divider: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
   dividerLine: { flex: 1, height: StyleSheet.hairlineWidth },
-  daysRow: { gap: Spacing.two },
-  day: {
-    width: 60,
-    paddingVertical: Spacing.two + 2,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    gap: 2,
-  },
-  dayWeekday: { ...Font.regular, fontSize: FontSize.xs, textTransform: 'capitalize' },
-  dayNumber: { fontSize: FontSize.lg, ...Font.bold },
-  dayMonth: { ...Font.regular, fontSize: FontSize.xs, textTransform: 'capitalize' },
-  slots: { gap: Spacing.two + 4 },
-  slotsRow: { flexDirection: 'row', gap: Spacing.two },
-  slot: {
-    flex: 1,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    paddingVertical: Spacing.two + 4,
-    alignItems: 'center',
-    gap: 2,
-  },
-  slotLabel: { fontSize: FontSize.sm, ...Font.semibold },
-  slotHours: { ...Font.regular, fontSize: FontSize.xs },
   asapNote: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,5 +1,5 @@
 -- =============================================================================
--- TOCATO : adhésion des prestataires (à exécuter APRÈS providers.sql, AVANT photos.sql)
+-- TOCATO : adhésion des prestataires (à exécuter APRÈS quotes.sql, AVANT photos.sql)
 -- =============================================================================
 -- Un prestataire DEMANDE à adhérer (submit_provider_application), le serveur vérifie
 -- sa licence RBQ (plomberie) dans rbq_licences, et l'admin approuve ou refuse

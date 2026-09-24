@@ -7,6 +7,8 @@
 \set bob   '22222222-2222-2222-2222-222222222222'
 \set paul  '33333333-3333-3333-3333-333333333333'
 \set gina  '44444444-4444-4444-4444-444444444444'
+-- Lignes de devis valides (main-d'œuvre 120 $ + pièces 30 $ = 150 $).
+\set lignes '[{"label":"Main-d''œuvre","category":"labor","amount":120},{"label":"Joint","category":"parts","amount":30}]'
 
 -- --- Mise en place (rôle postgres = admin, comme dans le SQL editor) ---
 reset role;
@@ -54,16 +56,27 @@ select set_config('request.jwt.claim.sub', :'gina', false) \g /dev/null
 select count(*) as demandes_gina from list_open_requests() where id = :'bk';
 select count(*) as photos_gina from storage.objects where bucket_id = 'booking-photos';
 \echo '--- Gina : devis hors de son service (doit échouer)'
-select send_quote(:'bk', 150, 'x');
+select send_quote(:'bk', :'lignes', montreal_today() + 1, 'morning', 2, 'x', '');
 \echo '--- Bob (pas prestataire) : devis (doit échouer)'
 select set_config('request.jwt.claim.sub', :'bob', false) \g /dev/null
-select send_quote(:'bk', 150, 'x');
+select send_quote(:'bk', :'lignes', montreal_today() + 1, 'morning', 2, 'x', '');
 
-\echo '--- Paul envoie un devis (doit réussir), puis un 2e en attente (doit échouer)'
+\echo '--- Paul : devis invalides (7 échecs : sans ligne, catégorie, montant nul, date passée, date à +61 j, créneau, durée)'
 select set_config('request.jwt.claim.sub', :'paul', false) \g /dev/null
-select send_quote(:'bk', 0, 'x');
-select send_quote(:'bk', 150, 'Changement du joint') as conv \gset
-select send_quote(:'bk', 140, 'Encore');
+select send_quote(:'bk', '[]', montreal_today() + 1, 'morning', 2, 'x', '');
+select send_quote(:'bk', '[{"label":"X","category":"cadeau","amount":10}]', montreal_today() + 1, 'morning', 2, 'x', '');
+select send_quote(:'bk', '[{"label":"X","category":"labor","amount":0}]', montreal_today() + 1, 'morning', 2, 'x', '');
+select send_quote(:'bk', :'lignes', montreal_today() - 1, 'morning', 2, 'x', '');
+select send_quote(:'bk', :'lignes', montreal_today() + 61, 'morning', 2, 'x', '');
+select send_quote(:'bk', :'lignes', montreal_today() + 1, 'nuit', 2, 'x', '');
+select send_quote(:'bk', :'lignes', montreal_today() + 1, 'morning', 0, 'x', '');
+\echo '--- Paul envoie un devis (doit réussir, total 150 calculé), puis un 2e en attente (doit échouer)'
+select send_quote(:'bk', :'lignes', montreal_today() + 2, 'afternoon', 2.5,
+  'Changement du joint', 'Pièces garanties 1 an') as conv \gset
+select quote ->> 'amount' as total, jsonb_array_length(quote -> 'lines') as lignes,
+       quote ->> 'proposed_slot' as creneau
+  from messages where conversation_id = :'conv' and type = 'quote';
+select send_quote(:'bk', :'lignes', montreal_today() + 1, 'morning', 1, 'Encore', '');
 select my_quote_status from list_open_requests() where id = :'bk';
 \echo '--- Paul écrit un texte (doit réussir) ; faux devis direct / message au nom de Marc (doivent échouer)'
 insert into messages (conversation_id, sender_kind, provider_id, type, text)
@@ -93,6 +106,8 @@ select start_job(:'bk');
 \echo '--- Alice accepte le devis de Paul'
 select set_config('request.jwt.claim.sub', :'alice', false) \g /dev/null
 select accept_quote((select id from messages where conversation_id = :'conv' and type = 'quote'));
+\echo '--- La date et le créneau du devis deviennent ceux de la mission (dans 2 jours, après-midi)'
+select scheduled_date = montreal_today() + 2 as date_du_devis, time_slot from bookings where id = :'bk';
 \echo '--- Paul lit maintenant la réservation complète, adresse exacte comprise'
 select set_config('request.jwt.claim.sub', :'paul', false) \g /dev/null
 select status, provider_id, address ->> 'street' as rue from bookings where id = :'bk';
