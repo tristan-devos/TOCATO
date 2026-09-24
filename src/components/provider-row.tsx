@@ -1,8 +1,8 @@
 import { BadgeCheck } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { ProviderAvatar } from '@/components/provider-avatar';
 import { Rating } from '@/components/rating';
-import { Avatar } from '@/components/ui/avatar';
 import { Font, FontSize, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Provider } from '@/lib/types';
@@ -18,7 +18,7 @@ export function ProviderRow({ provider, subtitle }: ProviderRowProps) {
 
   return (
     <View style={styles.base}>
-      <Avatar name={provider.name} size={48} />
+      <ProviderAvatar name={provider.name} photoPath={provider.photoPath} size={48} />
       <View style={styles.texts}>
         <View style={styles.nameRow}>
           <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>

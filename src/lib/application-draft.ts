@@ -26,6 +26,9 @@ export interface ApplicationDraft {
   idDocumentPath: string | null;
   insurance: LocalPhoto | null;
   insurancePath: string | null;
+  /** Photo de profil (carrée), publiée à l'approbation. */
+  photo: LocalPhoto | null;
+  photoPath: string | null;
 }
 
 /** Brouillon vide, ou prérempli depuis une demande refusée (pour la corriger). */
@@ -41,6 +44,8 @@ export function draftFrom(application: ProviderApplication | null): ApplicationD
     idDocumentPath: application?.idDocumentPath ?? null,
     insurance: null,
     insurancePath: application?.insurancePath ?? null,
+    photo: null,
+    photoPath: application?.photoPath ?? null,
   };
 }
 
@@ -74,7 +79,8 @@ export function isLegalStepValid(draft: ApplicationDraft): boolean {
 export function isDocumentsStepValid(draft: ApplicationDraft): boolean {
   return (
     (draft.idDocument !== null || draft.idDocumentPath !== null) &&
-    (draft.insurance !== null || draft.insurancePath !== null)
+    (draft.insurance !== null || draft.insurancePath !== null) &&
+    (draft.photo !== null || draft.photoPath !== null)
   );
 }
 

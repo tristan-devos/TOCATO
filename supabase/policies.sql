@@ -1,5 +1,5 @@
 -- =============================================================================
--- TOCATO : règles d'accès : RLS + Storage (à exécuter EN DERNIER, après applications.sql)
+-- TOCATO : règles d'accès : RLS + Storage (à exécuter EN DERNIER, après admin.sql)
 -- =============================================================================
 -- Lecture : policies `select` ci-dessous, côté client (owner) et côté prestataire
 -- (current_provider_id(), providers.sql). Écriture : aucune policy update ; seuls
@@ -19,6 +19,7 @@ alter table public.messages      enable row level security;
 alter table public.admins        enable row level security;
 alter table public.rbq_licences  enable row level security;
 alter table public.provider_applications enable row level security;
+alter table public.provider_photo_changes enable row level security;
 -- admins, rbq_licences : AUCUNE policy. Lus seulement par is_admin() et
 -- rbq_check_licence (security definer), écrits par l'admin et rbq-import.sh.
 
@@ -26,6 +27,12 @@ alter table public.provider_applications enable row level security;
 -- Écritures : uniquement via submit_provider_application et les RPC admin.
 drop policy if exists "provider_applications_select" on public.provider_applications;
 create policy "provider_applications_select" on public.provider_applications
+  for select to authenticated using (user_id = auth.uid() or public.is_admin());
+
+-- provider_photo_changes : le prestataire lit la sienne, l'admin les lit toutes.
+-- Écritures : uniquement via submit_provider_photo et admin_approve/reject_photo.
+drop policy if exists "provider_photo_changes_select" on public.provider_photo_changes;
+create policy "provider_photo_changes_select" on public.provider_photo_changes
   for select to authenticated using (user_id = auth.uid() or public.is_admin());
 
 -- profiles : chacun gère son propre profil.
@@ -163,4 +170,23 @@ drop policy if exists "provider_documents_delete_own" on storage.objects;
 create policy "provider_documents_delete_own" on storage.objects
   for delete to authenticated using (
     bucket_id = 'provider-documents' and (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+-- =============================================================================
+-- Storage : bucket privé provider-photos, chemin {user_id}/{uuid}.jpg.
+-- Lecture : une photo publiée (providers.photo_path) par tout compte connecté, les
+-- autres (demande d'adhésion, changement en attente) par leur propriétaire et l'admin
+-- (provider_photo_visible). Anon ne lit rien. Écriture dans son dossier seulement.
+-- Ni update ni delete : chaque envoi crée un nouveau fichier, et purge-documents
+-- efface ceux que plus rien ne référence (une photo publiée ne peut pas disparaître).
+-- =============================================================================
+drop policy if exists "provider_photos_select" on storage.objects;
+create policy "provider_photos_select" on storage.objects
+  for select to authenticated using (
+    bucket_id = 'provider-photos' and public.provider_photo_visible(name)
+  );
+drop policy if exists "provider_photos_insert_own" on storage.objects;
+create policy "provider_photos_insert_own" on storage.objects
+  for insert to authenticated with check (
+    bucket_id = 'provider-photos' and (storage.foldername(name))[1] = auth.uid()::text
   );

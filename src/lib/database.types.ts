@@ -87,6 +87,8 @@ export interface Database {
           member_since: string;
           /** Compte relié (prestataire réel) ; null tant que la fiche n'est reliée à aucun compte. */
           user_id: string | null;
+          /** Photo publiée (bucket provider-photos) ; null = initiales. */
+          photo_path: string | null;
         };
         Insert: Database['public']['Tables']['providers']['Row'];
         Update: Partial<Database['public']['Tables']['providers']['Row']>;

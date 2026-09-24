@@ -87,6 +87,7 @@ export function rowToProvider(row: ProviderRow): Provider {
     hourlyRate: Number(row.hourly_rate),
     bio: row.bio,
     memberSince: row.member_since,
+    photoPath: row.photo_path,
   };
 }
 

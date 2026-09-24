@@ -1,10 +1,10 @@
 -- =============================================================================
--- TOCATO : adhésion des prestataires (à exécuter APRÈS providers.sql, AVANT policies.sql)
+-- TOCATO : adhésion des prestataires (à exécuter APRÈS providers.sql, AVANT photos.sql)
 -- =============================================================================
 -- Un prestataire DEMANDE à adhérer (submit_provider_application), le serveur vérifie
--- sa licence RBQ (plomberie) dans rbq_licences, et l'admin approuve ou refuse. À
--- l'approbation, la fiche providers est créée et reliée au compte : le rôle reste
--- déduit de la base, jamais d'une colonne modifiable par l'utilisateur.
+-- sa licence RBQ (plomberie) dans rbq_licences, et l'admin approuve ou refuse
+-- (admin.sql). À l'approbation, la fiche providers est créée et reliée au compte : le
+-- rôle reste déduit de la base, jamais d'une colonne modifiable par l'utilisateur.
 -- Voir docs/adhesion-prestataires.md. Idempotent, ré-exécutable.
 -- =============================================================================
 
@@ -56,6 +56,9 @@ create table if not exists public.provider_applications (
   id_document_path text,
   id_document_purged_at timestamptz,
   insurance_path   text not null,
+  -- Photo de profil (bucket provider-photos, voir photos.sql), publiée à l'approbation.
+  -- Effacée 30 jours après un refus, comme la pièce d'identité.
+  photo_path       text,
   -- Résultat de la vérification RBQ au moment de l'envoi (null hors plomberie).
   rbq_check        jsonb,
   submitted_at     timestamptz not null default now(),
@@ -68,6 +71,8 @@ create table if not exists public.provider_applications (
 -- Migration (lot 5) : pièce d'identité effaçable.
 alter table public.provider_applications alter column id_document_path drop not null;
 alter table public.provider_applications add column if not exists id_document_purged_at timestamptz;
+-- Migration (photos des prestataires) : null pour les demandes antérieures.
+alter table public.provider_applications add column if not exists photo_path text;
 
 -- Realtime : le demandeur voit la décision arriver (approbation ou refus).
 do $$
@@ -126,6 +131,9 @@ immutable
 as $$ select regexp_replace(coalesce(p, ''), '[^0-9]', '', 'g') $$;
 
 -- --- submit_provider_application : envoyer (ou renvoyer après refus) ------------
+-- Migration (photos) : l'ancienne signature, sans photo, disparaît.
+drop function if exists public.submit_provider_application(
+  text, text[], text, text, numeric, text, text, text);
 create or replace function public.submit_provider_application(
   p_business_name    text,
   p_services         text[],
@@ -134,7 +142,8 @@ create or replace function public.submit_provider_application(
   p_hourly_rate      numeric,
   p_bio              text,
   p_id_document_path text,
-  p_insurance_path   text
+  p_insurance_path   text,
+  p_photo_path       text
 )
 returns uuid
 language plpgsql
@@ -174,14 +183,18 @@ begin
      or split_part(coalesce(p_insurance_path, ''), '/', 1) <> v_uid::text then
     raise exception 'invalid_document_path';
   end if;
+  -- Photo obligatoire, dans son dossier du bucket provider-photos.
+  if split_part(coalesce(p_photo_path, ''), '/', 1) <> v_uid::text then
+    raise exception 'invalid_photo_path';
+  end if;
 
   insert into public.provider_applications as a (
     user_id, status, business_name, services, neq, rbq_licence, hourly_rate, bio,
-    id_document_path, insurance_path, rbq_check, submitted_at
+    id_document_path, insurance_path, photo_path, rbq_check, submitted_at
   ) values (
     v_uid, 'submitted', btrim(p_business_name), p_services, v_neq,
     case when 'plumber' = any (p_services) then v_licence end, p_hourly_rate,
-    coalesce(btrim(p_bio), ''), p_id_document_path, p_insurance_path,
+    coalesce(btrim(p_bio), ''), p_id_document_path, p_insurance_path, p_photo_path,
     case when 'plumber' = any (p_services) then public.rbq_check_licence(v_licence, v_neq) end,
     now()
   )
@@ -190,7 +203,7 @@ begin
     services = excluded.services, neq = excluded.neq, rbq_licence = excluded.rbq_licence,
     hourly_rate = excluded.hourly_rate, bio = excluded.bio,
     id_document_path = excluded.id_document_path, id_document_purged_at = null,
-    insurance_path = excluded.insurance_path,
+    insurance_path = excluded.insurance_path, photo_path = excluded.photo_path,
     rbq_check = excluded.rbq_check, submitted_at = now(),
     decided_at = null, decided_by = null, rejection_reason = null
   returning a.id into v_id;
@@ -198,102 +211,11 @@ begin
 end;
 $$;
 
--- --- admin_approve_application : crée la fiche et la relie au compte ------------
-create or replace function public.admin_approve_application(p_application_id uuid)
-returns text
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  a          public.provider_applications;
-  v_provider text;
-begin
-  if not public.is_admin() then raise exception 'not_admin'; end if;
-  select * into a from public.provider_applications where id = p_application_id for update;
-  if not found or a.status <> 'submitted' then raise exception 'application_not_pending'; end if;
-  if exists (select 1 from public.providers where user_id = a.user_id) then
-    raise exception 'already_linked';
-  end if;
-
-  v_provider := 'p-' || left(replace(a.id::text, '-', ''), 12);
-  insert into public.providers (id, name, services, hourly_rate, bio, member_since, verified, user_id)
-  values (v_provider, a.business_name, a.services, a.hourly_rate, a.bio,
-          extract(year from now())::text, true, a.user_id);
-
-  update public.provider_applications
-  set status = 'approved', decided_at = now(), decided_by = auth.uid(),
-      rejection_reason = null, provider_id = v_provider
-  where id = a.id;
-  return v_provider;
-end;
-$$;
-
--- --- admin_reject_application : refus motivé (le demandeur peut renvoyer) -------
-create or replace function public.admin_reject_application(p_application_id uuid, p_reason text)
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  if not public.is_admin() then raise exception 'not_admin'; end if;
-  if coalesce(btrim(p_reason), '') = '' then raise exception 'reason_required'; end if;
-  update public.provider_applications
-  set status = 'rejected', decided_at = now(), decided_by = auth.uid(),
-      rejection_reason = btrim(p_reason)
-  where id = p_application_id and status = 'submitted';
-  if not found then raise exception 'application_not_pending'; end if;
-end;
-$$;
-
--- --- Lectures de l'admin (écran « Adhésions ») ------------------------------
--- Nom et courriel des demandeurs : profiles n'est lisible que par son propriétaire.
-create or replace function public.admin_list_applicants()
-returns table (applicant_id uuid, applicant_name text, applicant_email text)
-language plpgsql
-stable
-security definer
-set search_path = public
-as $$
-begin
-  if not public.is_admin() then raise exception 'not_admin'; end if;
-  return query
-    select p.id, p.name, p.email
-    from public.profiles p
-    join public.provider_applications a on a.user_id = p.id;
-end;
-$$;
-
--- Fraîcheur du registre RBQ (dernier import, nombre de licences) : alerte si l'import
--- nocturne échoue plusieurs nuits de suite.
-create or replace function public.admin_rbq_registry_status()
-returns table (last_import timestamptz, licence_count bigint)
-language plpgsql
-stable
-security definer
-set search_path = public
-as $$
-begin
-  if not public.is_admin() then raise exception 'not_admin'; end if;
-  return query select max(r.imported_at), count(*) from public.rbq_licences r;
-end;
-$$;
-
 -- --- Droits d'exécution --------------------------------------------------------
 revoke execute on function public.is_admin() from public, anon;
 revoke execute on function public.rbq_check_licence(text, text) from public, anon, authenticated;
 revoke execute on function public.submit_provider_application(
-  text, text[], text, text, numeric, text, text, text) from public, anon;
-revoke execute on function public.admin_approve_application(uuid) from public, anon;
-revoke execute on function public.admin_reject_application(uuid, text) from public, anon;
-revoke execute on function public.admin_list_applicants() from public, anon;
-revoke execute on function public.admin_rbq_registry_status() from public, anon;
+  text, text[], text, text, numeric, text, text, text, text) from public, anon;
 grant execute on function public.is_admin() to authenticated;
 grant execute on function public.submit_provider_application(
-  text, text[], text, text, numeric, text, text, text) to authenticated;
--- Exécutables par tout compte connecté, mais refusés sans is_admin() (vérifié dedans).
-grant execute on function public.admin_approve_application(uuid) to authenticated;
-grant execute on function public.admin_reject_application(uuid, text) to authenticated;
-grant execute on function public.admin_list_applicants() to authenticated;
-grant execute on function public.admin_rbq_registry_status() to authenticated;
+  text, text[], text, text, numeric, text, text, text, text) to authenticated;

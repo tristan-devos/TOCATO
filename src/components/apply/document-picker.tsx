@@ -18,10 +18,19 @@ interface DocumentPickerProps {
   /** Une pièce déjà envoyée (renvoi après refus) : on peut la garder. */
   onFile: boolean;
   onPick: (photo: LocalPhoto) => void;
+  /** Photo de profil : recadrage carré, aperçu rond. */
+  portrait?: boolean;
 }
 
 /** Choix d'une pièce justificative (photo de la galerie), avec aperçu. */
-export function DocumentPicker({ label, hint, photo, onFile, onPick }: DocumentPickerProps) {
+export function DocumentPicker({
+  label,
+  hint,
+  photo,
+  onFile,
+  onPick,
+  portrait = false,
+}: DocumentPickerProps) {
   const colors = useTheme();
   const { t } = useTranslation();
 
@@ -30,6 +39,7 @@ export function DocumentPicker({ label, hint, photo, onFile, onPick }: DocumentP
       mediaTypes: ['images'],
       quality: 0.7,
       base64: true,
+      ...(portrait ? { allowsEditing: true, aspect: [1, 1] as [number, number] } : {}),
     });
     const asset = result.canceled ? undefined : result.assets[0];
     if (asset?.base64) onPick({ uri: asset.uri, base64: asset.base64 });
@@ -46,7 +56,11 @@ export function DocumentPicker({ label, hint, photo, onFile, onPick }: DocumentP
         </AppText>
       </View>
       {photo ? (
-        <Image source={{ uri: photo.uri }} style={styles.preview} contentFit="cover" />
+        <Image
+          source={{ uri: photo.uri }}
+          style={portrait ? styles.portrait : styles.preview}
+          contentFit="cover"
+        />
       ) : onFile ? (
         <View style={styles.onFile}>
           <FileCheck size={18} color={colors.primary} />
@@ -68,5 +82,6 @@ const styles = StyleSheet.create({
   card: { gap: Spacing.three },
   texts: { gap: Spacing.half },
   preview: { width: '100%', height: 160, borderRadius: Radius.md },
+  portrait: { width: 120, height: 120, borderRadius: Radius.full, alignSelf: 'center' },
   onFile: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
 });

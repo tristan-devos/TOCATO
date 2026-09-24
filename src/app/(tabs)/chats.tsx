@@ -4,8 +4,8 @@ import { useMemo } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { ProviderAvatar } from '@/components/provider-avatar';
 import { AppText } from '@/components/ui/app-text';
-import { Avatar } from '@/components/ui/avatar';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FadeInItem } from '@/components/ui/fade-in-item';
 import { Screen } from '@/components/ui/screen';
@@ -18,12 +18,15 @@ import { useSystemMessageText } from '@/hooks/use-message-text';
 import { useDataReady } from '@/lib/auth-store';
 import { useRole } from '@/lib/profile-store';
 import { useOpenRequests } from '@/lib/provider-store';
+import { useProviders } from '@/lib/providers-store';
 import { useAppStore } from '@/lib/store';
 import type { Conversation, Message } from '@/lib/types';
 
 interface ConversationItem {
   conversation: Conversation;
   providerName: string;
+  /** Photo du prestataire (côté client) ; null côté prestataire (le client n'en a pas). */
+  photoPath: string | null;
   serviceName: string;
   preview: string;
 }
@@ -42,6 +45,7 @@ export default function ChatsScreen() {
   const systemText = useSystemMessageText();
   // Prestataire : une demande encore ouverte n'est connue que par list_open_requests.
   const openRequests = useOpenRequests();
+  const providers = useProviders();
 
   const items = useMemo<ConversationItem[]>(() => {
     const previewOf = (message: Message | undefined): string => {
@@ -73,11 +77,15 @@ export default function ChatsScreen() {
         return {
           conversation,
           providerName: counterpartName(conversation),
+          photoPath:
+            role === 'provider'
+              ? null
+              : (providers.find((p) => p.id === conversation.providerId)?.photoPath ?? null),
           serviceName: serviceId ? t(`services.${serviceId}.categoryName`) : '',
           preview: previewOf(lastMessage),
         };
       });
-  }, [conversations, messages, bookings, openRequests, counterpartName, systemText, t]);
+  }, [conversations, messages, bookings, openRequests, providers, role, counterpartName, systemText, t]);
 
   return (
     <Screen scroll={false}>
@@ -120,7 +128,7 @@ export default function ChatsScreen() {
                   styles.row,
                   pressed && { backgroundColor: colors.backgroundElement },
                 ]}>
-                <Avatar name={item.providerName} size={50} />
+                <ProviderAvatar name={item.providerName} photoPath={item.photoPath} size={50} />
                 <View style={styles.rowTexts}>
                   <View style={styles.rowTop}>
                     <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
