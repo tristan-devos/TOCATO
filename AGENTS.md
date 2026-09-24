@@ -634,9 +634,13 @@ Ces règles sont non négociables :
   `useMemo` dans le composant.
 - Flux principal de l'app (**appel d'offres**) : demande (wizard, sans choix de
   prestataire) → réservation `pending` sans prestataire → chaque prestataire intéressé
-  ouvre sa conversation avec un devis → le client en accepte un (`accept_quote`) →
-  réservation `confirmed` avec ce prestataire, devis concurrents `declined` et autres
-  prestataires prévenus. Détails : `docs/interface-prestataire.md`.
+  ouvre sa conversation avec un devis (lignes, date et créneau proposés) → le client en
+  accepte un (`accept_quote`) → réservation `confirmed` avec ce prestataire **à la date
+  du devis**, devis concurrents `declined`, autres prestataires prévenus et leurs
+  conversations fermées → changement de date possible (`propose_reschedule` /
+  `respond_reschedule`) → `in_progress` → `completed` → note du client dans le chat
+  (`submit_review`), conversation fermée 48 h après la fin. Détails :
+  `docs/interface-prestataire.md`, `docs/devis-et-fin-de-mission.md`.
 
 ## Données de test
 
