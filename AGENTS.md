@@ -427,6 +427,9 @@ docs/                       Documents de conception, validés en PR avant le cod
   experience-emotionnelle.md  Design émotionnel (fondations, mouvement, haptique), photos
                             des prestataires, tableau de bord prestataire avec calendrier,
                             moments clés côté client. Validé, lots 1 à 4 faits.
+  devis-et-fin-de-mission.md  Devis complet avec date d'intervention, changement de date,
+                            note du prestataire, conversations fermées après la mission.
+                            À valider.
 ```
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).
