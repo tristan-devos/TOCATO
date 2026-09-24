@@ -1,7 +1,7 @@
 import { Star } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { FontSize } from '@/constants/theme';
+import { Font, FontSize } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface RatingProps {
@@ -25,6 +25,6 @@ export function Rating({ rating, reviewCount }: RatingProps) {
 
 const styles = StyleSheet.create({
   base: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  value: { fontSize: FontSize.sm, fontWeight: '600' },
-  count: { fontSize: FontSize.sm },
+  value: { fontSize: FontSize.sm, ...Font.semibold },
+  count: { ...Font.regular, fontSize: FontSize.sm },
 });

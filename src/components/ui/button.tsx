@@ -1,14 +1,14 @@
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   StyleSheet,
   Text,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
 
-import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { PressableScale } from '@/components/ui/pressable-scale';
+import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type Variant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
@@ -53,10 +53,10 @@ export function Button({
   const { bg, bgPressed, fg, border } = palette[variant];
 
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       disabled={disabled || loading}
-      style={({ pressed }) => [
+      style={(pressed) => [
         styles.base,
         sizeStyles[size],
         {
@@ -75,7 +75,7 @@ export function Button({
           <Text style={[styles.label, size === 'lg' && styles.labelLg, { color: fg }]}>{title}</Text>
         </>
       )}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -87,8 +87,8 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
     borderRadius: Radius.md,
   },
-  label: { fontSize: FontSize.sm, fontWeight: '600' },
-  labelLg: { fontSize: FontSize.base },
+  label: { fontSize: FontSize.sm, ...Font.semibold },
+  labelLg: { ...Font.regular, fontSize: FontSize.base },
 });
 
 const sizeStyles = StyleSheet.create({

@@ -16,6 +16,7 @@ import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
 import { BOOKING_STATUS } from '@/lib/booking-status';
 import { formatAddress } from '@/lib/format';
+import { haptics } from '@/lib/haptics';
 import { useProviderStore } from '@/lib/provider-store';
 import { useAppStore, useBooking } from '@/lib/store';
 
@@ -43,14 +44,18 @@ export default function JobDetailScreen() {
   const conversation = conversations.find((c) => c.bookingId === booking.id);
   const status = BOOKING_STATUS[booking.status];
 
-  const confirmThen = (title: string, message: string, action: () => Promise<void>) => {
+  const confirmThen = (title: string, message: string, action: () => Promise<boolean>) => {
     Alert.alert(title, message, [
       { text: t('common.cancel'), style: 'cancel' },
       {
         text: t('providerApp.confirm'),
         onPress: () => {
           setBusy(true);
-          void action().finally(() => setBusy(false));
+          void action()
+            .then((ok) => {
+              if (ok) haptics.success();
+            })
+            .finally(() => setBusy(false));
         },
       },
     ]);

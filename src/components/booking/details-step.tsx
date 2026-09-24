@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { AppText } from '@/components/ui/app-text';
-import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { LocalPhoto } from '@/lib/photo-upload';
 
@@ -108,6 +108,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     padding: Spacing.three,
     minHeight: 140,
+    ...Font.regular,
     fontSize: FontSize.base,
     lineHeight: 22,
   },

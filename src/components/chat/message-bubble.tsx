@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
 import { useSystemMessageText } from '@/hooks/use-message-text';
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     marginVertical: Spacing.two,
     paddingHorizontal: Spacing.four,
   },
-  systemText: { fontSize: FontSize.xs, textAlign: 'center' },
+  systemText: { ...Font.regular, fontSize: FontSize.xs, textAlign: 'center' },
   bubble: {
     maxWidth: '78%',
     borderRadius: Radius.lg,
@@ -155,8 +155,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.two + 2,
     gap: 2,
   },
-  text: { fontSize: FontSize.base, lineHeight: 21 },
-  time: { fontSize: 10, alignSelf: 'flex-end' },
+  text: { ...Font.regular, fontSize: FontSize.base, lineHeight: 21 },
+  time: { ...Font.regular, fontSize: 10, alignSelf: 'flex-end' },
   quoteCard: {
     maxWidth: '85%',
     borderRadius: Radius.lg,
@@ -165,10 +165,10 @@ const styles = StyleSheet.create({
     gap: Spacing.two,
   },
   quoteHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  quoteTitle: { fontSize: FontSize.base, fontWeight: '700', flex: 1 },
-  quoteAmount: { fontSize: FontSize.xl, fontWeight: '800' },
-  quoteDetails: { fontSize: FontSize.sm, lineHeight: 19 },
-  quoteNote: { fontSize: FontSize.sm },
+  quoteTitle: { fontSize: FontSize.base, ...Font.bold, flex: 1 },
+  quoteAmount: { fontSize: FontSize.xl, ...Font.extrabold },
+  quoteDetails: { ...Font.regular, fontSize: FontSize.sm, lineHeight: 19 },
+  quoteNote: { ...Font.regular, fontSize: FontSize.sm },
   quoteActions: { flexDirection: 'row', gap: Spacing.two, marginTop: Spacing.one },
   quoteAction: { flex: 1 },
   documentCard: {
@@ -188,6 +188,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   documentTexts: { flexShrink: 1 },
-  documentName: { fontSize: FontSize.sm, fontWeight: '600' },
-  documentSize: { fontSize: FontSize.xs },
+  documentName: { fontSize: FontSize.sm, ...Font.semibold },
+  documentSize: { ...Font.regular, fontSize: FontSize.xs },
 });

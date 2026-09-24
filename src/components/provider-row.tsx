@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Rating } from '@/components/rating';
 import { Avatar } from '@/components/ui/avatar';
-import { FontSize, Spacing } from '@/constants/theme';
+import { Font, FontSize, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { Provider } from '@/lib/types';
 
@@ -39,6 +39,6 @@ const styles = StyleSheet.create({
   base: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   texts: { flex: 1, gap: 2 },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  name: { fontSize: FontSize.base, fontWeight: '600', flexShrink: 1 },
-  subtitle: { fontSize: FontSize.sm },
+  name: { fontSize: FontSize.base, ...Font.semibold, flexShrink: 1 },
+  subtitle: { ...Font.regular, fontSize: FontSize.sm },
 });

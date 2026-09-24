@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 import { AppText } from '@/components/ui/app-text';
 import { Chip } from '@/components/ui/chip';
-import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { TIME_SLOTS } from '@/lib/services';
 import type { TimeSlotId } from '@/lib/types';
@@ -178,9 +178,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
-  dayWeekday: { fontSize: FontSize.xs, textTransform: 'capitalize' },
-  dayNumber: { fontSize: FontSize.lg, fontWeight: '700' },
-  dayMonth: { fontSize: FontSize.xs, textTransform: 'capitalize' },
+  dayWeekday: { ...Font.regular, fontSize: FontSize.xs, textTransform: 'capitalize' },
+  dayNumber: { fontSize: FontSize.lg, ...Font.bold },
+  dayMonth: { ...Font.regular, fontSize: FontSize.xs, textTransform: 'capitalize' },
   slots: { gap: Spacing.two + 4 },
   slotsRow: { flexDirection: 'row', gap: Spacing.two },
   slot: {
@@ -191,8 +191,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
   },
-  slotLabel: { fontSize: FontSize.sm, fontWeight: '600' },
-  slotHours: { fontSize: FontSize.xs },
+  slotLabel: { fontSize: FontSize.sm, ...Font.semibold },
+  slotHours: { ...Font.regular, fontSize: FontSize.xs },
   asapNote: {
     flexDirection: 'row',
     alignItems: 'center',

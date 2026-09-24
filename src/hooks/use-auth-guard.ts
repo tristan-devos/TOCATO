@@ -59,9 +59,11 @@ function redirectFor(
  * à rediriger) : le layout racine garde l'écran de démarrage jusque-là, sinon
  * l'accueil client (route par défaut) apparaît un instant avant la redirection.
  *
- * Inactif tant que Supabase n'est pas configuré (l'app reste accessible en démo).
+ * Inactif tant que Supabase n'est pas configuré (l'app reste accessible en démo),
+ * et tant que `navigatorMounted` est faux : le layout racine ne rend pas encore
+ * le Stack (police en chargement), et naviguer avant son montage lève une erreur.
  */
-export function useAuthGuard(): boolean {
+export function useAuthGuard(navigatorMounted: boolean): boolean {
   const status = useAuthStatus();
   const role = useRole();
   const isAdmin = useIsAdmin();
@@ -72,8 +74,8 @@ export function useAuthGuard(): boolean {
   const target = redirectFor(status, role, isAdmin, first);
 
   useEffect(() => {
-    if (target !== null && target !== 'wait') router.replace(target);
-  }, [target, router]);
+    if (navigatorMounted && target !== null && target !== 'wait') router.replace(target);
+  }, [navigatorMounted, target, router]);
 
-  return target === null;
+  return navigatorMounted && target === null;
 }

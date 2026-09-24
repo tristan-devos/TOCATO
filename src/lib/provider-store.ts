@@ -26,8 +26,9 @@ interface ProviderState {
   refreshOpenRequests: () => Promise<void>;
   /** Envoie un devis ; renvoie l'id de la conversation, ou null en cas d'échec. */
   sendQuote: (bookingId: string, amount: number, details: string) => Promise<string | null>;
-  startJob: (bookingId: string) => Promise<void>;
-  completeJob: (bookingId: string) => Promise<void>;
+  /** true si la transition a été appliquée. */
+  startJob: (bookingId: string) => Promise<boolean>;
+  completeJob: (bookingId: string) => Promise<boolean>;
   clear: () => void;
 }
 
@@ -85,12 +86,14 @@ export const useProviderStore = create<ProviderState>((set) => ({
     const { error } = await supabase.rpc('start_job', { p_booking_id: bookingId });
     if (error && __DEV__) console.warn('[start_job]', error.message);
     await useAppStore.getState().loadAll();
+    return !error;
   },
 
   completeJob: async (bookingId) => {
     const { error } = await supabase.rpc('complete_job', { p_booking_id: bookingId });
     if (error && __DEV__) console.warn('[complete_job]', error.message);
     await useAppStore.getState().loadAll();
+    return !error;
   },
 
   clear: () => set({ openRequests: [], clientNames: {} }),

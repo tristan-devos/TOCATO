@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { ServiceIcon } from '@/components/service-icon';
 import { Card } from '@/components/ui/card';
-import { FontSize, Spacing } from '@/constants/theme';
+import { Font, FontSize, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
 import { useLocalizedService } from '@/lib/use-localized-service';
@@ -43,7 +43,7 @@ export function ServiceCard({ serviceId, onPress }: ServiceCardProps) {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   texts: { flex: 1, gap: 2 },
-  name: { fontSize: FontSize.base, fontWeight: '700' },
-  tagline: { fontSize: FontSize.sm },
-  price: { fontSize: FontSize.sm, fontWeight: '600', marginTop: 2 },
+  name: { fontSize: FontSize.base, ...Font.bold },
+  tagline: { ...Font.regular, fontSize: FontSize.sm },
+  price: { fontSize: FontSize.sm, ...Font.semibold, marginTop: 2 },
 });

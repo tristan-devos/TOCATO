@@ -2,7 +2,7 @@ import { ChevronRight } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface ListItemProps {
@@ -63,6 +63,6 @@ const styles = StyleSheet.create({
   },
   leading: { width: 36, alignItems: 'center' },
   texts: { flex: 1, gap: 2 },
-  title: { fontSize: FontSize.base, fontWeight: '500' },
-  subtitle: { fontSize: FontSize.sm },
+  title: { fontSize: FontSize.base, ...Font.medium },
+  subtitle: { ...Font.regular, fontSize: FontSize.sm },
 });

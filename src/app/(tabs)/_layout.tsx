@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { TocatoMark } from '@/components/tocato-mark';
-import { FontSize } from '@/constants/theme';
+import { Font, FontSize } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useUnreadTotal } from '@/lib/store';
 
@@ -23,7 +23,7 @@ export default function TabsLayout() {
           backgroundColor: colors.card,
           borderTopColor: colors.border,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 11, ...Font.semibold },
       }}>
       <Tabs.Screen
         name="index"
@@ -41,6 +41,7 @@ export default function TabsLayout() {
           tabBarBadgeStyle: {
             backgroundColor: colors.destructive,
             color: '#FFFFFF',
+            ...Font.regular,
             fontSize: FontSize.xs,
           },
         }}

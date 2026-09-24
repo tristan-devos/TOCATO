@@ -1,6 +1,6 @@
 # Conception : expérience émotionnelle, photos des prestataires, tableau de bord
 
-> **Statut : à valider** (PR de conception, aucun code).
+> **Statut : validé** (2026-09-24), en cours de réalisation (voir §8).
 > Rédigé le 2026-09-24. Chaque lot (§8) devient une PR, et `AGENTS.md` est mis à jour
 > dans la PR qui change le comportement décrit. Les écarts au plan seront notés
 > « **Réalisé :** » dans la section concernée.
@@ -82,6 +82,20 @@ Inspirés des trois niveaux de Don Norman (viscéral, comportemental, réflexif)
   40 ms par élément, **au premier affichage seulement**.
 
 Aucun changement SQL.
+
+**Réalisé :** `fontWeight` retiré partout au profit de `Font.<graisse>` (une famille par
+graisse). Le layout racine ne rend rien tant que la police charge (moins d'une seconde,
+sous l'écran de démarrage) ; la garde d'auth attend le montage du Stack. Contraction au
+toucher : composant `ui/pressable-scale.tsx` (plutôt que le hook seul, pour garder les
+couleurs d'état pressé) ; `ServiceCard` et `BookingCard` en profitent via `Card`. Le
+squelette pulse en boucle : seule exception à la règle 6, figée si « réduire les
+animations » est actif. Squelettes et entrées branchés sur Réservations, Mes travaux et
+Messages. Haptique : `select` sur `Chip` et `SegmentedControl`, `success` sur demande
+envoyée, devis envoyé, devis accepté, mission commencée ou terminée (les actions du store
+renvoient désormais un booléen). La variante `display` est appliquée à la salutation de
+l'accueil client ; le reste de l'accueil attend le lot 4. Hors plan : `src/global.css`
+(variables de police web jamais lues) supprimé ; `npx expo lint` a installé `eslint` et
+`eslint-config-expo` avec leur configuration, gardés.
 
 ## 5. Lot 2 : photos des prestataires
 
@@ -198,7 +212,7 @@ valide ; l'approbation d'une demande publie sa photo.
 
 ## 8. Découpage en PR (lots)
 
-1. **Fondations** : police, tokens (ombre, accent, `display`), `usePressScale`,
+1. ✅ **Fondations** : police, tokens (ombre, accent, `display`), `usePressScale`,
    `lib/haptics.ts`, squelettes. Pas de SQL.
 2. **Photos des prestataires** : SQL (bucket, colonnes, RPC, policies, scénarios),
    formulaire d'adhésion, admin, profil prestataire, `Avatar` avec photo, purge.

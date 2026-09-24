@@ -7,7 +7,7 @@ import { ServiceIcon } from '@/components/service-icon';
 import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { FontSize, Spacing } from '@/constants/theme';
+import { Font, FontSize, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
 import { BOOKING_STATUS } from '@/lib/booking-status';
@@ -104,16 +104,16 @@ const styles = StyleSheet.create({
   },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 2, flex: 1 },
   titleTexts: { flex: 1 },
-  title: { fontSize: FontSize.base, fontWeight: '600' },
-  provider: { fontSize: FontSize.sm },
+  title: { fontSize: FontSize.base, ...Font.semibold },
+  provider: { ...Font.regular, fontSize: FontSize.sm },
   divider: { height: StyleSheet.hairlineWidth, marginVertical: Spacing.three },
   detailRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two, marginBottom: 6 },
-  detail: { fontSize: FontSize.sm, flex: 1 },
+  detail: { ...Font.regular, fontSize: FontSize.sm, flex: 1 },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: Spacing.two,
   },
-  price: { fontSize: FontSize.base, fontWeight: '700' },
+  price: { fontSize: FontSize.base, ...Font.bold },
 });

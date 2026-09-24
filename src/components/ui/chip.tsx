@@ -1,7 +1,9 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { PressableScale } from '@/components/ui/pressable-scale';
+import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { haptics } from '@/lib/haptics';
 
 interface ChipProps {
   label: string;
@@ -15,9 +17,12 @@ export function Chip({ label, hint, selected, onPress }: ChipProps) {
   const colors = useTheme();
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
+    <PressableScale
+      onPress={() => {
+        if (!selected) haptics.select();
+        onPress();
+      }}
+      style={(pressed) => [
         styles.base,
         {
           backgroundColor: selected ? colors.primaryMuted : colors.card,
@@ -38,7 +43,7 @@ export function Chip({ label, hint, selected, onPress }: ChipProps) {
           selected && { backgroundColor: colors.primary },
         ]}
       />
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -54,8 +59,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   texts: { flex: 1, gap: 2 },
-  label: { fontSize: FontSize.base, fontWeight: '600' },
-  hint: { fontSize: FontSize.sm },
+  label: { fontSize: FontSize.base, ...Font.semibold },
+  hint: { ...Font.regular, fontSize: FontSize.sm },
   radio: {
     width: 20,
     height: 20,

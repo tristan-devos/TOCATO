@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
-import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useProfileStore } from '@/lib/profile-store';
 
@@ -93,6 +93,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     paddingHorizontal: Spacing.three,
     paddingVertical: 10,
+    ...Font.regular,
     fontSize: FontSize.base,
   },
   actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: Spacing.two },

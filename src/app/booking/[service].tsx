@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, X } from 'lucide-react-native';
 import { useState } from 'react';
@@ -24,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { ProgressBar } from '@/components/ui/progress-bar';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { haptics } from '@/lib/haptics';
 import { useAddresses } from '@/lib/profile-store';
 import type { LocalPhoto } from '@/lib/photo-upload';
 import { isServiceId } from '@/lib/services';
@@ -108,9 +108,7 @@ export default function BookingWizardScreen() {
     });
     setSubmitting(false);
     if (!result) return;
-    if (Platform.OS !== 'web') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
+    haptics.success();
     setSubmittedBookingId(result.bookingId);
   };
 
