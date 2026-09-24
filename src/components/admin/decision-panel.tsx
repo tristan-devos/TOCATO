@@ -8,15 +8,31 @@ import { Card } from '@/components/ui/card';
 import { TextField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useAdminStore, type DecisionResult } from '@/lib/admin-store';
-import type { AdminApplication } from '@/lib/types';
+import type { DecisionResult } from '@/lib/admin-store';
 
-/** Décision sur une demande en attente : approuver (confirmation) ou refuser (motif). */
-export function DecisionPanel({ application }: { application: AdminApplication }) {
+interface DecisionPanelProps {
+  approveLabel: string;
+  confirmTitle: string;
+  confirmMessage: string;
+  rejectPlaceholder: string;
+  onApprove: () => Promise<DecisionResult>;
+  onReject: (reason: string) => Promise<DecisionResult>;
+}
+
+/**
+ * Décision de l'admin sur ce qui attend (demande d'adhésion, photo) : approuver
+ * (confirmation) ou refuser (motif obligatoire, visible par le prestataire).
+ */
+export function DecisionPanel({
+  approveLabel,
+  confirmTitle,
+  confirmMessage,
+  rejectPlaceholder,
+  onApprove,
+  onReject,
+}: DecisionPanelProps) {
   const colors = useTheme();
   const { t } = useTranslation();
-  const approve = useAdminStore((s) => s.approve);
-  const reject = useAdminStore((s) => s.reject);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState<'approve' | 'reject' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -32,22 +48,15 @@ export function DecisionPanel({ application }: { application: AdminApplication }
   };
 
   const confirmApprove = () =>
-    Alert.alert(
-      t('admin.approveTitle'),
-      t('admin.approveMessage', { name: application.businessName }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('admin.approve'),
-          onPress: () => void run('approve', () => approve(application.id)),
-        },
-      ],
-    );
+    Alert.alert(confirmTitle, confirmMessage, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: approveLabel, onPress: () => void run('approve', onApprove) },
+    ]);
 
   return (
     <Card style={styles.card}>
       <Button
-        title={t('admin.approve')}
+        title={approveLabel}
         onPress={confirmApprove}
         loading={busy === 'approve'}
         disabled={busy !== null}
@@ -57,12 +66,12 @@ export function DecisionPanel({ application }: { application: AdminApplication }
           label={t('admin.rejectReason')}
           value={reason}
           onChangeText={setReason}
-          placeholder={t('admin.rejectPlaceholder')}
+          placeholder={rejectPlaceholder}
           multiline
         />
         <Button
           title={t('admin.reject')}
-          onPress={() => void run('reject', () => reject(application.id, reason))}
+          onPress={() => void run('reject', () => onReject(reason))}
           variant="destructive"
           loading={busy === 'reject'}
           disabled={busy !== null || reason.trim().length === 0}

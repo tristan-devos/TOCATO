@@ -96,6 +96,7 @@ export default function RootLayout() {
         <Stack.Screen name="profile/help" />
         <Stack.Screen name="admin/index" />
         <Stack.Screen name="admin/[id]" />
+        <Stack.Screen name="admin/photo/[providerId]" />
       </Stack>
     </ThemeProvider>
   );

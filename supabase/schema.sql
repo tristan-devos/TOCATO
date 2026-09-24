@@ -6,8 +6,9 @@
 -- Idempotent autant que possible (IF NOT EXISTS / ON CONFLICT).
 --
 -- Ordre d'exécution (tous idempotents) : schema.sql (tables, migrations, Storage)
--- -> rpc.sql -> transitions.sql -> providers.sql -> applications.sql -> policies.sql (RLS + Storage,
--- en dernier car les policies appellent les fonctions des fichiers précédents).
+-- -> rpc.sql -> transitions.sql -> providers.sql -> applications.sql -> photos.sql
+-- -> admin.sql -> policies.sql (RLS + Storage, en dernier car les policies appellent
+-- les fonctions des fichiers précédents).
 -- Écritures sur bookings / conversations / messages : uniquement via les RPC,
 -- sauf l'envoi d'un message texte (voir policies.sql).
 -- =============================================================================
@@ -80,11 +81,15 @@ create table if not exists public.providers (
   -- Compte relié (prestataire réel), renseigné par un admin via
   -- admin_link_provider (providers.sql). Null tant que la fiche n'est reliée à aucun compte.
   user_id        uuid unique references public.profiles (id) on delete set null,
+  -- Photo publiée (bucket privé provider-photos, {user_id}/{uuid}.jpg), validée par
+  -- l'admin : à l'adhésion, puis à chaque changement (photos.sql). Null = initiales.
+  photo_path     text,
   constraint providers_services_valid
     check (services <@ array['plumber', 'mover', 'gardener']::text[])
 );
 alter table public.providers
   add column if not exists user_id uuid unique references public.profiles (id) on delete set null;
+alter table public.providers add column if not exists photo_path text;
 
 -- --- bookings ------------------------------------------------------------
 -- Appel d'offres : provider_id est null tant qu'aucun devis n'est accepté. Les

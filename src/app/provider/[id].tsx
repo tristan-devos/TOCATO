@@ -4,9 +4,9 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
+import { ProviderAvatar } from '@/components/provider-avatar';
 import { Rating } from '@/components/rating';
 import { AppText } from '@/components/ui/app-text';
-import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Spacing } from '@/constants/theme';
@@ -50,7 +50,7 @@ export default function ProviderProfileScreen() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.hero}>
-          <Avatar name={provider.name} size={72} />
+          <ProviderAvatar name={provider.name} photoPath={provider.photoPath} size={96} />
           <View style={styles.nameRow}>
             <AppText variant="heading">{provider.name}</AppText>
             {provider.verified ? <BadgeCheck size={20} color={colors.primary} /> : null}

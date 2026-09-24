@@ -13,7 +13,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { Spacing } from '@/constants/theme';
 import { useFormats } from '@/hooks/use-formats';
 import { useTheme } from '@/hooks/use-theme';
-import { useAdminApplication } from '@/lib/admin-store';
+import { useAdminApplication, useAdminStore } from '@/lib/admin-store';
 
 /** Admin : détail d'une demande d'adhésion, pièces et décision. */
 export default function AdminApplicationScreen() {
@@ -22,6 +22,8 @@ export default function AdminApplicationScreen() {
   const { formatPrice, formatDateLong } = useFormats();
   const { id } = useLocalSearchParams<{ id: string }>();
   const application = useAdminApplication(id);
+  const approve = useAdminStore((s) => s.approve);
+  const reject = useAdminStore((s) => s.reject);
 
   if (!application) {
     return (
@@ -66,6 +68,11 @@ export default function AdminApplicationScreen() {
 
         <Card style={styles.card}>
           <AppText variant="label">{t('admin.documents')}</AppText>
+          {application.photoPath ? (
+            <DocumentImage label={t('admin.photo')} path={application.photoPath} kind="photo" />
+          ) : (
+            <AppText variant="secondary">{t('admin.photoMissing')}</AppText>
+          )}
           {application.idDocumentPath ? (
             <DocumentImage label={t('apply.idDocument')} path={application.idDocumentPath} />
           ) : (
@@ -81,7 +88,14 @@ export default function AdminApplicationScreen() {
         </Card>
 
         {application.status === 'submitted' ? (
-          <DecisionPanel application={application} />
+          <DecisionPanel
+            approveLabel={t('admin.approve')}
+            confirmTitle={t('admin.approveTitle')}
+            confirmMessage={t('admin.approveMessage', { name: application.businessName })}
+            rejectPlaceholder={t('admin.rejectPlaceholder')}
+            onApprove={() => approve(application.id)}
+            onReject={(reason) => reject(application.id, reason)}
+          />
         ) : (
           <AppText variant="secondary">
             {application.status === 'approved'

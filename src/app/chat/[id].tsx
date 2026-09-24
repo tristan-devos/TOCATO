@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { MessageBubble } from '@/components/chat/message-bubble';
-import { Avatar } from '@/components/ui/avatar';
+import { ProviderAvatar } from '@/components/provider-avatar';
 import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useCounterpartName } from '@/hooks/use-counterpart';
@@ -120,7 +120,11 @@ export default function ChatScreen() {
           <ArrowLeft size={22} color={colors.text} />
         </Pressable>
         <Pressable onPress={openIdentity} disabled={isProvider} style={styles.headerIdentity}>
-          <Avatar name={name} size={38} />
+          <ProviderAvatar
+            name={name}
+            photoPath={isProvider ? null : provider?.photoPath}
+            size={38}
+          />
           <View style={styles.headerTexts}>
             <Text style={[styles.headerName, { color: colors.text }]} numberOfLines={1}>
               {name}

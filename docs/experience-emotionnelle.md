@@ -147,6 +147,21 @@ Scénarios : un client lit une photo publiée mais pas une photo en attente ; an
 rien ; un prestataire ne pose pas de photo dans le dossier d'un autre ; seul l'admin
 valide ; l'approbation d'une demande publie sa photo.
 
+**Réalisé :** écart au plan sur les données : la photo proposée après approbation vit
+dans une table privée `provider_photo_changes` (une ligne par fiche, statut, motif de
+refus) et non dans `providers.pending_photo_path` : `providers` est lisible par tous les
+comptes connectés, une photo en attente et le motif d'un refus ne regardent que le
+prestataire et l'admin. Le refus demande un motif, affiché au prestataire. Fichiers SQL :
+`applications.sql` dépassait 300 lignes, ses RPC admin passent dans un nouveau
+`admin.sql` (avec celles des photos) ; le reste des photos est dans `photos.sql`. La
+signature de `submit_provider_application` change (photo obligatoire, `p_photo_path`) :
+une ancienne version de l'app ne peut plus envoyer de demande. Les demandes antérieures
+n'ont pas de photo (fiche en initiales, l'admin voit « aucune photo »). Avatars avec
+photo : `ProviderAvatar` dans les offres reçues (via `ProviderRow`), la liste et l'en-tête
+des conversations côté client, les cartes de réservation, le profil public, le profil
+prestataire et l'admin. Purge : photo d'une demande refusée effacée après 30 jours,
+fichiers non référencés après 24 h.
+
 ## 6. Lot 3 : tableau de bord prestataire (onglet Accueil)
 
 ```
@@ -214,7 +229,7 @@ valide ; l'approbation d'une demande publie sa photo.
 
 1. ✅ **Fondations** : police, tokens (ombre, accent, `display`), `usePressScale`,
    `lib/haptics.ts`, squelettes. Pas de SQL.
-2. **Photos des prestataires** : SQL (bucket, colonnes, RPC, policies, scénarios),
+2. ✅ **Photos des prestataires** : SQL (bucket, colonnes, RPC, policies, scénarios),
    formulaire d'adhésion, admin, profil prestataire, `Avatar` avec photo, purge.
 3. **Tableau de bord prestataire** : onglet Accueil, calendrier, tuiles, `completed_at`.
 4. **Moments clés côté client** : célébrations, offres reçues, statuts humains,

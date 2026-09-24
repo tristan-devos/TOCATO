@@ -3,8 +3,8 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { ProviderAvatar } from '@/components/provider-avatar';
 import { ServiceIcon } from '@/components/service-icon';
-import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Font, FontSize, Spacing } from '@/constants/theme';
@@ -89,7 +89,9 @@ export function BookingCard({ booking, onPress, subtitle: subtitleOverride }: Bo
             ? formatPrice(booking.agreedPrice)
             : `Est. ${formatPriceRange(booking.estimate)}`}
         </Text>
-        {provider ? <Avatar name={provider.name} size={28} /> : null}
+        {provider ? (
+          <ProviderAvatar name={provider.name} photoPath={provider.photoPath} size={28} />
+        ) : null}
       </View>
     </Card>
   );

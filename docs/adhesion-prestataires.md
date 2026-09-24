@@ -47,7 +47,8 @@ le droit d'exercer. Objectif : un prestataire **demande** à adhérer depuis l'a
 ```
 Inscription « Je suis prestataire »
   -> formulaire d'adhésion (entreprise, services, NEQ, licence RBQ si plomberie,
-     tarif, présentation, photos : pièce d'identité + certificat d'assurance)
+     tarif, présentation, photos : pièce d'identité + certificat d'assurance, et photo de
+     profil depuis docs/experience-emotionnelle.md §5)
   -> submit_provider_application : vérification RBQ immédiate, statut « submitted »
   -> écran « Demande en cours d'examen » (seul écran accessible à ce compte)
 Admin : onglet « Adhésions » -> détail (résultat RBQ, pièces en URLs signées)

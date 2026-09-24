@@ -91,12 +91,13 @@ plombier, déménageur, jardinier.
   ordre : `supabase/schema.sql` (tables,
   migrations, Realtime, Storage) → `rpc.sql` (trigger, create_booking) →
   `transitions.sql` (transitions côté client) → `providers.sql` (comptes et actions
-  prestataire) → `applications.sql` (adhésion des prestataires, admin, registre RBQ) →
+  prestataire) → `applications.sql` (adhésion des prestataires, registre RBQ) →
+  `photos.sql` (photos des prestataires) → `admin.sql` (actions de l'admin) →
   `policies.sql` (RLS + Storage, **en dernier** : les policies appellent
   les fonctions des fichiers précédents). Tous idempotents et ré-exécutables. **Après
   toute PR qui touche `supabase/`** : `git checkout main && git pull && supabase/apply.sh`.
   Le script remplace le copier-coller dans le SQL editor : psql via Docker (image
-  `postgres:16-alpine`, rien à installer), les six fichiers dans **une seule
+  `postgres:16-alpine`, rien à installer), les huit fichiers dans **une seule
   transaction** (à la première erreur, rien n'est appliqué), confirmation `[o/N]` après
   affichage de l'hôte visé. Il **refuse** de tourner hors de `main`, avec des
   modifications dans `supabase/`, ou si `main` n'est pas à jour avec `origin/main`.
@@ -132,15 +133,18 @@ plombier, déménageur, jardinier.
   GitHub envoie un courriel. Repo privé : environ 2 min d'Actions par jour, largement dans
   le quota gratuit.
 - **Tests SQL** : `supabase/tests/run.sh` (Docker requis, ne touche pas au projet réel).
-  Joue les six fichiers dans un Postgres jetable (install neuve + ré-exécution + mise à
+  Joue les huit fichiers dans un Postgres jetable (install neuve + ré-exécution + mise à
   jour depuis `main`), puis les scénarios RLS/RPC de `supabase/tests/scenarios.sql`
-  (client), `scenarios-provider.sql` (prestataire) et `scenarios-applications.sql`
-  (adhésion) : chaque bloc annonce le résultat
+  (client), `scenarios-provider.sql` (prestataire), `scenarios-applications.sql`
+  (adhésion) et `scenarios-photos.sql` (photos) : chaque bloc annonce le résultat
   attendu ; le script échoue à la moindre erreur SQL d'installation. **À lancer avant de conclure toute modif SQL** ;
   ajouter un scénario pour chaque nouvelle policy ou RPC.
 - **Edge Functions** : une seule, `purge-documents` (Loi 25) : efface la pièce d'identité
-  d'une demande d'adhésion 30 jours après la décision, et les fichiers orphelins du bucket
-  `provider-documents` (plus de 24 h). Passe par l'API Storage avec la clé service_role
+  d'une demande d'adhésion 30 jours après la décision, la photo d'une demande refusée
+  après le même délai, et les fichiers orphelins (plus de 24 h) des buckets
+  `provider-documents` et `provider-photos` (photo remplacée, proposition refusée…).
+  **Après la PR des photos** : la redéployer (voir ci-dessous), sinon les photos ne sont
+  jamais nettoyées. Passe par l'API Storage avec la clé service_role
   (injectée) : Supabase interdit de supprimer en SQL dans `storage.objects`, et le fichier
   resterait stocké. Appelée chaque nuit par `.github/workflows/purge-documents.yml` avec la
   clé anon (fonction idempotente, sans paramètre : un appel en trop ne fait rien de plus),
@@ -227,8 +231,11 @@ src/app/                    Routes expo-router
   apply.tsx                 Demandeur d'adhésion (rôle applicant, seul écran accessible) :
                             formulaire tant que rien n'est envoyé, puis statut (en examen,
                             ou refus avec motif et « Corriger et renvoyer »)
-  admin/{index,[id]}.tsx    Admin (is_admin) : liste des adhésions + fraîcheur du registre RBQ,
-                            détail (vérif RBQ, pièces en URLs signées, approuver / refuser).
+  admin/{index,[id]}.tsx    Admin (is_admin) : liste des adhésions + fraîcheur du registre RBQ
+                            + « Photos à valider », détail (vérif RBQ, photo et pièces en
+                            URLs signées, approuver / refuser).
+  admin/photo/[providerId].tsx  Admin : photo proposée par un prestataire (à côté de
+                            l'actuelle), publier ou refuser avec motif.
                             Entrée « Adhésions prestataires » dans le profil si admin.
   request/[id].tsx          Prestataire : demande ouverte (ville + secteur) + formulaire de devis
   job/[id].tsx              Prestataire : mission retenue (adresse exacte, commencer/terminer)
@@ -253,12 +260,18 @@ src/components/             Composants métier (booking-card, provider-row, serv
                             demande ouverte et mission prestataire
   provider/                 request-card (demande ouverte) + quote-form (devis, send_quote)
   profile/                  account-actions (Langue + Se déconnecter, profils client et
-                            prestataire)
+                            prestataire) + provider-photo-card (« Ma photo » du prestataire :
+                            proposer une photo, état en attente / refusée)
+  provider-avatar.tsx       Avatar d'un prestataire : sa photo validée (URL signée), sinon
+                            ses initiales. À utiliser partout où un prestataire apparaît.
   apply/                    Formulaire d'adhésion : application-form (orchestrateur, 4 étapes)
-                            + business-step, legal-step, documents-step (document-picker),
+                            + business-step, legal-step, documents-step (photo + pièces,
+                            document-picker, recadrage carré pour la photo),
                             application-review, application-status, step-header
   admin/                    Écran admin : registry-status, application-row, application-
-                            status-badge, rbq-check-card, document-image, decision-panel
+                            status-badge, rbq-check-card, document-image (pièce ou photo),
+                            decision-panel (approuver / refuser, adhésion comme photo),
+                            photo-change-row
   chat/                     message-bubble (texte / devis / document / système ; les
                             boutons d'un devis n'existent que côté client)
   ui/                       Primitives (button, card, chip, badge, avatar, screen,
@@ -295,6 +308,9 @@ src/lib/
                             de vérification officiel.
   document-upload.ts        Pièces justificatives vers le bucket privé provider-documents +
                             URL signée (demandeur pour la sienne, admin pour toutes).
+  provider-photo.ts         Photos des prestataires (bucket privé provider-photos) : upload
+                            ({user}/{uuid}.jpg), URL signée 7 jours gardée en mémoire
+                            (useProviderPhotoUrl), proposition d'une nouvelle photo.
   providers-store.ts        Fiches prestataires lues depuis la table providers ;
                             useProvider(id) / useProviders().
   provider-store.ts         Rôle prestataire : demandes ouvertes (list_open_requests, pas de
@@ -314,7 +330,7 @@ src/lib/
                             reste false tant que .env est vide (app fonctionnelle sans).
                             flowType 'pkce' (échange de code OAuth), detectSessionInUrl false.
   database.types.ts         Type `Database` du schéma Postgres, aligné sur types.ts
-  database-applications.types.ts  Tables/RPC de l'adhésion, fusionnées dans `Database`
+  database-applications.types.ts  Tables/RPC de l'adhésion et des photos, fusionnées dans `Database`
                             (fichier séparé : plafond de 300 lignes). Alias `type`, pas
                             `interface` : sinon l'inférence supabase-js tombe à `never`.
   auth-store.ts             Store Zustand auth (signUp/signIn/signInWithOAuth/signOut,
@@ -361,11 +377,17 @@ supabase/providers.sql      Comptes prestataires : current_provider_id, list_ope
                             provider_conversation_clients, admin_link_provider (admin).
 supabase/applications.sql   Adhésion des prestataires : admins + is_admin, rbq_licences
                             (extrait du registre RBQ), provider_applications, bucket
-                            provider-documents, submit_provider_application,
-                            admin_approve/reject_application. Voir docs/adhesion-prestataires.md.
+                            provider-documents, submit_provider_application (avec photo).
+                            Voir docs/adhesion-prestataires.md.
+supabase/photos.sql         Photos des prestataires : bucket provider-photos,
+                            provider_photo_changes (photo proposée, privée),
+                            provider_photo_visible, submit_provider_photo.
+supabase/admin.sql          Actions de l'admin : admin_approve/reject_application (la photo
+                            de la demande devient celle de la fiche), admin_list_applicants,
+                            admin_rbq_registry_status, admin_approve/reject_photo.
 supabase/policies.sql       Toutes les policies RLS + Storage (client et prestataire), en
                             dernier. Voir section Sécurité des données.
-supabase/apply.sh           Applique les six fichiers à la base partagée (main uniquement)
+supabase/apply.sh           Applique les huit fichiers à la base partagée (main uniquement)
 supabase/rbq-import.sh      Importe le registre des licences RBQ (nocturne via GitHub Action)
 .github/workflows/          rbq-import.yml : import RBQ chaque nuit (secret SUPABASE_DB_URL) ;
                             purge-documents.yml : appelle purge-documents chaque nuit
@@ -374,7 +396,7 @@ supabase/functions/         Edge Functions (Deno, exclues du tsconfig) : purge-d
 supabase/tests/             Tests SQL hors projet réel : run.sh (Postgres Docker),
                             supabase-stubs.sql (auth.uid, rôles, storage simulés),
                             scenarios.sql (client), scenarios-provider.sql (prestataire),
-                            scenarios-applications.sql (adhésion).
+                            scenarios-applications.sql (adhésion), scenarios-photos.sql.
 docs/                       Documents de conception, validés en PR avant le code.
   interface-prestataire.md  Appel d'offres + comptes prestataires (lots 1 à 5, tous faits).
   adhesion-prestataires.md  Inscription et vérification des prestataires (RBQ, pièces,
@@ -489,6 +511,14 @@ depuis un client modifié, pas seulement depuis l'app. D'où la règle :
   L'approbation crée la fiche (`verified = true`) et la relie au compte. Pièces
   justificatives : bucket privé `provider-documents`, lisible par le propriétaire et
   l'admin seulement.
+- **Photos des prestataires** : bucket privé `provider-photos`. Une photo n'est publiée
+  (`providers.photo_path`) qu'après validation de l'admin : à l'approbation de
+  l'adhésion, puis à chaque changement (`provider_photo_changes`, lisible par le
+  prestataire et l'admin seulement, écrite par `submit_provider_photo` et
+  `admin_approve/reject_photo`). Lecture Storage (`provider_photo_visible`) : une photo
+  publiée par tout compte **connecté**, les autres par leur propriétaire et l'admin ; anon
+  ne lit rien. Ni update ni delete : chaque envoi crée un fichier, `purge-documents`
+  nettoie.
 - Chaque nouvelle RPC : `security definer` + `set search_path = public`, vérification
   explicite d'`auth.uid()`, `revoke execute ... from public, anon` + `grant ... to
   authenticated`, type ajouté dans `database.types.ts > Functions` (ou
@@ -577,8 +607,9 @@ on conflict do nothing;
 ```
 
 **Adhésion** (`docs/adhesion-prestataires.md`) : un prestataire s'inscrit avec « Je suis
-prestataire » et envoie sa demande ; l'admin l'approuve ou la refuse dans l'app (Profil →
-Adhésions prestataires). En secours :
+prestataire » et envoie sa demande (avec sa photo) ; l'admin l'approuve ou la refuse dans
+l'app (Profil → Adhésions prestataires). Une nouvelle photo proposée ensuite depuis le
+profil prestataire apparaît dans « Photos à valider » sur le même écran. En secours :
 
 **Relier à la main** dans le SQL editor (rôle admin), une fois que la personne s'est
 **inscrite dans l'app** :

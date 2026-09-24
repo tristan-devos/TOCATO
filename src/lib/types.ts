@@ -21,6 +21,8 @@ export interface Provider {
   hourlyRate: number;
   bio: string;
   memberSince: string;
+  /** Published photo (Storage path, bucket provider-photos), validated by the admin. */
+  photoPath: string | null;
 }
 
 export type BookingStatus =
@@ -163,6 +165,8 @@ export interface ProviderApplication {
   idDocumentPath: string | null;
   idDocumentPurgedAt: string | null;
   insurancePath: string;
+  /** Profile photo (bucket provider-photos), published on approval. */
+  photoPath: string | null;
   rbqCheck: RbqCheck | null;
   submittedAt: string;
   rejectionReason: string | null;
@@ -172,6 +176,23 @@ export interface ProviderApplication {
 export interface AdminApplication extends ProviderApplication {
   applicantName: string;
   applicantEmail: string;
+}
+
+export type PhotoChangeStatus = 'submitted' | 'rejected';
+
+/** A new photo proposed by an approved provider, pending the admin's validation. */
+export interface ProviderPhotoChange {
+  providerId: string;
+  status: PhotoChangeStatus;
+  photoPath: string;
+  submittedAt: string;
+  rejectionReason: string | null;
+}
+
+/** A photo change as the admin sees it: with the provider's name and current photo. */
+export interface AdminPhotoChange extends ProviderPhotoChange {
+  providerName: string;
+  currentPhotoPath: string | null;
 }
 
 /** Freshness of the RBQ registry copy (nightly import). */

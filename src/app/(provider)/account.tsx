@@ -2,9 +2,10 @@ import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { LanguageItem, LogoutCard } from '@/components/profile/account-actions';
+import { ProviderPhotoCard } from '@/components/profile/provider-photo-card';
+import { ProviderAvatar } from '@/components/provider-avatar';
 import { ServiceIcon } from '@/components/service-icon';
 import { AppText } from '@/components/ui/app-text';
-import { Avatar } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
@@ -15,8 +16,8 @@ import { useMyProviderId, useProfile } from '@/lib/profile-store';
 import { useProvider } from '@/lib/providers-store';
 
 /**
- * Profil du prestataire : sa fiche (lecture seule en v1, modifiée par l'équipe
- * TOCATO), la langue et la déconnexion.
+ * Profil du prestataire : sa photo (nouvelle photo validée par l'admin), sa fiche
+ * (lecture seule en v1, modifiée par l'équipe TOCATO), la langue et la déconnexion.
  */
 export default function ProviderProfileTab() {
   const colors = useTheme();
@@ -30,7 +31,11 @@ export default function ProviderProfileTab() {
       <AppText variant="title">{t('providerApp.profileTitle')}</AppText>
 
       <Card style={styles.userCard}>
-        <Avatar name={provider?.name ?? profile?.name ?? ''} size={64} />
+        <ProviderAvatar
+          name={provider?.name ?? profile?.name ?? ''}
+          photoPath={provider?.photoPath}
+          size={64}
+        />
         <View style={styles.userTexts}>
           <AppText variant="subheading">{provider?.name ?? profile?.name ?? ''}</AppText>
           <AppText variant="secondary">{profile?.email ?? ''}</AppText>
@@ -39,6 +44,15 @@ export default function ProviderProfileTab() {
           </View>
         </View>
       </Card>
+
+      {provider ? (
+        <View>
+          <AppText variant="label" style={styles.sectionLabel} color={colors.textSecondary}>
+            {t('providerApp.photoSection')}
+          </AppText>
+          <ProviderPhotoCard provider={provider} />
+        </View>
+      ) : null}
 
       {provider ? (
         <View>

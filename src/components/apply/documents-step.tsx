@@ -11,12 +11,23 @@ interface DocumentsStepProps {
   onChange: (patch: Partial<ApplicationDraft>) => void;
 }
 
-/** Étape 3 : pièce d'identité et certificat d'assurance (bucket privé). */
+/**
+ * Étape 3 : photo de profil (vue par les clients une fois validée), pièce d'identité et
+ * certificat d'assurance (buckets privés).
+ */
 export function DocumentsStep({ draft, onChange }: DocumentsStepProps) {
   const { t } = useTranslation();
   return (
     <View style={styles.base}>
       <StepHeader title={t('apply.documentsTitle')} subtitle={t('apply.documentsSubtitle')} />
+      <DocumentPicker
+        label={t('apply.photo')}
+        hint={t('apply.photoHint')}
+        photo={draft.photo}
+        onFile={draft.photoPath !== null}
+        onPick={(photo) => onChange({ photo })}
+        portrait
+      />
       <DocumentPicker
         label={t('apply.idDocument')}
         hint={t('apply.idDocumentHint')}
