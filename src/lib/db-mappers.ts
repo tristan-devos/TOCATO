@@ -40,6 +40,7 @@ export function rowToBooking(row: BookingRow): Booking {
     estimate: { min: row.estimate_min, max: row.estimate_max },
     agreedPrice: row.agreed_price ?? undefined,
     providerId: row.provider_id ?? undefined,
+    completedAt: row.completed_at ?? undefined,
   };
 }
 

@@ -176,7 +176,7 @@ security definer
 set search_path = public
 as $$
 begin
-  update public.bookings set status = 'completed'
+  update public.bookings set status = 'completed', completed_at = now()
   where id = p_booking_id and status = 'in_progress'
     and provider_id = public.current_provider_id();
   if not found then raise exception 'job_not_completable'; end if;

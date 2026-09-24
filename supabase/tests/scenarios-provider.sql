@@ -100,7 +100,7 @@ select count(*) as encore_dans_demandes_ouvertes from list_open_requests() where
 \echo '--- Gina ne peut pas commencer le travail de Paul (doit échouer)'
 select set_config('request.jwt.claim.sub', :'gina', false) \g /dev/null
 select start_job(:'bk');
-\echo '--- Paul commence ; Alice ne peut plus annuler (doit échouer) ; Paul termine'
+\echo '--- Paul commence ; Alice ne peut plus annuler (doit échouer) ; Paul termine (date de fin posée)'
 select set_config('request.jwt.claim.sub', :'paul', false) \g /dev/null
 select start_job(:'bk');
 select set_config('request.jwt.claim.sub', :'alice', false) \g /dev/null
@@ -108,7 +108,7 @@ select cancel_booking(:'bk');
 select set_config('request.jwt.claim.sub', :'paul', false) \g /dev/null
 select complete_job(:'bk');
 select complete_job(:'bk');
-select status from bookings where id = :'bk';
+select status, completed_at is not null as date_de_fin from bookings where id = :'bk';
 select system_key, text from messages where conversation_id = :'conv' and sender_kind = 'system' order by created_at;
 \echo '--- Devis de Paul : sans texte (la carte s''affiche dans la langue de chacun)'
 select text = '' as sans_texte from messages where conversation_id = :'conv' and type = 'quote';
