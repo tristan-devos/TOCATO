@@ -17,6 +17,10 @@ import { initAuth } from '@/lib/auth-store';
 // prestataire). Plafonné : jamais bloqué si le chargement du rôle échoue.
 void SplashScreen.preventAutoHideAsync();
 const SPLASH_MAX_MS = 5000;
+// Racines de chaque rôle : on n'y entre que par un replace de la garde d'auth.
+// Sans animation, sinon le glissement iOS montre l'écran quitté (accueil client
+// sous la vue prestataire) après le retrait de l'écran de démarrage.
+const ROLE_ROOT: { animation: 'none' } = { animation: 'none' };
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -32,8 +36,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (routeSettled) {
-      void SplashScreen.hideAsync();
-      return;
+      // Une image de plus : la route posée est peinte avant le retrait.
+      const frame = requestAnimationFrame(() => void SplashScreen.hideAsync());
+      return () => cancelAnimationFrame(frame);
     }
     const timer = setTimeout(() => void SplashScreen.hideAsync(), SPLASH_MAX_MS);
     return () => clearTimeout(timer);
@@ -60,9 +65,10 @@ export default function RootLayout() {
           headerShown: false,
           contentStyle: { backgroundColor: palette.background },
         }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(provider)" />
-        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" options={ROLE_ROOT} />
+        <Stack.Screen name="(provider)" options={ROLE_ROOT} />
+        <Stack.Screen name="(auth)" options={ROLE_ROOT} />
+        <Stack.Screen name="apply" options={ROLE_ROOT} />
         <Stack.Screen
           name="booking/[service]"
           options={{ presentation: 'modal', gestureEnabled: false }}

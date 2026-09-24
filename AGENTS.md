@@ -321,7 +321,10 @@ src/hooks/use-auth-guard.ts Redirige selon la session ET le rôle : connexion, a
                             des autres rôles ; /admin réservé aux admins (inactif sans Supabase).
                             Renvoie « route posée » : _layout garde l'écran de démarrage
                             jusque-là (5 s max), sinon un prestataire voit l'accueil client
-                            un instant au lancement (route par défaut avant le rôle).
+                            un instant au lancement (route par défaut avant le rôle). Les
+                            racines de rôle ((tabs), (provider), (auth), apply) s'ouvrent
+                            sans animation (le glissement iOS du
+                            replace montrait encore l'accueil client après le splash).
 src/hooks/use-counterpart.ts Nom de « l'autre » dans une conversation selon le rôle
                             (prestataire pour un client, prénom du client pour un prestataire)
 supabase/schema.sql         Schéma Postgres : tables + migrations + Realtime + bucket Storage
