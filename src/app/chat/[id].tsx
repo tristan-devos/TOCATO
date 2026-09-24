@@ -38,6 +38,7 @@ export default function ChatScreen() {
   const allMessages = useAppStore((s) => s.messages);
   const sendMessage = useAppStore((s) => s.sendMessage);
   const respondToQuote = useAppStore((s) => s.respondToQuote);
+  const respondToReschedule = useAppStore((s) => s.respondToReschedule);
   const setActiveConversation = useAppStore((s) => s.setActiveConversation);
   const markConversationRead = useAppStore((s) => s.markConversationRead);
   const role = useRole();
@@ -49,6 +50,12 @@ export default function ChatScreen() {
 
   const [draft, setDraft] = useState('');
   const [celebrating, setCelebrating] = useState(false);
+
+  const onRescheduleResponse = (messageId: string, accept: boolean) => {
+    void respondToReschedule(messageId, accept).then((ok) => {
+      if (ok && accept) haptics.success();
+    });
+  };
 
   const onQuoteResponse = (messageId: string, accept: boolean) => {
     void respondToQuote(messageId, accept).then((ok) => {
@@ -161,6 +168,7 @@ export default function ChatScreen() {
             <MessageBubble
               message={item}
               onQuoteResponse={isProvider ? undefined : onQuoteResponse}
+              onRescheduleResponse={isProvider ? undefined : onRescheduleResponse}
             />
           )}
         />

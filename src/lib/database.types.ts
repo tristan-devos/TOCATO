@@ -40,6 +40,16 @@ export type QuoteJson = {
 };
 type Document = NonNullable<Message['document']>;
 
+/** Colonne `messages.reschedule` (jsonb) : voir supabase/quotes.sql, propose_reschedule. */
+export type RescheduleJson = {
+  date: string;
+  slot: TimeSlotId;
+  reason: string;
+  previous_date: string | null;
+  previous_slot: TimeSlotId | null;
+  status: QuoteStatus;
+};
+
 export interface Database {
   public: {
     Tables: {
@@ -179,6 +189,7 @@ export interface Database {
           created_at: string;
           quote: QuoteJson | null;
           document: Document | null;
+          reschedule: RescheduleJson | null;
           system_key: SystemMessageKey | null;
         };
         Insert: {
@@ -191,6 +202,7 @@ export interface Database {
           created_at?: string;
           quote?: QuoteJson | null;
           document?: Document | null;
+          reschedule?: RescheduleJson | null;
           system_key?: SystemMessageKey | null;
         };
         Update: Partial<Database['public']['Tables']['messages']['Insert']>;
@@ -273,6 +285,16 @@ export interface Database {
           p_warranty: string;
         };
         Returns: string;
+      };
+      /** Prestataire retenu : propose une autre date ; renvoie le message créé. */
+      propose_reschedule: {
+        Args: { p_booking_id: string; p_date: string; p_slot: TimeSlotId; p_reason: string };
+        Returns: string;
+      };
+      /** Client : accepte (la mission change de date) ou refuse la proposition. */
+      respond_reschedule: {
+        Args: { p_message_id: string; p_accept: boolean };
+        Returns: undefined;
       };
       start_job: {
         Args: { p_booking_id: string };

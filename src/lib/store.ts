@@ -54,6 +54,8 @@ interface AppState {
   sendMessage: (conversationId: string, text: string) => Promise<void>;
   /** true si le serveur a appliqué la réponse. */
   respondToQuote: (messageId: string, accept: boolean) => Promise<boolean>;
+  /** Client : répond à une nouvelle date proposée ; true si le serveur l'a appliquée. */
+  respondToReschedule: (messageId: string, accept: boolean) => Promise<boolean>;
   markConversationRead: (conversationId: string) => Promise<void>;
   setActiveConversation: (conversationId: string | null) => void;
 }
@@ -232,6 +234,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       p_message_id: messageId,
     });
     if (error && __DEV__) console.warn('[respondToQuote]', error.message);
+    await Promise.all([refreshBookings(), refreshMessages()]);
+    return !error;
+  },
+
+  respondToReschedule: async (messageId, accept) => {
+    const { error } = await supabase.rpc('respond_reschedule', {
+      p_message_id: messageId,
+      p_accept: accept,
+    });
+    if (error && __DEV__) console.warn('[respond_reschedule]', error.message);
     await Promise.all([refreshBookings(), refreshMessages()]);
     return !error;
   },

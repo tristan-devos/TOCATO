@@ -167,11 +167,15 @@ create table if not exists public.messages (
   conversation_id uuid not null references public.conversations (id) on delete cascade,
   sender_kind     text not null check (sender_kind in ('client', 'provider', 'system')),
   provider_id     text references public.providers (id),
-  type            text not null check (type in ('text', 'quote', 'document', 'system')),
+  type            text not null
+    check (type in ('text', 'quote', 'document', 'system', 'reschedule')),
   text            text not null default '',
   created_at      timestamptz not null default now(),
   quote           jsonb,
   document        jsonb,
+  -- Nouvelle date proposée par le prestataire retenu (quotes.sql, propose_reschedule) :
+  -- {date, slot, reason, previous_date, previous_slot, status}.
+  reschedule      jsonb,
   -- Messages système : clé traduite par l'app selon la langue ET le rôle de celui
   -- qui lit (« Vous avez refusé le devis » / « Le client a refusé votre devis »).
   -- `text` garde la version française côté client (anciennes versions de l'app).
@@ -179,9 +183,15 @@ create table if not exists public.messages (
 );
 create index if not exists messages_conversation_id_idx on public.messages (conversation_id);
 alter table public.messages add column if not exists system_key text;
+-- Migration (changement de date) : colonne et type de message.
+alter table public.messages add column if not exists reschedule jsonb;
+alter table public.messages drop constraint if exists messages_type_check;
+alter table public.messages add constraint messages_type_check
+  check (type in ('text', 'quote', 'document', 'system', 'reschedule'));
 alter table public.messages drop constraint if exists messages_system_key_valid;
 alter table public.messages add constraint messages_system_key_valid check (
-  system_key in ('quoteAccepted', 'otherProviderChosen', 'quoteDeclined', 'bookingCancelled', 'jobStarted', 'jobCompleted')
+  system_key in ('quoteAccepted', 'otherProviderChosen', 'quoteDeclined', 'bookingCancelled',
+                 'jobStarted', 'jobCompleted', 'rescheduleAccepted', 'rescheduleDeclined')
 );
 -- Migration : clé retrouvée d'après le texte des messages système déjà en base.
 update public.messages set system_key = case text

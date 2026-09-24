@@ -2,6 +2,7 @@ import { Paperclip } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { QuoteCard } from '@/components/chat/quote-card';
+import { RescheduleCard } from '@/components/chat/reschedule-card';
 import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
@@ -12,9 +13,15 @@ interface MessageBubbleProps {
   message: Message;
   /** Client uniquement : accepter/refuser un devis. Absent = pas de boutons. */
   onQuoteResponse?: (messageId: string, accept: boolean) => void;
+  /** Client uniquement : accepter/refuser une nouvelle date. Absent = pas de boutons. */
+  onRescheduleResponse?: (messageId: string, accept: boolean) => void;
 }
 
-export function MessageBubble({ message, onQuoteResponse }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  onQuoteResponse,
+  onRescheduleResponse,
+}: MessageBubbleProps) {
   const colors = useTheme();
   const { formatTime } = useFormats();
   const mine = message.senderId === 'me';
@@ -38,6 +45,19 @@ export function MessageBubble({ message, onQuoteResponse }: MessageBubbleProps) 
           quote={message.quote}
           mine={mine}
           onRespond={onQuoteResponse}
+        />
+      </View>
+    );
+  }
+
+  if (message.type === 'reschedule' && message.reschedule) {
+    return (
+      <View style={[styles.row, mine ? styles.rowRight : styles.rowLeft]}>
+        <RescheduleCard
+          message={message}
+          reschedule={message.reschedule}
+          mine={mine}
+          onRespond={onRescheduleResponse}
         />
       </View>
     );

@@ -81,6 +81,14 @@ diffère de celle demandée le signale des deux côtés (formulaire et carte d'o
   réservation ; refuser ne change rien. Message système dans les deux cas.
 - Le client ne propose pas de date en v1 : il écrit dans le chat, le prestataire propose.
 
+**Réalisé (lot 2) :** pas de message système `rescheduleProposed` : la carte de
+proposition suffit (elle compte comme message non lu chez le client). La carte garde
+l'ancienne date (`previous_date`, `previous_slot`) pour afficher « Au lieu de : … ».
+Côté client, les boutons sont « Garder la date prévue » et « Accepter ». Côté mission,
+le bouton « Proposer une autre date » est remplacé par un bandeau tant qu'une
+proposition attend. Colonne `messages.reschedule` (jsonb), type de message
+`reschedule` ; les policies d'insertion directe exigent `reschedule` vide.
+
 ## 6. Fin de mission : note et conversation fermée
 
 ### Note
@@ -131,7 +139,7 @@ diffère de celle demandée le signale des deux côtés (formulaire et carte d'o
 1. ✅ **Devis complet et date** : SQL (`send_quote` v2, `accept_quote` recopie la date),
    formulaire de devis en étapes, carte de devis détaillée dans le chat, carte d'offre
    avec la date proposée, phrase de statut.
-2. **Changer la date** : message `reschedule`, deux RPC, bouton côté mission, carte dans
+2. ✅ **Changer la date** : message `reschedule`, deux RPC, bouton côté mission, carte dans
    le chat, calendrier mis à jour.
 3. **Fin de mission** : `reviews`, `submit_review`, recalcul de la fiche,
    `jobs_completed`, carte de notation dans le chat, conversations fermées (RLS + bandeau).

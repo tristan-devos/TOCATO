@@ -60,6 +60,8 @@ export default function ChatsScreen() {
           return systemText(message);
         case 'document':
           return message.document?.name ?? 'Document';
+        case 'reschedule':
+          return t('reschedule.cardTitle');
         default:
           return message.text;
       }

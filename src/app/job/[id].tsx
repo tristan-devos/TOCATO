@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { CelebrationModal } from '@/components/celebration/celebration';
+import { RescheduleAction } from '@/components/provider/reschedule-action';
 import { BookingSummary } from '@/components/reservation/booking-summary';
 import { RequestDetails } from '@/components/reservation/request-details';
 import { StatusTimeline } from '@/components/reservation/status-timeline';
@@ -119,6 +120,9 @@ export default function JobDetailScreen() {
                 )
               }
             />
+          ) : null}
+          {booking.status === 'confirmed' ? (
+            <RescheduleAction booking={booking} conversationId={conversation?.id} />
           ) : null}
           {booking.status === 'in_progress' ? (
             <Button
