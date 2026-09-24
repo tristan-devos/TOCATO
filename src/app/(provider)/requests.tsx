@@ -1,9 +1,9 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Inbox } from 'lucide-react-native';
 import { useCallback, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { ToolboxIllustration } from '@/components/illustrations/toolbox-illustration';
 import { RequestCard } from '@/components/provider/request-card';
 import { AppText } from '@/components/ui/app-text';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -56,7 +56,7 @@ export default function ProviderRequestsScreen() {
         }
         ListEmptyComponent={
           <EmptyState
-            icon={<Inbox size={32} color={colors.primary} />}
+            illustration={<ToolboxIllustration />}
             title={t('providerApp.requestsEmptyTitle')}
             message={t('providerApp.requestsEmptyMessage')}
           />

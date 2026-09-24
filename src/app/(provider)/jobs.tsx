@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router';
-import { Briefcase } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { BookingCard } from '@/components/booking-card';
+import { CalendarIllustration } from '@/components/illustrations/calendar-illustration';
 import { AppText } from '@/components/ui/app-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FadeInItem } from '@/components/ui/fade-in-item';
@@ -12,7 +12,6 @@ import { Screen } from '@/components/ui/screen';
 import { ListSkeleton } from '@/components/ui/skeleton';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import { useCounterpartName } from '@/hooks/use-counterpart';
 import { useDataReady } from '@/lib/auth-store';
 import { isActiveStatus } from '@/lib/booking-status';
@@ -25,7 +24,6 @@ type Filter = 'active' | 'history';
  * ouvre que celles-là), en cours ou passées.
  */
 export default function ProviderJobsScreen() {
-  const colors = useTheme();
   const dataReady = useDataReady();
   const router = useRouter();
   const { t } = useTranslation();
@@ -66,7 +64,7 @@ export default function ProviderJobsScreen() {
         ListEmptyComponent={
           dataReady ? (
             <EmptyState
-              icon={<Briefcase size={32} color={colors.primary} />}
+              illustration={<CalendarIllustration />}
               title={
                 filter === 'active'
                   ? t('providerApp.jobsEmptyActiveTitle')
@@ -83,9 +81,13 @@ export default function ProviderJobsScreen() {
             <BookingCard
               booking={item.booking}
               subtitle={
-                item.clientName ? t('providerApp.clientLabel', { name: item.clientName }) : undefined
+                item.clientName
+                  ? t('providerApp.clientLabel', { name: item.clientName })
+                  : undefined
               }
-              onPress={() => router.push({ pathname: '/job/[id]', params: { id: item.booking.id } })}
+              onPress={() =>
+                router.push({ pathname: '/job/[id]', params: { id: item.booking.id } })
+              }
             />
           </FadeInItem>
         )}

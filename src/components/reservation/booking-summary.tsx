@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Spacing } from '@/constants/theme';
 import { useFormats } from '@/hooks/use-formats';
+import { useTheme } from '@/hooks/use-theme';
 import type { ServiceId } from '@/lib/types';
 
 type BadgeTone = 'primary' | 'success' | 'warning' | 'destructive' | 'neutral';
@@ -16,10 +17,13 @@ interface BookingSummaryProps {
   /** Date de la demande (ISO). */
   createdAt: string;
   badge?: { label: string; tone: BadgeTone };
+  /** Phrase de statut (côté client) : « 2 offres reçues », « Marc interviendra demain ». */
+  statusLine?: string;
 }
 
 /** Carte d'en-tête d'une demande : service, date de la demande, statut. */
-export function BookingSummary({ serviceId, createdAt, badge }: BookingSummaryProps) {
+export function BookingSummary({ serviceId, createdAt, badge, statusLine }: BookingSummaryProps) {
+  const colors = useTheme();
   const { t } = useTranslation();
   const { formatDateLong } = useFormats();
 
@@ -35,6 +39,11 @@ export function BookingSummary({ serviceId, createdAt, badge }: BookingSummaryPr
         </View>
         {badge ? <Badge label={badge.label} tone={badge.tone} /> : null}
       </View>
+      {statusLine ? (
+        <AppText variant="label" color={colors.primary} style={styles.statusLine}>
+          {statusLine}
+        </AppText>
+      ) : null}
     </Card>
   );
 }
@@ -42,4 +51,5 @@ export function BookingSummary({ serviceId, createdAt, badge }: BookingSummaryPr
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: Spacing.three },
   texts: { flex: 1, gap: 2 },
+  statusLine: { marginTop: Spacing.three },
 });

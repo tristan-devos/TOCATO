@@ -255,13 +255,22 @@ src/components/             Composants métier (booking-card, provider-row, serv
   booking/                  Étapes du wizard (question, details, address, schedule,
                             review) : pas de choix de prestataire (appel d'offres)
                             + booking-photos (galerie des photos d'une réservation, URLs signées)
-                            + booking-success (écran de confirmation post-envoi)
+                            + booking-success (célébration post-envoi)
   reservation/              status-timeline (frise verticale de progression d'une réservation)
-                            + provider-offers (offres reçues : une carte par prestataire
-                            intéressé, montant du devis en attente, tap = conversation)
+                            + provider-offers (offres reçues : une offer-card par
+                            prestataire intéressé, grande photo, vérifications, montant du
+                            devis en attente, tap = conversation)
                             + booking-summary (en-tête service/date/statut) + request-details
                             (réponses, description, photos, lieu, date) : partagés client,
-                            demande ouverte et mission prestataire
+                            demande ouverte et mission prestataire. booking-summary affiche
+                            aussi la phrase de statut côté client (hooks/use-status-line).
+  celebration/              animated-check (coche SVG dessinée), celebration (écran +
+                            CelebrationModal), quote-accepted-celebration. Seulement pour
+                            demande envoyée, devis accepté, mission terminée.
+  illustrations/            SVG maison aux couleurs du thème (calendar, chat, toolbox, home) :
+                            états vides (EmptyState `illustration`) et accueil client.
+  home/                     home-hero (accroche + « Décrire mon besoin »), trust-banner (ce
+                            que TOCATO vérifie chez chaque prestataire)
   provider/                 request-card (demande ouverte) + quote-form (devis, send_quote)
                             + tableau de bord : next-mission-card, stat-tiles,
                             mission-calendar (+ calendar-day), mission-list
@@ -336,7 +345,8 @@ src/lib/
                             YYYY-MM-DD, semaine (lundi en fr, dimanche en en), grille du mois.
   provider-dashboard.ts     Calculs purs du tableau de bord prestataire (prochaine mission,
                             compteurs, missions par jour, à planifier).
-  booking-status.ts         Libellés/tons des statuts de réservation
+  booking-status.ts         Libellés/tons des statuts de réservation + statusLine (règle de la
+                            phrase de statut côté client : offres reçues, date de passage…)
   supabase.ts               Client Supabase (auth/DB/realtime) ; `isSupabaseConfigured`
                             reste false tant que .env est vide (app fonctionnelle sans).
                             flowType 'pkce' (échange de code OAuth), detectSessionInUrl false.
@@ -377,6 +387,7 @@ src/hooks/use-counterpart.ts Nom de « l'autre » dans une conversation selon le
                             (prestataire pour un client, prénom du client pour un prestataire)
 src/hooks/use-provider-dashboard.ts  Données de l'Accueil prestataire (store + calculs).
 src/hooks/use-mission-when.ts  « jeudi 25 septembre · matin », ou « Dès que possible ».
+src/hooks/use-status-line.ts  Phrase de statut d'une réservation (client), dans la langue active.
 supabase/schema.sql         Schéma Postgres : tables + migrations + Realtime + bucket Storage
                             booking-photos. Miroir de lib/types.ts. Pas de policies (voir
                             policies.sql).
@@ -415,8 +426,8 @@ docs/                       Documents de conception, validés en PR avant le cod
   adhesion-prestataires.md  Inscription et vérification des prestataires (RBQ, pièces,
                             approbation admin). Validé, lots en cours.
   experience-emotionnelle.md  Design émotionnel (fondations, mouvement, haptique), photos
-                            des prestataires, tableau de bord prestataire avec calendrier.
-                            Validé, lots en cours.
+                            des prestataires, tableau de bord prestataire avec calendrier,
+                            moments clés côté client. Validé, lots 1 à 4 faits.
 ```
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).
@@ -584,6 +595,11 @@ Ces règles sont non négociables :
 - **Mouvement** : court (150 à 300 ms), aucune boucle sauf les squelettes, et toujours
   compatible « réduire les animations » (`useReducedMotion`). Principes complets :
   `docs/experience-emotionnelle.md` §3.
+- **Célébrations** (`components/celebration`) : réservées à trois moments (demande
+  envoyée, devis accepté, mission terminée), jamais pour une action ordinaire.
+- **États vides** : `EmptyState` avec une illustration de `components/illustrations`
+  (SVG aux couleurs du thème, pas d'image PNG) sur les écrans principaux ; un état vide
+  encourage (quoi faire ensuite) au lieu de constater.
 - Sélecteurs Zustand : ne jamais retourner un objet/tableau neuf dans le sélecteur
   (boucle de re-render avec Zustand v5) : sélectionner le tableau brut et filtrer en
   `useMemo` dans le composant.

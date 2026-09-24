@@ -3,11 +3,13 @@ import { useCallback, useState } from 'react';
 import { RefreshControl, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { ToolboxIllustration } from '@/components/illustrations/toolbox-illustration';
 import { MissionCalendar } from '@/components/provider/mission-calendar';
 import { MissionList } from '@/components/provider/mission-list';
 import { NextMissionCard } from '@/components/provider/next-mission-card';
 import { StatTiles } from '@/components/provider/stat-tiles';
 import { AppText } from '@/components/ui/app-text';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Screen } from '@/components/ui/screen';
 import { useFormats } from '@/hooks/use-formats';
 import { useMissionWhen } from '@/hooks/use-mission-when';
@@ -80,10 +82,11 @@ export default function ProviderHomeScreen() {
       />
 
       {dashboard.isNewProvider ? (
-        <View>
-          <AppText variant="subheading">{t('providerHome.newTitle')}</AppText>
-          <AppText variant="secondary">{t('providerHome.newMessage')}</AppText>
-        </View>
+        <EmptyState
+          illustration={<ToolboxIllustration />}
+          title={t('providerHome.newTitle')}
+          message={t('providerHome.newMessage')}
+        />
       ) : (
         <>
           <StatTiles

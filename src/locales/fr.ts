@@ -23,7 +23,9 @@ const fr = {
   home: {
     greeting: 'Bonjour {{name}}',
     location: 'Montréal, QC',
-    searchPlaceholder: 'De quoi avez-vous besoin ?',
+    heroTitle: 'Un pro vérifié chez vous, sans chercher',
+    heroMessage: 'Décrivez votre besoin : les prestataires vérifiés vous envoient leurs offres.',
+    heroAction: 'Décrire mon besoin',
     currentSection: 'En ce moment',
     viewAll: 'Tout voir',
     servicesSection: 'Nos services',
@@ -35,7 +37,9 @@ const fr = {
     step3Title: 'Confirmez sereinement',
     step3Detail: 'Prestataires vérifiés, prix convenu à l’avance.',
     popularProviders: 'Prestataires populaires',
-    trustBadge: 'Prestataires vérifiés · Devis gratuit · Support 7 j/7',
+    trustTitle: 'Chaque prestataire est vérifié',
+    trustDetail:
+      'Identité, assurance responsabilité civile et, en plomberie, licence RBQ : notre équipe vérifie tout avant la première offre.',
   },
   bookScreen: {
     title: 'Réserver une prestation',
@@ -124,16 +128,43 @@ const fr = {
     keepBooking: 'Garder ma réservation',
     confirmCancel: 'Annuler la réservation',
   },
+  bookingCard: {
+    estimate: 'Estimation : {{range}}',
+  },
   providerOffers: {
     title_one: 'PRESTATAIRE INTÉRESSÉ',
     title_other: 'PRESTATAIRES INTÉRESSÉS ({{count}})',
     waiting:
       'Votre demande est visible par les prestataires du service. Leurs offres apparaîtront ici.',
-    quoteReceived: 'Devis reçu : {{price}}',
     noQuoteYet: 'Pas encore de devis',
-    interested_one: '{{count}} prestataire intéressé',
-    interested_other: '{{count}} prestataires intéressés',
-    waitingShort: 'En attente de prestataires',
+    quoteLabel: 'Devis',
+    verified: 'Vérifié par TOCATO',
+    newProvider: 'Nouveau sur TOCATO',
+    rbqVerified: 'Licence RBQ vérifiée',
+    viewOffer: 'Voir l’offre et discuter',
+  },
+  statusLine: {
+    waiting: 'En attente des premières offres',
+    offers_one: '{{count}} offre reçue : comparez et choisissez',
+    offers_other: '{{count}} offres reçues : comparez et choisissez',
+    confirmed: '{{name}} interviendra {{when}}',
+    confirmedAsap: '{{name}} vous écrira pour convenir d’une date',
+    today: 'aujourd’hui',
+    tomorrow: 'demain',
+    inProgress: 'Intervention en cours avec {{name}}',
+    completed: 'Intervention terminée. Merci de votre confiance !',
+    cancelled: 'Demande annulée',
+  },
+  celebrate: {
+    continue: 'Continuer',
+    quoteAcceptedTitle: 'C’est réglé !',
+    quoteAcceptedMessage:
+      '{{name}} interviendra {{when}}. Vous pouvez lui écrire à tout moment dans la conversation.',
+    quoteAcceptedAsap:
+      '{{name}} vous écrira pour convenir d’une date. Vous pouvez aussi lui écrire dans la conversation.',
+    jobCompletedTitle: 'Mission terminée !',
+    jobCompletedProvider: 'Beau travail. Le client est prévenu, la mission rejoint votre historique.',
+    jobCompletedClient: '{{name}} a terminé l’intervention. Merci d’avoir fait confiance à TOCATO.',
   },
   providerProfile: {
     title: 'Profil du prestataire',
