@@ -318,7 +318,10 @@ src/hooks/use-theme.ts      Accès au thème selon le color scheme
 src/hooks/use-formats.ts    Formatters (prix/dates) liés à la langue active (fr-CA / en-CA)
 src/hooks/use-auth-guard.ts Redirige selon la session ET le rôle : connexion, app client,
                             onglets prestataire ou /apply (demandeur) ; sort chacun des routes
-                            des autres rôles ; /admin réservé aux admins (inactif sans Supabase)
+                            des autres rôles ; /admin réservé aux admins (inactif sans Supabase).
+                            Renvoie « route posée » : _layout garde l'écran de démarrage
+                            jusque-là (5 s max), sinon un prestataire voit l'accueil client
+                            un instant au lancement (route par défaut avant le rôle).
 src/hooks/use-counterpart.ts Nom de « l'autre » dans une conversation selon le rôle
                             (prestataire pour un client, prénom du client pour un prestataire)
 supabase/schema.sql         Schéma Postgres : tables + migrations + Realtime + bucket Storage

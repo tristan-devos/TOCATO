@@ -2,6 +2,7 @@ import '@/i18n';
 
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
@@ -10,6 +11,12 @@ import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { loadSavedLanguage } from '@/i18n';
 import { initAuth } from '@/lib/auth-store';
+
+// Écran de démarrage gardé jusqu'à ce que la garde d'auth ait posé la bonne
+// route (sinon l'accueil client, route par défaut, s'affiche un instant pour un
+// prestataire). Plafonné : jamais bloqué si le chargement du rôle échoue.
+void SplashScreen.preventAutoHideAsync();
+const SPLASH_MAX_MS = 5000;
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -21,7 +28,16 @@ export default function RootLayout() {
     initAuth();
   }, []);
 
-  useAuthGuard();
+  const routeSettled = useAuthGuard();
+
+  useEffect(() => {
+    if (routeSettled) {
+      void SplashScreen.hideAsync();
+      return;
+    }
+    const timer = setTimeout(() => void SplashScreen.hideAsync(), SPLASH_MAX_MS);
+    return () => clearTimeout(timer);
+  }, [routeSettled]);
 
   // Align the navigation theme (backgrounds, native headers) with our tokens.
   const navTheme = {
