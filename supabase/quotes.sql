@@ -1,5 +1,5 @@
 -- =============================================================================
--- TOCATO : devis (à exécuter APRÈS providers.sql, AVANT applications.sql)
+-- TOCATO : devis (à exécuter APRÈS providers.sql, AVANT reviews.sql)
 -- =============================================================================
 -- Fiche devis complète (docs/devis-et-fin-de-mission.md §4) : lignes chiffrées, total
 -- calculé ici (jamais envoyé par l'app), durée estimée, date et créneau proposés,

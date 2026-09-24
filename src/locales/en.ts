@@ -100,6 +100,13 @@ const en = {
     placeholder: 'Write your message...',
     attachTitle: 'Coming soon',
     attachMessage: 'Document and photo sending is coming soon.',
+    closesAt: 'Conversation open until {{date}}, {{time}}',
+    closed: {
+      completed: 'Job completed: conversation closed. The history stays available.',
+      cancelled: 'Request cancelled: conversation closed.',
+      otherProvider: 'Another provider was chosen: conversation closed.',
+      unavailable: 'This request is no longer open: conversation closed.',
+    },
   },
   reservationDetail: {
     title: 'Booking',
@@ -181,6 +188,22 @@ const en = {
     duration_one: 'Estimated duration: {{count}} h',
     duration_other: 'Estimated duration: {{count}} h',
   },
+  review: {
+    preview: 'How did the job go?',
+    question: 'How did the job with {{name}} go?',
+    starLabel_one: '{{count}} star',
+    starLabel_other: '{{count}} stars',
+    commentLabel: 'A comment? (optional)',
+    commentPlaceholder: 'Punctuality, quality of work, tidiness…',
+    send: 'Send my rating',
+    given_one: 'You gave {{count}} star',
+    given_other: 'You gave {{count}} stars',
+    received_one: 'The client gave you {{count}} star',
+    received_other: 'The client gave you {{count}} stars',
+    awaiting: 'Waiting for the client’s review.',
+    windowClosed: 'The time to rate this job (30 days) has passed.',
+    error: 'The rating could not be sent. Try again.',
+  },
   reschedule: {
     cardTitle: 'New date proposed',
     insteadOf: 'Instead of: {{when}}',
@@ -222,7 +245,8 @@ const en = {
       '{{name}} will message you to agree on a date. You can also write to them in the chat.',
     jobCompletedTitle: 'Job done!',
     jobCompletedProvider: 'Great work. The client has been notified, and the job is in your history.',
-    jobCompletedClient: '{{name}} has finished the job. Thank you for trusting TOCATO.',
+    jobCompletedClient:
+      '{{name}} has finished the job. Thank you for trusting TOCATO: tell us how it went in the chat.',
   },
   providerProfile: {
     title: 'Provider profile',

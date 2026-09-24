@@ -20,6 +20,7 @@ alter table public.admins        enable row level security;
 alter table public.rbq_licences  enable row level security;
 alter table public.provider_applications enable row level security;
 alter table public.provider_photo_changes enable row level security;
+alter table public.reviews       enable row level security;
 -- admins, rbq_licences : AUCUNE policy. Lus seulement par is_admin() et
 -- rbq_check_licence (security definer), écrits par l'admin et rbq-import.sh.
 
@@ -28,6 +29,14 @@ alter table public.provider_photo_changes enable row level security;
 drop policy if exists "provider_applications_select" on public.provider_applications;
 create policy "provider_applications_select" on public.provider_applications
   for select to authenticated using (user_id = auth.uid() or public.is_admin());
+
+-- reviews : le client auteur, le prestataire noté et l'admin. Écriture : submit_review.
+-- La note moyenne reste publique via providers (rating, review_count).
+drop policy if exists "reviews_select" on public.reviews;
+create policy "reviews_select" on public.reviews
+  for select to authenticated using (
+    client_id = auth.uid() or provider_id = public.current_provider_id() or public.is_admin()
+  );
 
 -- provider_photo_changes : le prestataire lit la sienne, l'admin les lit toutes.
 -- Écritures : uniquement via submit_provider_photo et admin_approve/reject_photo.
@@ -91,9 +100,11 @@ create policy "messages_select_own" on public.messages
 -- Le client n'insère que des messages texte signés 'client'. Les messages
 -- 'system' viennent des RPC (security definer), les devis de send_quote : ni un
 -- faux devis ni un faux « Devis accepté » ne peuvent être forgés depuis l'app.
+-- Conversation fermée (conversation_open, reviews.sql) : plus aucun message, ni d'un
+-- côté ni de l'autre (mission terminée depuis 48 h, annulée, prestataire non retenu).
 drop policy if exists "messages_insert_own" on public.messages;
 create policy "messages_insert_own" on public.messages
-  for insert with check (
+  for insert to authenticated with check (
     messages.sender_kind = 'client'
     and messages.type = 'text'
     and messages.quote is null
@@ -103,6 +114,7 @@ create policy "messages_insert_own" on public.messages
       select 1 from public.conversations c
       where c.id = messages.conversation_id and c.user_id = auth.uid()
     )
+    and public.conversation_open(messages.conversation_id)
   );
 -- Prestataire : messages texte signés 'provider' à son nom, dans SES conversations.
 drop policy if exists "messages_insert_provider" on public.messages;
@@ -118,6 +130,7 @@ create policy "messages_insert_provider" on public.messages
       select 1 from public.conversations c
       where c.id = messages.conversation_id and c.provider_id = messages.provider_id
     )
+    and public.conversation_open(messages.conversation_id)
   );
 -- Pas d'update direct : l'ancienne policy laissait le client modifier
 -- n'importe quel message, y compris le montant d'un devis du prestataire.

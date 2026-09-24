@@ -91,14 +91,14 @@ plombier, déménageur, jardinier.
   ordre : `supabase/schema.sql` (tables,
   migrations, Realtime, Storage) → `rpc.sql` (trigger, create_booking) →
   `transitions.sql` (transitions côté client) → `providers.sql` (comptes et actions
-  prestataire) → `quotes.sql` (devis) → `applications.sql` (adhésion des prestataires,
-  registre RBQ) →
+  prestataire) → `quotes.sql` (devis) → `reviews.sql` (fin de mission) →
+  `applications.sql` (adhésion des prestataires, registre RBQ) →
   `photos.sql` (photos des prestataires) → `admin.sql` (actions de l'admin) →
   `policies.sql` (RLS + Storage, **en dernier** : les policies appellent
   les fonctions des fichiers précédents). Tous idempotents et ré-exécutables. **Après
   toute PR qui touche `supabase/`** : `git checkout main && git pull && supabase/apply.sh`.
   Le script remplace le copier-coller dans le SQL editor : psql via Docker (image
-  `postgres:16-alpine`, rien à installer), les neuf fichiers dans **une seule
+  `postgres:16-alpine`, rien à installer), les dix fichiers dans **une seule
   transaction** (à la première erreur, rien n'est appliqué), confirmation `[o/N]` après
   affichage de l'hôte visé. Il **refuse** de tourner hors de `main`, avec des
   modifications dans `supabase/`, ou si `main` n'est pas à jour avec `origin/main`.
@@ -134,7 +134,7 @@ plombier, déménageur, jardinier.
   GitHub envoie un courriel. Repo privé : environ 2 min d'Actions par jour, largement dans
   le quota gratuit.
 - **Tests SQL** : `supabase/tests/run.sh` (Docker requis, ne touche pas au projet réel).
-  Joue les neuf fichiers dans un Postgres jetable (install neuve + ré-exécution + mise à
+  Joue les dix fichiers dans un Postgres jetable (install neuve + ré-exécution + mise à
   jour depuis `main`), puis les scénarios RLS/RPC de `supabase/tests/scenarios.sql`
   (client), `scenarios-provider.sql` (prestataire), `scenarios-applications.sql`
   (adhésion) et `scenarios-photos.sql` (photos) : chaque bloc annonce le résultat
@@ -293,13 +293,16 @@ src/components/             Composants métier (booking-card, provider-row, serv
   chat/                     message-bubble (texte / devis / document / système) +
                             quote-card (fiche devis : lignes, total, date proposée, durée,
                             garantie ; boutons accepter/refuser côté client seulement) +
-                            reschedule-card (nouvelle date proposée ; garder ou accepter)
+                            reschedule-card (nouvelle date proposée ; garder ou accepter) +
+                            review-card (note de fin de mission ; carte review_request) +
+                            chat-composer (saisie, ou bandeau « conversation fermée »)
   ui/                       Primitives (button, card, chip, badge, avatar, screen (option
                             refreshControl), text-field, segmented-control…) + pressable-scale (Pressable
                             qui se contracte au toucher : base de Button, Card, Chip),
                             skeleton (Skeleton, ListSkeleton : listes tant que dataReady
                             est faux), fade-in-item (entrée décalée des 8 premiers éléments),
-                            day-slot-picker (bande de jours + créneaux : wizard et devis)
+                            day-slot-picker (bande de jours + créneaux : wizard et devis),
+                            star-rating-input (note 1 à 5, saisie ou affichage)
 src/lib/
   types.ts                  Types du domaine = futurs contrats d'API
   services.ts               Catalogue des services + questions du wizard (config-driven :
@@ -337,6 +340,9 @@ src/lib/
   provider-store.ts         Rôle prestataire : demandes ouvertes (list_open_requests, pas de
                             temps réel -> rechargées au focus / tirer pour rafraîchir), prénoms
                             des clients, sendQuote / startJob / completeJob.
+  conversation-state.ts     Conversation ouverte ou fermée (miroir de conversation_open) et
+                            délai de notation : zone de saisie ou bandeau dans le chat.
+  reviews.ts                Avis : lecture (client auteur, prestataire noté) et submit_review.
   quote-draft.ts            Brouillon de la fiche devis et ses règles (mêmes que send_quote) :
                             lignes, date proposable (aujourd'hui à +60 j), durée, total.
   db-mappers.ts             Conversion lignes Supabase -> types du domaine (frontière DB/app).
@@ -412,6 +418,10 @@ supabase/quotes.sql         Devis : send_quote (lignes, total calculé, date et 
                             accept_quote (transitions.sql) recopie la date sur la mission.
                             Changement de date : propose_reschedule (prestataire retenu,
                             mission confirmée) et respond_reschedule (client).
+supabase/reviews.sql        Fin de mission : table reviews, submit_review (note 1 à 5, une
+                            fois, 30 jours ; recalcule rating / review_count de la fiche),
+                            conversation_open (règle des conversations fermées, appliquée
+                            par les policies d'insertion des messages).
 supabase/applications.sql   Adhésion des prestataires : admins + is_admin, rbq_licences
                             (extrait du registre RBQ), provider_applications, bucket
                             provider-documents, submit_provider_application (avec photo).
@@ -424,7 +434,7 @@ supabase/admin.sql          Actions de l'admin : admin_approve/reject_applicatio
                             admin_rbq_registry_status, admin_approve/reject_photo.
 supabase/policies.sql       Toutes les policies RLS + Storage (client et prestataire), en
                             dernier. Voir section Sécurité des données.
-supabase/apply.sh           Applique les neuf fichiers à la base partagée (main uniquement)
+supabase/apply.sh           Applique les dix fichiers à la base partagée (main uniquement)
 supabase/rbq-import.sh      Importe le registre des licences RBQ (nocturne via GitHub Action)
 .github/workflows/          rbq-import.yml : import RBQ chaque nuit (secret SUPABASE_DB_URL) ;
                             purge-documents.yml : appelle purge-documents chaque nuit
@@ -443,7 +453,7 @@ docs/                       Documents de conception, validés en PR avant le cod
                             moments clés côté client. Validé, lots 1 à 4 faits.
   devis-et-fin-de-mission.md  Devis complet avec date d'intervention, changement de date,
                             note du prestataire, conversations fermées après la mission.
-                            Validé, lots en cours.
+                            Validé, lots 1 à 3 faits.
 ```
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).
@@ -538,7 +548,10 @@ depuis un client modifié, pas seulement depuis l'app. D'où la règle :
   atomiquement. Seule exception : les messages **texte**, insérés directement par le
   client (`sender_kind = 'client'`) ou le prestataire (`'provider'`, à son nom), chacun
   dans ses conversations. Les messages `system` et les devis viennent des RPC
-  (`send_quote`).
+  (`send_quote`). **Conversation fermée** (`conversation_open`) : plus aucun message
+  une fois la demande annulée, pour un prestataire non retenu, et 48 h après la fin de
+  l'intervention ; l'historique reste lisible. Avis (`reviews`) : lisibles par le client
+  auteur, le prestataire noté et l'admin, écrits par `submit_review` seulement.
 - **Rôle prestataire** : une fiche `providers` avec `user_id` = le compte. Aucune colonne
   de rôle modifiable par l'utilisateur ; seul `admin_link_provider` (exécutable par
   l'admin uniquement) pose le lien. v1 : un compte prestataire ne peut pas créer de

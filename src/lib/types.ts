@@ -73,7 +73,13 @@ export interface Booking {
   completedAt?: string;
 }
 
-export type MessageType = 'text' | 'quote' | 'document' | 'system' | 'reschedule';
+export type MessageType =
+  | 'text'
+  | 'quote'
+  | 'document'
+  | 'system'
+  | 'reschedule'
+  | 'review_request';
 
 export type QuoteStatus = 'pending' | 'accepted' | 'declined';
 
@@ -220,6 +226,16 @@ export interface ProviderApplication {
 export interface AdminApplication extends ProviderApplication {
   applicantName: string;
   applicantEmail: string;
+}
+
+/** The client's rating of the retained provider, once the job is completed. */
+export interface Review {
+  bookingId: string;
+  providerId: string;
+  /** 1 to 5 stars. */
+  rating: number;
+  comment: string;
+  createdAt: string;
 }
 
 export type PhotoChangeStatus = 'submitted' | 'rejected';
