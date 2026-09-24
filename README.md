@@ -37,8 +37,11 @@ prestataire approuvé par l'admin (voir AGENTS.md > Admin et prestataires réels
 - **Accueil** : accroche « Décrire mon besoin », réservation en cours, services,
   prestataires populaires, ce que TOCATO vérifie chez chaque prestataire
 - **Messages** : un chat s'ouvre avec le prestataire à chaque demande ; les devis
-  s'acceptent ou se refusent directement dans la conversation (célébration à
-  l'acceptation)
+  détaillés (lignes, total taxes comprises, date proposée, durée, garantie) s'acceptent ou
+  se refusent dans la conversation, et accepter fixe la date de l'intervention. Le
+  prestataire peut ensuite proposer une autre date, que le client accepte ou non. Après
+  l'intervention, le client note le prestataire dans le chat ; la conversation se ferme
+  48 h après la fin
 - **Réserver** (bouton central) : demande guidée en quelques questions : photos, adresse,
   date et estimation de prix
 - **Mes réservations** : suivi en cours / historique, statut en une phrase (« 2 offres
@@ -49,9 +52,9 @@ prestataire approuvé par l'admin (voir AGENTS.md > Admin et prestataires réels
 **Côté prestataire** : adhésion depuis l'app (« Je suis prestataire » à l'inscription :
 entreprise, NEQ, licence RBQ en plomberie, pièces et photo), approuvée par l'admin. Puis
 **Accueil** (prochaine mission, chiffres clés, calendrier), **Demandes** ouvertes de ses
-services (ville et secteur seulement), devis, **Mes travaux** (adresse exacte une fois le
-devis accepté, commencer / terminer l'intervention), **Messages**, **Profil** (photo,
-validée par l'admin).
+services (ville et secteur seulement), fiche devis complète avec date proposée, **Mes
+travaux** (adresse exacte une fois le devis accepté, proposer une autre date, commencer /
+terminer l'intervention), **Messages**, **Profil** (photo, validée par l'admin).
 
 **Côté admin** (Profil → Adhésions prestataires) : examen des demandes (vérification RBQ,
 pièces), approbation ou refus avec motif, validation des photos.
@@ -63,4 +66,5 @@ Voir [AGENTS.md](./AGENTS.md) : stack, architecture, conventions et commandes.
 Documents de conception : [docs/](./docs/) :
 [interface prestataire](./docs/interface-prestataire.md),
 [adhésion des prestataires](./docs/adhesion-prestataires.md),
+[devis et fin de mission](./docs/devis-et-fin-de-mission.md),
 [expérience émotionnelle](./docs/experience-emotionnelle.md).
