@@ -1,5 +1,4 @@
 import { Calendar, MapPin } from 'lucide-react-native';
-import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
@@ -10,10 +9,10 @@ import { Card } from '@/components/ui/card';
 import { Font, FontSize, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
+import { useMissionWhen } from '@/hooks/use-mission-when';
+import { useStatusLine } from '@/hooks/use-status-line';
 import { BOOKING_STATUS } from '@/lib/booking-status';
 import { useProvider } from '@/lib/providers-store';
-import { TIME_SLOTS } from '@/lib/services';
-import { useAppStore } from '@/lib/store';
 import type { Booking } from '@/lib/types';
 
 interface BookingCardProps {
@@ -26,26 +25,14 @@ interface BookingCardProps {
 export function BookingCard({ booking, onPress, subtitle: subtitleOverride }: BookingCardProps) {
   const colors = useTheme();
   const { t } = useTranslation();
-  const { formatDateLong, formatPrice, formatPriceRange } = useFormats();
-  const conversations = useAppStore((s) => s.conversations);
+  const { formatPrice, formatPriceRange } = useFormats();
+  const missionWhen = useMissionWhen();
   const provider = useProvider(booking.providerId);
+  const statusText = useStatusLine();
   const status = BOOKING_STATUS[booking.status];
-  const slot = TIME_SLOTS.find((s) => s.id === booking.timeSlot);
 
-  // Demande encore ouverte : on affiche l'avancement côté prestataires.
-  const offerCount = useMemo(
-    () => conversations.filter((c) => c.bookingId === booking.id).length,
-    [conversations, booking.id],
-  );
-  const subtitle = subtitleOverride
-    ? subtitleOverride
-    : provider
-    ? provider.name
-    : booking.status === 'pending'
-      ? offerCount > 0
-        ? t('providerOffers.interested', { count: offerCount })
-        : t('providerOffers.waitingShort')
-      : null;
+  // Côté client : où en est la demande, en une phrase (offres reçues, date de passage…).
+  const subtitle = subtitleOverride ?? statusText(booking);
 
   return (
     <Card onPress={onPress}>
@@ -71,9 +58,7 @@ export function BookingCard({ booking, onPress, subtitle: subtitleOverride }: Bo
       <View style={styles.detailRow}>
         <Calendar size={15} color={colors.textSecondary} />
         <Text style={[styles.detail, { color: colors.textSecondary }]}>
-          {booking.scheduledDate
-            ? `${formatDateLong(booking.scheduledDate)}${slot ? ` · ${t(`timeSlots.${slot.id}`).toLowerCase()}` : ''}`
-            : t('common.asap')}
+          {missionWhen(booking)}
         </Text>
       </View>
       <View style={styles.detailRow}>
@@ -87,7 +72,7 @@ export function BookingCard({ booking, onPress, subtitle: subtitleOverride }: Bo
         <Text style={[styles.price, { color: colors.text }]}>
           {booking.agreedPrice != null
             ? formatPrice(booking.agreedPrice)
-            : `Est. ${formatPriceRange(booking.estimate)}`}
+            : t('bookingCard.estimate', { range: formatPriceRange(booking.estimate) })}
         </Text>
         {provider ? (
           <ProviderAvatar name={provider.name} photoPath={provider.photoPath} size={28} />

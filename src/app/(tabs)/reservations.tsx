@@ -1,10 +1,10 @@
 import { useRouter } from 'expo-router';
-import { CalendarDays } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { BookingCard } from '@/components/booking-card';
+import { CalendarIllustration } from '@/components/illustrations/calendar-illustration';
 import { AppText } from '@/components/ui/app-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FadeInItem } from '@/components/ui/fade-in-item';
@@ -12,7 +12,6 @@ import { Screen } from '@/components/ui/screen';
 import { ListSkeleton } from '@/components/ui/skeleton';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
 import { useDataReady } from '@/lib/auth-store';
 import { isActiveStatus } from '@/lib/booking-status';
 import { useAppStore } from '@/lib/store';
@@ -20,7 +19,6 @@ import { useAppStore } from '@/lib/store';
 type Filter = 'active' | 'history';
 
 export default function ReservationsScreen() {
-  const colors = useTheme();
   const dataReady = useDataReady();
   const router = useRouter();
   const { t } = useTranslation();
@@ -58,7 +56,7 @@ export default function ReservationsScreen() {
         ListEmptyComponent={
           dataReady ? (
             <EmptyState
-              icon={<CalendarDays size={32} color={colors.primary} />}
+              illustration={<CalendarIllustration />}
               title={
                 filter === 'active'
                   ? t('reservations.emptyActiveTitle')

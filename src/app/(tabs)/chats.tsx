@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
-import { MessageCircle } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import { ChatIllustration } from '@/components/illustrations/chat-illustration';
 import { ProviderAvatar } from '@/components/provider-avatar';
 import { AppText } from '@/components/ui/app-text';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -85,7 +85,17 @@ export default function ChatsScreen() {
           preview: previewOf(lastMessage),
         };
       });
-  }, [conversations, messages, bookings, openRequests, providers, role, counterpartName, systemText, t]);
+  }, [
+    conversations,
+    messages,
+    bookings,
+    openRequests,
+    providers,
+    role,
+    counterpartName,
+    systemText,
+    t,
+  ]);
 
   return (
     <Screen scroll={false}>
@@ -105,7 +115,7 @@ export default function ChatsScreen() {
         ListEmptyComponent={
           dataReady ? (
             <EmptyState
-              icon={<MessageCircle size={32} color={colors.primary} />}
+              illustration={<ChatIllustration />}
               title={t('chats.emptyTitle')}
               message={t(role === 'provider' ? 'providerApp.chatsEmpty' : 'chats.emptyMessage')}
               actionLabel={role === 'provider' ? undefined : t('common.bookService')}

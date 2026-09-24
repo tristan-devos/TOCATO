@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
+import { QuoteAcceptedCelebration } from '@/components/celebration/quote-accepted-celebration';
 import { MessageBubble } from '@/components/chat/message-bubble';
 import { ProviderAvatar } from '@/components/provider-avatar';
 import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
@@ -47,10 +48,13 @@ export default function ChatScreen() {
   const openRequest = useOpenRequest(isProvider ? conversation?.bookingId : undefined);
 
   const [draft, setDraft] = useState('');
+  const [celebrating, setCelebrating] = useState(false);
 
   const onQuoteResponse = (messageId: string, accept: boolean) => {
     void respondToQuote(messageId, accept).then((ok) => {
-      if (ok && accept) haptics.success();
+      if (!ok || !accept) return;
+      haptics.success();
+      setCelebrating(true);
     });
   };
 
@@ -198,6 +202,12 @@ export default function ChatScreen() {
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+      <QuoteAcceptedCelebration
+        visible={celebrating}
+        providerName={name}
+        booking={booking}
+        onClose={() => setCelebrating(false)}
+      />
     </SafeAreaView>
   );
 }

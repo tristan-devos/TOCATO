@@ -7,19 +7,34 @@ import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface EmptyStateProps {
-  icon: ReactNode;
+  /** Petite icône dans un cercle ; ignorée si `illustration` est fournie. */
+  icon?: ReactNode;
+  /** Illustration (components/illustrations) : états vides des écrans principaux. */
+  illustration?: ReactNode;
   title: string;
   message: string;
   actionLabel?: string;
   onAction?: () => void;
 }
 
-export function EmptyState({ icon, title, message, actionLabel, onAction }: EmptyStateProps) {
+/** État vide qui encourage : illustration ou icône, titre, message, action. */
+export function EmptyState({
+  icon,
+  illustration,
+  title,
+  message,
+  actionLabel,
+  onAction,
+}: EmptyStateProps) {
   const colors = useTheme();
 
   return (
     <View style={styles.base}>
-      <View style={[styles.iconCircle, { backgroundColor: colors.primaryMuted }]}>{icon}</View>
+      {illustration ? (
+        <View style={styles.illustration}>{illustration}</View>
+      ) : icon ? (
+        <View style={[styles.iconCircle, { backgroundColor: colors.primaryMuted }]}>{icon}</View>
+      ) : null}
       <AppText variant="subheading" style={styles.centered}>
         {title}
       </AppText>
@@ -48,6 +63,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.two,
   },
+  illustration: { marginBottom: Spacing.two },
   centered: { textAlign: 'center' },
   action: { marginTop: Spacing.three },
 });

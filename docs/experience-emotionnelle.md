@@ -1,6 +1,6 @@
 # Conception : expérience émotionnelle, photos des prestataires, tableau de bord
 
-> **Statut : validé** (2026-09-24), en cours de réalisation (voir §8).
+> **Statut : validé** (2026-09-24), lots 1 à 4 faits (voir §8).
 > Rédigé le 2026-09-24. Chaque lot (§8) devient une PR, et `AGENTS.md` est mis à jour
 > dans la PR qui change le comportement décrit. Les écarts au plan seront notés
 > « **Réalisé :** » dans la section concernée.
@@ -239,6 +239,23 @@ encore tranché).
 - **Accueil client** : bloc d'accroche sous la salutation, cartes de service avec
   illustration, bandeau de confiance plus présent.
 
+**Réalisé :** écarts et précisions.
+- Célébration « mission terminée » côté client : affichée si le client regarde sa
+  réservation au moment où le prestataire termine (Realtime). Sinon, la phrase de statut
+  et la frise suffisent : pas de mémoire des célébrations déjà vues.
+- Offres reçues : un prestataire sans avis affiche « Nouveau sur TOCATO » au lieu de
+  « 0,0 ». « Licence RBQ vérifiée » n'apparaît que sur une demande de plomberie (seul
+  service où l'approbation l'exige).
+- Phrase de statut : dans la carte de réservation (à la place du nom ou du nombre
+  d'offres) et sous l'en-tête du détail. « demain (matin) » plutôt qu'un calendrier
+  relatif plus fin.
+- Illustrations : quatre (calendrier, conversation, boîte à outils, maison) ; la même
+  sert à Réservations et à Mes travaux.
+- Accueil client : la fausse barre de recherche (elle ouvrait l'onglet Réserver) est
+  remplacée par la carte d'accroche et son bouton. Le bandeau de confiance dit ce que
+  TOCATO vérifie réellement ; l'ancien « Support 7 j/7 », qui ne correspondait à aucun
+  service, est retiré. Les cartes de service restent telles quelles.
+
 ## 8. Découpage en PR (lots)
 
 1. ✅ **Fondations** : police, tokens (ombre, accent, `display`), `usePressScale`,
@@ -246,7 +263,7 @@ encore tranché).
 2. ✅ **Photos des prestataires** : SQL (bucket, colonnes, RPC, policies, scénarios),
    formulaire d'adhésion, admin, profil prestataire, `Avatar` avec photo, purge.
 3. ✅ **Tableau de bord prestataire** : onglet Accueil, calendrier, tuiles, `completed_at`.
-4. **Moments clés côté client** : célébrations, offres reçues, statuts humains,
+4. ✅ **Moments clés côté client** : célébrations, offres reçues, statuts humains,
    illustrations.
 
 Chaque lot : `npx tsc --noEmit`, `npx expo export --platform web`, `supabase/tests/run.sh`

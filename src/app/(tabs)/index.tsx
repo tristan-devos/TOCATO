@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
-import { MapPin, Search, ShieldCheck } from 'lucide-react-native';
+import { MapPin } from 'lucide-react-native';
 import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { BookingCard } from '@/components/booking-card';
+import { HomeHero } from '@/components/home/home-hero';
+import { TrustBanner } from '@/components/home/trust-banner';
 import { ProviderRow } from '@/components/provider-row';
 import { ServiceCard } from '@/components/service-card';
 import { AppText } from '@/components/ui/app-text';
@@ -53,17 +55,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <Pressable
-        onPress={() => router.push('/(tabs)/reserver')}
-        style={({ pressed }) => [
-          styles.search,
-          { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.8 : 1 },
-        ]}>
-        <Search size={18} color={colors.textSecondary} />
-        <Text style={[styles.searchPlaceholder, { color: colors.textSecondary }]}>
-          {t('home.searchPlaceholder')}
-        </Text>
-      </Pressable>
+      <HomeHero onStart={() => router.push('/(tabs)/reserver')} />
 
       {highlighted ? (
         <View>
@@ -131,12 +123,7 @@ export default function HomeScreen() {
         </View>
       ) : null}
 
-      <View style={[styles.trustBanner, { backgroundColor: colors.primaryMuted }]}>
-        <ShieldCheck size={20} color={colors.primary} />
-        <Text style={[styles.trustText, { color: colors.primary }]}>
-          {t('home.trustBadge')}
-        </Text>
-      </View>
+      <TrustBanner />
     </Screen>
   );
 }
@@ -144,16 +131,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   location: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  search: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    borderRadius: Radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: 14,
-  },
-  searchPlaceholder: { ...Font.regular, fontSize: FontSize.base },
   servicesList: { gap: Spacing.two + 4 },
   steps: { gap: Spacing.three },
   stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
@@ -168,12 +145,4 @@ const styles = StyleSheet.create({
   stepTexts: { flex: 1, gap: 2 },
   providersCard: { gap: Spacing.three },
   divider: { height: StyleSheet.hairlineWidth, marginBottom: Spacing.three },
-  trustBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.two,
-    borderRadius: Radius.md,
-    padding: Spacing.three,
-  },
-  trustText: { fontSize: FontSize.sm, ...Font.semibold, flex: 1 },
 });

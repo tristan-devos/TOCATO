@@ -4,6 +4,7 @@ import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
+import { CelebrationModal } from '@/components/celebration/celebration';
 import { BookingSummary } from '@/components/reservation/booking-summary';
 import { RequestDetails } from '@/components/reservation/request-details';
 import { StatusTimeline } from '@/components/reservation/status-timeline';
@@ -36,6 +37,7 @@ export default function JobDetailScreen() {
   const startJob = useProviderStore((s) => s.startJob);
   const completeJob = useProviderStore((s) => s.completeJob);
   const [busy, setBusy] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
 
   if (!booking) {
     return <Redirect href="/(provider)/jobs" />;
@@ -44,7 +46,12 @@ export default function JobDetailScreen() {
   const conversation = conversations.find((c) => c.bookingId === booking.id);
   const status = BOOKING_STATUS[booking.status];
 
-  const confirmThen = (title: string, message: string, action: () => Promise<boolean>) => {
+  const confirmThen = (
+    title: string,
+    message: string,
+    action: () => Promise<boolean>,
+    celebrate = false,
+  ) => {
     Alert.alert(title, message, [
       { text: t('common.cancel'), style: 'cancel' },
       {
@@ -53,7 +60,9 @@ export default function JobDetailScreen() {
           setBusy(true);
           void action()
             .then((ok) => {
-              if (ok) haptics.success();
+              if (!ok) return;
+              haptics.success();
+              if (celebrate) setCelebrating(true);
             })
             .finally(() => setBusy(false));
         },
@@ -121,6 +130,7 @@ export default function JobDetailScreen() {
                   t('providerApp.completeJobTitle'),
                   t('providerApp.completeJobMessage'),
                   () => completeJob(booking.id),
+                  true,
                 )
               }
             />
@@ -136,6 +146,13 @@ export default function JobDetailScreen() {
           ) : null}
         </View>
       </ScrollView>
+      <CelebrationModal
+        visible={celebrating}
+        title={t('celebrate.jobCompletedTitle')}
+        message={t('celebrate.jobCompletedProvider')}
+        closeLabel={t('celebrate.continue')}
+        onClose={() => setCelebrating(false)}
+      />
     </SafeAreaView>
   );
 }

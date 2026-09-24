@@ -14,7 +14,7 @@ export function Rating({ rating, reviewCount }: RatingProps) {
 
   return (
     <View style={styles.base}>
-      <Star size={14} color="#F59E0B" fill="#F59E0B" />
+      <Star size={14} color={colors.accent} fill={colors.accent} />
       <Text style={[styles.value, { color: colors.text }]}>{rating.toFixed(1)}</Text>
       {reviewCount != null ? (
         <Text style={[styles.count, { color: colors.textSecondary }]}>({reviewCount})</Text>

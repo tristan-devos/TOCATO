@@ -4,18 +4,18 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
-import { ProviderRow } from '@/components/provider-row';
+import { OfferCard } from '@/components/reservation/offer-card';
 import { AppText } from '@/components/ui/app-text';
 import { Card } from '@/components/ui/card';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
-import { useFormats } from '@/hooks/use-formats';
 import { useProviders } from '@/lib/providers-store';
 import { useAppStore } from '@/lib/store';
-import type { Conversation, Provider } from '@/lib/types';
+import type { Conversation, Provider, ServiceId } from '@/lib/types';
 
 interface ProviderOffersProps {
   bookingId: string;
+  serviceId: ServiceId;
 }
 
 interface Offer {
@@ -29,11 +29,10 @@ interface Offer {
  * Offres reçues sur une demande ouverte : chaque prestataire intéressé a ouvert
  * sa conversation ; une carte par offre, tap = ouvrir la conversation.
  */
-export function ProviderOffers({ bookingId }: ProviderOffersProps) {
+export function ProviderOffers({ bookingId, serviceId }: ProviderOffersProps) {
   const colors = useTheme();
   const router = useRouter();
   const { t } = useTranslation();
-  const { formatPrice } = useFormats();
   const conversations = useAppStore((s) => s.conversations);
   const messages = useAppStore((s) => s.messages);
   const providers = useProviders();
@@ -78,20 +77,15 @@ export function ProviderOffers({ bookingId }: ProviderOffersProps) {
         <View style={styles.list}>
           {offers.map(({ conversation, provider, quoteAmount }) =>
             provider ? (
-              <Card
+              <OfferCard
                 key={conversation.id}
+                provider={provider}
+                serviceId={serviceId}
+                quoteAmount={quoteAmount}
                 onPress={() =>
                   router.push({ pathname: '/chat/[id]', params: { id: conversation.id } })
-                }>
-                <ProviderRow
-                  provider={provider}
-                  subtitle={
-                    quoteAmount != null
-                      ? t('providerOffers.quoteReceived', { price: formatPrice(quoteAmount) })
-                      : t('providerOffers.noQuoteYet')
-                  }
-                />
-              </Card>
+                }
+              />
             ) : null,
           )}
         </View>
@@ -102,7 +96,7 @@ export function ProviderOffers({ bookingId }: ProviderOffersProps) {
 
 const styles = StyleSheet.create({
   sectionLabel: { marginBottom: Spacing.two, marginLeft: Spacing.one },
-  list: { gap: Spacing.two },
+  list: { gap: Spacing.three },
   emptyCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two + 2 },
   emptyText: { flex: 1 },
 });

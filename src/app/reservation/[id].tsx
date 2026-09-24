@@ -1,9 +1,11 @@
 import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, XCircle } from 'lucide-react-native';
+import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
+import { CelebrationModal } from '@/components/celebration/celebration';
 import { ProviderRow } from '@/components/provider-row';
 import { BookingSummary } from '@/components/reservation/booking-summary';
 import { ProviderOffers } from '@/components/reservation/provider-offers';
@@ -15,6 +17,7 @@ import { Card } from '@/components/ui/card';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useFormats } from '@/hooks/use-formats';
+import { useStatusLine } from '@/hooks/use-status-line';
 import { BOOKING_STATUS, isCancellableStatus } from '@/lib/booking-status';
 import { formatAddress } from '@/lib/format';
 import { useProvider } from '@/lib/providers-store';
@@ -32,6 +35,15 @@ export default function ReservationDetailScreen() {
   const cancelBooking = useAppStore((s) => s.cancelBooking);
   // Prestataire confirmé (devis accepté) ; lu avant le retour anticipé (règle des hooks).
   const provider = useProvider(booking?.providerId);
+  const statusText = useStatusLine();
+  // Le prestataire termine pendant que le client regarde (Realtime) : on célèbre.
+  // État ajusté pendant le rendu (motif React « state from props »), pas d'effet.
+  const [seenStatus, setSeenStatus] = useState(booking?.status);
+  const [celebrating, setCelebrating] = useState(false);
+  if (booking && booking.status !== seenStatus) {
+    setSeenStatus(booking.status);
+    if (seenStatus === 'in_progress' && booking.status === 'completed') setCelebrating(true);
+  }
 
   if (!booking) {
     return <Redirect href="/(tabs)/reservations" />;
@@ -73,6 +85,7 @@ export default function ReservationDetailScreen() {
           serviceId={booking.serviceId}
           createdAt={booking.createdAt}
           badge={{ label: t(`bookingStatus.${booking.status}`), tone: status.tone }}
+          statusLine={statusText(booking)}
         />
 
         {cancelled ? (
@@ -101,7 +114,7 @@ export default function ReservationDetailScreen() {
             </Card>
           </View>
         ) : cancelled ? null : (
-          <ProviderOffers bookingId={booking.id} />
+          <ProviderOffers bookingId={booking.id} serviceId={booking.serviceId} />
         )}
 
         <RequestDetails
@@ -155,6 +168,13 @@ export default function ReservationDetailScreen() {
           ) : null}
         </View>
       </ScrollView>
+      <CelebrationModal
+        visible={celebrating}
+        title={t('celebrate.jobCompletedTitle')}
+        message={t('celebrate.jobCompletedClient', { name: provider?.name ?? '' })}
+        closeLabel={t('celebrate.continue')}
+        onClose={() => setCelebrating(false)}
+      />
     </SafeAreaView>
   );
 }

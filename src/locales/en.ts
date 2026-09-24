@@ -23,7 +23,9 @@ const en = {
   home: {
     greeting: 'Hello {{name}}',
     location: 'Montréal, QC',
-    searchPlaceholder: 'What do you need?',
+    heroTitle: 'A verified pro at your door, no searching',
+    heroMessage: 'Describe what you need: verified providers send you their offers.',
+    heroAction: 'Describe my need',
     currentSection: 'Right now',
     viewAll: 'View all',
     servicesSection: 'Our services',
@@ -35,7 +37,9 @@ const en = {
     step3Title: 'Confirm confidently',
     step3Detail: 'Verified providers, price agreed upfront.',
     popularProviders: 'Popular providers',
-    trustBadge: 'Verified providers · Free quote · 24/7 support',
+    trustTitle: 'Every provider is verified',
+    trustDetail:
+      'ID, liability insurance and, for plumbing, an RBQ licence: our team checks everything before the first offer.',
   },
   bookScreen: {
     title: 'Book a service',
@@ -120,16 +124,42 @@ const en = {
     keepBooking: 'Keep my booking',
     confirmCancel: 'Cancel booking',
   },
+  bookingCard: {
+    estimate: 'Est. {{range}}',
+  },
   providerOffers: {
     title_one: 'INTERESTED PROVIDER',
     title_other: 'INTERESTED PROVIDERS ({{count}})',
     waiting:
       'Your request is visible to providers for this service. Their offers will appear here.',
-    quoteReceived: 'Quote received: {{price}}',
     noQuoteYet: 'No quote yet',
-    interested_one: '{{count}} interested provider',
-    interested_other: '{{count}} interested providers',
-    waitingShort: 'Waiting for providers',
+    quoteLabel: 'Quote',
+    verified: 'Verified by TOCATO',
+    newProvider: 'New on TOCATO',
+    rbqVerified: 'RBQ licence verified',
+    viewOffer: 'See the offer and chat',
+  },
+  statusLine: {
+    waiting: 'Waiting for the first offers',
+    offers_one: '{{count}} offer received: compare and choose',
+    offers_other: '{{count}} offers received: compare and choose',
+    confirmed: '{{name}} will come {{when}}',
+    confirmedAsap: '{{name}} will message you to agree on a date',
+    today: 'today',
+    tomorrow: 'tomorrow',
+    inProgress: 'Job in progress with {{name}}',
+    completed: 'Job done. Thank you for your trust!',
+    cancelled: 'Request cancelled',
+  },
+  celebrate: {
+    continue: 'Continue',
+    quoteAcceptedTitle: 'All set!',
+    quoteAcceptedMessage: '{{name}} will come {{when}}. You can message them anytime in the chat.',
+    quoteAcceptedAsap:
+      '{{name}} will message you to agree on a date. You can also write to them in the chat.',
+    jobCompletedTitle: 'Job done!',
+    jobCompletedProvider: 'Great work. The client has been notified, and the job is in your history.',
+    jobCompletedClient: '{{name}} has finished the job. Thank you for trusting TOCATO.',
   },
   providerProfile: {
     title: 'Provider profile',
