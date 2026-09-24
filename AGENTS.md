@@ -143,8 +143,7 @@ plombier, déménageur, jardinier.
   d'une demande d'adhésion 30 jours après la décision, la photo d'une demande refusée
   après le même délai, et les fichiers orphelins (plus de 24 h) des buckets
   `provider-documents` et `provider-photos` (photo remplacée, proposition refusée…).
-  **Après la PR des photos** : la redéployer (voir ci-dessous), sinon les photos ne sont
-  jamais nettoyées. Passe par l'API Storage avec la clé service_role
+  Version avec les photos déployée le 2026-09-24 (vérifiée identique à `main`). Passe par l'API Storage avec la clé service_role
   (injectée) : Supabase interdit de supprimer en SQL dans `storage.objects`, et le fichier
   resterait stocké. Appelée chaque nuit par `.github/workflows/purge-documents.yml` avec la
   clé anon (fonction idempotente, sans paramètre : un appel en trop ne fait rien de plus),

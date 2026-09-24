@@ -30,26 +30,37 @@ npx expo start
 
 Les données (comptes, réservations, conversations, photos) vivent dans Supabase. Il n'y
 a plus de prestataires simulés : pour tester, utiliser deux comptes, un client et un
-prestataire relié par l'admin (voir AGENTS.md > Relier un prestataire réel).
+prestataire approuvé par l'admin (voir AGENTS.md > Admin et prestataires réels).
 
 ## Fonctionnalités
 
-- **Accueil** : services, réservation en cours, prestataires populaires
+- **Accueil** : accroche « Décrire mon besoin », réservation en cours, services,
+  prestataires populaires, ce que TOCATO vérifie chez chaque prestataire
 - **Messages** : un chat s'ouvre avec le prestataire à chaque demande ; les devis
-  s'acceptent ou se refusent directement dans la conversation
+  s'acceptent ou se refusent directement dans la conversation (célébration à
+  l'acceptation)
 - **Réserver** (bouton central) : demande guidée en quelques questions : photos, adresse,
   date et estimation de prix
-- **Mes réservations** : suivi en cours / historique, statut détaillé, annulation
+- **Mes réservations** : suivi en cours / historique, statut en une phrase (« 2 offres
+  reçues », « Marc interviendra demain »), offres reçues avec la photo du prestataire,
+  annulation
 - **Profil** : adresses, paiement, aide
 
-**Côté prestataire** (compte relié à une fiche par un admin, voir
-[AGENTS.md](./AGENTS.md) > *Relier un prestataire réel*) : **Demandes** ouvertes de ses
+**Côté prestataire** : adhésion depuis l'app (« Je suis prestataire » à l'inscription :
+entreprise, NEQ, licence RBQ en plomberie, pièces et photo), approuvée par l'admin. Puis
+**Accueil** (prochaine mission, chiffres clés, calendrier), **Demandes** ouvertes de ses
 services (ville et secteur seulement), devis, **Mes travaux** (adresse exacte une fois le
-devis accepté, commencer / terminer l'intervention), **Messages**, **Profil**.
+devis accepté, commencer / terminer l'intervention), **Messages**, **Profil** (photo,
+validée par l'admin).
+
+**Côté admin** (Profil → Adhésions prestataires) : examen des demandes (vérification RBQ,
+pièces), approbation ou refus avec motif, validation des photos.
 
 ## Documentation technique
 
 Voir [AGENTS.md](./AGENTS.md) : stack, architecture, conventions et commandes.
 
-Conceptions en cours : [docs/](./docs/), en particulier
-[l'interface prestataire](./docs/interface-prestataire.md).
+Documents de conception : [docs/](./docs/) :
+[interface prestataire](./docs/interface-prestataire.md),
+[adhésion des prestataires](./docs/adhesion-prestataires.md),
+[expérience émotionnelle](./docs/experience-emotionnelle.md).
