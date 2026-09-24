@@ -92,62 +92,7 @@ as $$
   order by b.created_at desc;
 $$;
 
--- --- send_quote : le prestataire envoie un devis sur une demande ouverte --
--- Ouvre sa conversation si besoin (une par demande et par prestataire). Refuse
--- s'il a déjà un devis en attente sur cette demande. Renvoie la conversation.
-create or replace function public.send_quote(
-  p_booking_id uuid,
-  p_amount     numeric,
-  p_details    text
-)
-returns uuid
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_provider     text := public.current_provider_id();
-  v_client       uuid;
-  v_conversation uuid;
-begin
-  if v_provider is null then raise exception 'not_a_provider'; end if;
-  if p_amount is null or p_amount <= 0 or p_amount > 100000 then
-    raise exception 'invalid_amount';
-  end if;
-  if length(coalesce(p_details, '')) > 2000 then raise exception 'details_too_long'; end if;
-
-  select b.user_id into v_client
-  from public.bookings b
-  join public.providers p on p.id = v_provider
-  where b.id = p_booking_id
-    and b.status = 'pending'
-    and b.provider_id is null
-    and b.service_id = any (p.services)
-  for update of b;
-  if not found then raise exception 'booking_not_open'; end if;
-
-  insert into public.conversations (user_id, provider_id, booking_id)
-  values (v_client, v_provider, p_booking_id)
-  on conflict (booking_id, provider_id) do nothing;
-  select id into v_conversation from public.conversations
-  where booking_id = p_booking_id and provider_id = v_provider;
-
-  if exists (
-    select 1 from public.messages
-    where conversation_id = v_conversation and type = 'quote'
-      and quote ->> 'status' = 'pending'
-  ) then
-    raise exception 'quote_already_pending';
-  end if;
-
-  insert into public.messages (conversation_id, sender_kind, provider_id, type, text, quote)
-  -- Pas de texte : la carte de devis s'affiche seule, dans la langue de chacun.
-  values (v_conversation, 'provider', v_provider, 'quote', '',
-          jsonb_build_object('amount', p_amount, 'details', coalesce(p_details, ''),
-                             'status', 'pending'));
-  return v_conversation;
-end;
-$$;
+-- send_quote : voir quotes.sql (fiche devis complète).
 
 -- --- start_job / complete_job : le prestataire retenu fait avancer le travail ---
 create or replace function public.start_job(p_booking_id uuid)
@@ -229,14 +174,12 @@ $$;
 revoke execute on function public.current_provider_id() from public, anon;
 revoke execute on function public.provider_can_see_booking(text) from public, anon;
 revoke execute on function public.list_open_requests() from public, anon;
-revoke execute on function public.send_quote(uuid, numeric, text) from public, anon;
 revoke execute on function public.start_job(uuid) from public, anon;
 revoke execute on function public.complete_job(uuid) from public, anon;
 revoke execute on function public.provider_conversation_clients() from public, anon;
 grant execute on function public.current_provider_id() to authenticated;
 grant execute on function public.provider_can_see_booking(text) to authenticated;
 grant execute on function public.list_open_requests() to authenticated;
-grant execute on function public.send_quote(uuid, numeric, text) to authenticated;
 grant execute on function public.start_job(uuid) to authenticated;
 grant execute on function public.complete_job(uuid) to authenticated;
 grant execute on function public.provider_conversation_clients() to authenticated;

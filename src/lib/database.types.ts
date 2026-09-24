@@ -17,6 +17,7 @@ import type {
   BookingStatus,
   Message,
   PriceRange,
+  QuoteLine,
   QuoteStatus,
   ServiceId,
   SystemMessageKey,
@@ -26,7 +27,17 @@ import type {
 /** Émetteur d'un message côté DB (le `senderId` 'me' du domaine devient 'client'). */
 export type MessageSenderKind = 'client' | 'provider' | 'system';
 
-type Quote = NonNullable<Message['quote']>;
+/** Colonne `messages.quote` (jsonb, snake_case) : voir supabase/quotes.sql. */
+export type QuoteJson = {
+  amount: number;
+  details: string;
+  status: QuoteStatus;
+  lines?: QuoteLine[];
+  proposed_date?: string;
+  proposed_slot?: TimeSlotId;
+  duration_hours?: number;
+  warranty?: string;
+};
 type Document = NonNullable<Message['document']>;
 
 export interface Database {
@@ -166,7 +177,7 @@ export interface Database {
           type: Message['type'];
           text: string;
           created_at: string;
-          quote: Quote | null;
+          quote: QuoteJson | null;
           document: Document | null;
           system_key: SystemMessageKey | null;
         };
@@ -178,7 +189,7 @@ export interface Database {
           type: Message['type'];
           text: string;
           created_at?: string;
-          quote?: Quote | null;
+          quote?: QuoteJson | null;
           document?: Document | null;
           system_key?: SystemMessageKey | null;
         };
@@ -250,8 +261,17 @@ export interface Database {
           my_quote_status: QuoteStatus | null;
         }[];
       };
+      /** Devis complet (quotes.sql) : total calculé par le serveur ; renvoie la conversation. */
       send_quote: {
-        Args: { p_booking_id: string; p_amount: number; p_details: string };
+        Args: {
+          p_booking_id: string;
+          p_lines: QuoteLine[];
+          p_proposed_date: string;
+          p_proposed_slot: TimeSlotId;
+          p_duration_hours: number;
+          p_included: string;
+          p_warranty: string;
+        };
         Returns: string;
       };
       start_job: {

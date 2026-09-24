@@ -88,7 +88,7 @@ export default function RequestDetailScreen() {
                 {request.myQuoteStatus === 'declined' ? (
                   <AppText variant="secondary">{t('providerApp.quoteDeclined')}</AppText>
                 ) : null}
-                <QuoteForm requestId={request.id} onSent={openChat} />
+                <QuoteForm request={request} onSent={openChat} />
               </>
             )}
           </ScrollView>

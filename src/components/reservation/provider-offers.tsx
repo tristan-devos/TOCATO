@@ -11,25 +11,27 @@ import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useProviders } from '@/lib/providers-store';
 import { useAppStore } from '@/lib/store';
-import type { Conversation, Provider, ServiceId } from '@/lib/types';
+import type { Conversation, Provider, Quote, ServiceId } from '@/lib/types';
 
 interface ProviderOffersProps {
   bookingId: string;
   serviceId: ServiceId;
+  /** Date demandée par le client (absente : « dès que possible »). */
+  requestedDate?: string;
 }
 
 interface Offer {
   conversation: Conversation;
   provider: Provider | undefined;
-  /** Montant du dernier devis en attente, s'il y en a un. */
-  quoteAmount: number | undefined;
+  /** Dernier devis en attente, s'il y en a un. */
+  quote: Quote | undefined;
 }
 
 /**
  * Offres reçues sur une demande ouverte : chaque prestataire intéressé a ouvert
  * sa conversation ; une carte par offre, tap = ouvrir la conversation.
  */
-export function ProviderOffers({ bookingId, serviceId }: ProviderOffersProps) {
+export function ProviderOffers({ bookingId, serviceId, requestedDate }: ProviderOffersProps) {
   const colors = useTheme();
   const router = useRouter();
   const { t } = useTranslation();
@@ -43,7 +45,7 @@ export function ProviderOffers({ bookingId, serviceId }: ProviderOffersProps) {
         .filter((c) => c.bookingId === bookingId)
         .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt))
         .map((conversation) => {
-          const quote = [...messages]
+          const message = [...messages]
             .reverse()
             .find(
               (m) =>
@@ -52,7 +54,7 @@ export function ProviderOffers({ bookingId, serviceId }: ProviderOffersProps) {
           return {
             conversation,
             provider: providers.find((p) => p.id === conversation.providerId),
-            quoteAmount: quote?.quote?.amount,
+            quote: message?.quote,
           };
         }),
     [conversations, messages, providers, bookingId],
@@ -75,13 +77,14 @@ export function ProviderOffers({ bookingId, serviceId }: ProviderOffersProps) {
         </Card>
       ) : (
         <View style={styles.list}>
-          {offers.map(({ conversation, provider, quoteAmount }) =>
+          {offers.map(({ conversation, provider, quote }) =>
             provider ? (
               <OfferCard
                 key={conversation.id}
                 provider={provider}
                 serviceId={serviceId}
-                quoteAmount={quoteAmount}
+                quote={quote}
+                requestedDate={requestedDate}
                 onPress={() =>
                   router.push({ pathname: '/chat/[id]', params: { id: conversation.id } })
                 }

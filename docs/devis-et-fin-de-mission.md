@@ -1,6 +1,6 @@
 # Conception : devis complet, date d'intervention, fin de mission
 
-> **Statut : à valider** (PR de conception, aucun code).
+> **Statut : validé** (2026-09-24, choix du §9 confirmés), en cours de réalisation (§8).
 > Rédigé le 2026-09-24. Chaque lot (§8) devient une PR, et `AGENTS.md` est mis à jour
 > dans la PR qui change le comportement décrit. Les écarts au plan seront notés
 > « **Réalisé :** » dans la section concernée.
@@ -62,6 +62,15 @@ Fin         : prestataire « Terminer » -> carte « Comment s'est passée l'int
 - `send_quote` prend ces champs, valide tout et calcule `amount`. `accept_quote` recopie
   la date et le créneau sur la réservation (`scheduled_date`, `time_slot`).
 
+**Réalisé (lot 1) :** nouveau fichier `supabase/quotes.sql` (`send_quote` déplacé de
+`providers.sql`, qui approchait 300 lignes ; les lots 2 et 3 y ajouteront leurs RPC).
+« Aujourd'hui » est la date de **Montréal** (`montreal_today()`) : la base tourne en UTC,
+où il est déjà demain après 20 h.
+L'ancienne signature de `send_quote` est supprimée : une ancienne version de l'app ne
+peut plus envoyer de devis. La bande de jours et les créneaux du wizard sont extraits
+dans `components/ui/day-slot-picker.tsx`, partagé avec le devis. Un devis dont la date
+diffère de celle demandée le signale des deux côtés (formulaire et carte d'offre).
+
 ## 5. Changer la date après l'accord
 
 - Nouveau type de message **`reschedule`** (carte dans le chat, comme un devis) :
@@ -119,7 +128,7 @@ Fin         : prestataire « Terminer » -> carte « Comment s'est passée l'int
 
 ## 8. Découpage en PR (lots)
 
-1. **Devis complet et date** : SQL (`send_quote` v2, `accept_quote` recopie la date),
+1. ✅ **Devis complet et date** : SQL (`send_quote` v2, `accept_quote` recopie la date),
    formulaire de devis en étapes, carte de devis détaillée dans le chat, carte d'offre
    avec la date proposée, phrase de statut.
 2. **Changer la date** : message `reschedule`, deux RPC, bouton côté mission, carte dans
@@ -129,9 +138,9 @@ Fin         : prestataire « Terminer » -> carte « Comment s'est passée l'int
 
 Chaque lot : `tsc`, export web, `supabase/tests/run.sh`, test sur iPhone via EAS Update.
 
-## 9. À trancher (choix par défaut appliqués en attendant)
+## 9. Choix confirmés (2026-09-24)
 
-| Question | Défaut proposé |
+| Question | Décision |
 |---|---|
 | Fermeture de la conversation : immédiate ou après un délai ? | **48 h après la fin** (voir §6). |
 | Taxes (TPS / TVQ) sur le devis | « Taxes comprises » en v1 ; le détail des taxes quand on saura quels prestataires sont inscrits. |

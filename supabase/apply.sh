@@ -7,7 +7,7 @@
 # origin/main (piège de la PR #8 : du SQL d'une branche non mergée exécuté sur la
 # base partagée). Pour tester une branche : supabase/tests/run.sh.
 #
-# Tout ou rien : les huit fichiers passent dans UNE transaction ; à la première
+# Tout ou rien : les neuf fichiers passent dans UNE transaction ; à la première
 # erreur, rien n'est appliqué.
 #
 # Connexion : SUPABASE_DB_URL (variable d'environnement, sinon lue dans .env) =
@@ -15,7 +15,7 @@
 # postgres:16-alpine (Docker), pas besoin de l'installer.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-FILES="schema rpc transitions providers applications photos admin policies"
+FILES="schema rpc transitions providers quotes applications photos admin policies"
 
 # --- Garde-fou : main propre et à jour ---
 branch=$(git rev-parse --abbrev-ref HEAD)

@@ -8,13 +8,14 @@
  * et côté prestataire.
  */
 
-import type { Database } from '@/lib/database.types';
+import type { Database, QuoteJson } from '@/lib/database.types';
 import type {
   Booking,
   Conversation,
   Message,
   OpenRequest,
   Provider,
+  Quote,
   Role,
 } from '@/lib/types';
 
@@ -61,6 +62,20 @@ function toSenderId(row: MessageRow, role: Role): string {
   return role === 'provider' ? 'me' : (row.provider_id ?? '');
 }
 
+/** Devis jsonb (snake_case) -> domaine ; un ancien devis n'a que montant, détails, statut. */
+function jsonToQuote(json: QuoteJson): Quote {
+  return {
+    amount: Number(json.amount),
+    details: json.details,
+    status: json.status,
+    lines: json.lines?.map((line) => ({ ...line, amount: Number(line.amount) })),
+    proposedDate: json.proposed_date,
+    proposedSlot: json.proposed_slot,
+    durationHours: json.duration_hours === undefined ? undefined : Number(json.duration_hours),
+    warranty: json.warranty,
+  };
+}
+
 export function rowToMessage(row: MessageRow, role: Role): Message {
   return {
     id: row.id,
@@ -69,7 +84,7 @@ export function rowToMessage(row: MessageRow, role: Role): Message {
     type: row.type,
     text: row.text,
     createdAt: row.created_at,
-    quote: row.quote ?? undefined,
+    quote: row.quote ? jsonToQuote(row.quote) : undefined,
     document: row.document ?? undefined,
     systemKey: row.system_key ?? undefined,
   };

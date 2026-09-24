@@ -14,6 +14,7 @@
 import { create } from 'zustand';
 
 import { rowToOpenRequest } from '@/lib/db-mappers';
+import type { QuoteInput } from '@/lib/quote-draft';
 import { useAppStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
 import type { OpenRequest } from '@/lib/types';
@@ -25,7 +26,8 @@ interface ProviderState {
   loadProviderData: () => Promise<void>;
   refreshOpenRequests: () => Promise<void>;
   /** Envoie un devis ; renvoie l'id de la conversation, ou null en cas d'échec. */
-  sendQuote: (bookingId: string, amount: number, details: string) => Promise<string | null>;
+  /** Envoie un devis complet (quote-draft.ts) ; renvoie la conversation, ou null. */
+  sendQuote: (bookingId: string, quote: QuoteInput) => Promise<string | null>;
   /** true si la transition a été appliquée. */
   startJob: (bookingId: string) => Promise<boolean>;
   completeJob: (bookingId: string) => Promise<boolean>;
@@ -62,11 +64,15 @@ export const useProviderStore = create<ProviderState>((set) => ({
     set({ openRequests: await fetchOpenRequests() });
   },
 
-  sendQuote: async (bookingId, amount, details) => {
+  sendQuote: async (bookingId, quote) => {
     const { data, error } = await supabase.rpc('send_quote', {
       p_booking_id: bookingId,
-      p_amount: amount,
-      p_details: details.trim(),
+      p_lines: quote.lines,
+      p_proposed_date: quote.proposedDate,
+      p_proposed_slot: quote.proposedSlot,
+      p_duration_hours: quote.durationHours,
+      p_included: quote.included,
+      p_warranty: quote.warranty,
     });
     if (error || !data) {
       if (error && __DEV__) console.warn('[send_quote]', error.message);

@@ -114,7 +114,11 @@ export default function ReservationDetailScreen() {
             </Card>
           </View>
         ) : cancelled ? null : (
-          <ProviderOffers bookingId={booking.id} serviceId={booking.serviceId} />
+          <ProviderOffers
+            bookingId={booking.id}
+            serviceId={booking.serviceId}
+            requestedDate={booking.scheduledDate}
+          />
         )}
 
         <RequestDetails

@@ -12,7 +12,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 NAME=tocato-sqltest
 # Ordre d'exécution, identique à celui du SQL editor (voir AGENTS.md > Commandes).
-FILES="schema rpc transitions providers applications photos admin policies"
+FILES="schema rpc transitions providers quotes applications photos admin policies"
 docker run -d --rm --name "$NAME" -e POSTGRES_PASSWORD=pw postgres:16-alpine >/dev/null
 trap 'docker stop "$NAME" >/dev/null' EXIT
 until docker exec "$NAME" pg_isready -U postgres -q; do sleep 1; done
