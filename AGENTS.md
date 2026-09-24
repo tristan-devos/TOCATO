@@ -273,7 +273,8 @@ src/components/             Composants métier (booking-card, provider-row, serv
                             que TOCATO vérifie chez chaque prestataire)
   provider/                 request-card (demande ouverte) + quote-form (fiche devis :
                             lignes via quote-lines-editor, date et créneau proposés, durée,
-                            inclus, garantie ; send_quote)
+                            inclus, garantie ; send_quote) + reschedule-action (« Proposer
+                            une autre date » sur une mission confirmée, fenêtre de choix)
                             + tableau de bord : next-mission-card, stat-tiles,
                             mission-calendar (+ calendar-day), mission-list
   profile/                  account-actions (Langue + Se déconnecter, profils client et
@@ -291,7 +292,8 @@ src/components/             Composants métier (booking-card, provider-row, serv
                             photo-change-row
   chat/                     message-bubble (texte / devis / document / système) +
                             quote-card (fiche devis : lignes, total, date proposée, durée,
-                            garantie ; boutons accepter/refuser côté client seulement)
+                            garantie ; boutons accepter/refuser côté client seulement) +
+                            reschedule-card (nouvelle date proposée ; garder ou accepter)
   ui/                       Primitives (button, card, chip, badge, avatar, screen (option
                             refreshControl), text-field, segmented-control…) + pressable-scale (Pressable
                             qui se contracte au toucher : base de Button, Card, Chip),
@@ -307,7 +309,7 @@ src/lib/
                             tagline, questions, options) selon la langue active.
   store.ts                  Store Zustand adossé à Supabase : réservations, conversations,
                             messages. Charge à la connexion (loadAll), écoute le Realtime,
-                            écrit via RPC (create_booking, accept/decline_quote,
+                            écrit via RPC (create_booking, accept/decline_quote, respond_reschedule,
                             cancel_booking…) ; seul l'envoi d'un message texte est un insert.
   profile-store.ts          Profil + adresses + **rôle** de l'utilisateur connecté : provider
                             (RPC current_provider_id), applicant (demande en cours ou refusée,
@@ -408,6 +410,8 @@ supabase/providers.sql      Comptes prestataires : current_provider_id, list_ope
 supabase/quotes.sql         Devis : send_quote (lignes, total calculé, date et créneau
                             proposés, durée, garantie), quote_total, montreal_today.
                             accept_quote (transitions.sql) recopie la date sur la mission.
+                            Changement de date : propose_reschedule (prestataire retenu,
+                            mission confirmée) et respond_reschedule (client).
 supabase/applications.sql   Adhésion des prestataires : admins + is_admin, rbq_licences
                             (extrait du registre RBQ), provider_applications, bucket
                             provider-documents, submit_provider_application (avec photo).

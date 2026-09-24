@@ -85,6 +85,16 @@ export function rowToMessage(row: MessageRow, role: Role): Message {
     text: row.text,
     createdAt: row.created_at,
     quote: row.quote ? jsonToQuote(row.quote) : undefined,
+    reschedule: row.reschedule
+      ? {
+          date: row.reschedule.date,
+          slot: row.reschedule.slot,
+          reason: row.reschedule.reason,
+          previousDate: row.reschedule.previous_date ?? undefined,
+          previousSlot: row.reschedule.previous_slot ?? undefined,
+          status: row.reschedule.status,
+        }
+      : undefined,
     document: row.document ?? undefined,
     systemKey: row.system_key ?? undefined,
   };

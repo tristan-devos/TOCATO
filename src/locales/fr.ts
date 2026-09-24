@@ -185,6 +185,28 @@ const fr = {
     duration_one: 'Durée estimée : {{count}} h',
     duration_other: 'Durée estimée : {{count}} h',
   },
+  reschedule: {
+    cardTitle: 'Nouvelle date proposée',
+    insteadOf: 'Au lieu de : {{when}}',
+    keepDate: 'Garder la date prévue',
+    accept: 'Accepter',
+    propose: 'Proposer une autre date',
+    pendingNotice: 'Nouvelle date proposée ({{when}}) : en attente de la réponse du client.',
+    currentDate: 'Date prévue : {{when}}.',
+    reasonLabel: 'Motif (facultatif)',
+    reasonPlaceholder: 'Ex. : camion en panne',
+    explain:
+      'Le client reçoit la proposition dans la conversation. S’il la refuse, la date prévue est maintenue.',
+    send: 'Envoyer la proposition',
+    errors: {
+      missing: 'Choisissez un jour et un créneau.',
+      same_date: 'C’est déjà la date prévue.',
+      reschedule_already_pending: 'Une proposition attend déjà la réponse du client.',
+      booking_not_confirmed: 'La mission n’est plus modifiable (commencée ou annulée).',
+      invalid_date: 'Choisissez une date entre aujourd’hui et dans 60 jours.',
+      generic: 'La proposition n’a pas pu être envoyée. Réessayez.',
+    },
+  },
   statusLine: {
     waiting: 'En attente des premières offres',
     offers_one: '{{count}} offre reçue : comparez et choisissez',
@@ -444,6 +466,14 @@ const fr = {
     jobCompleted: {
       client: 'Intervention terminée.',
       provider: 'Intervention terminée.',
+    },
+    rescheduleAccepted: {
+      client: 'Vous avez accepté la nouvelle date.',
+      provider: 'Le client a accepté la nouvelle date.',
+    },
+    rescheduleDeclined: {
+      client: 'Vous avez gardé la date prévue.',
+      provider: 'Le client a refusé la nouvelle date : la date prévue est maintenue.',
     },
   },
   apply: {

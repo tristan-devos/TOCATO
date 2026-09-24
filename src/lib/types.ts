@@ -73,7 +73,7 @@ export interface Booking {
   completedAt?: string;
 }
 
-export type MessageType = 'text' | 'quote' | 'document' | 'system';
+export type MessageType = 'text' | 'quote' | 'document' | 'system' | 'reschedule';
 
 export type QuoteStatus = 'pending' | 'accepted' | 'declined';
 
@@ -115,7 +115,24 @@ export type SystemMessageKey =
   | 'quoteDeclined'
   | 'bookingCancelled'
   | 'jobStarted'
-  | 'jobCompleted';
+  | 'jobCompleted'
+  | 'rescheduleAccepted'
+  | 'rescheduleDeclined';
+
+/**
+ * A new date proposed by the retained provider after acceptance
+ * (docs/devis-et-fin-de-mission.md §5): the booking's date changes only if the
+ * client accepts.
+ */
+export interface Reschedule {
+  date: string;
+  slot: TimeSlotId;
+  reason: string;
+  /** The booking's date when the proposal was made (absent: it had none). */
+  previousDate?: string;
+  previousSlot?: TimeSlotId;
+  status: QuoteStatus;
+}
 
 export interface Message {
   id: string;
@@ -126,6 +143,7 @@ export interface Message {
   text: string;
   createdAt: string; // ISO
   quote?: Quote;
+  reschedule?: Reschedule;
   document?: {
     name: string;
     size: string;

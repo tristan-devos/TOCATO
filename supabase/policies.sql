@@ -98,6 +98,7 @@ create policy "messages_insert_own" on public.messages
     and messages.type = 'text'
     and messages.quote is null
     and messages.document is null
+    and messages.reschedule is null
     and exists (
       select 1 from public.conversations c
       where c.id = messages.conversation_id and c.user_id = auth.uid()
@@ -111,6 +112,7 @@ create policy "messages_insert_provider" on public.messages
     and messages.type = 'text'
     and messages.quote is null
     and messages.document is null
+    and messages.reschedule is null
     and messages.provider_id = public.current_provider_id()
     and exists (
       select 1 from public.conversations c

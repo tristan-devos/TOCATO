@@ -112,6 +112,32 @@ select scheduled_date = montreal_today() + 2 as date_du_devis, time_slot from bo
 select set_config('request.jwt.claim.sub', :'paul', false) \g /dev/null
 select status, provider_id, address ->> 'street' as rue from bookings where id = :'bk';
 select count(*) as encore_dans_demandes_ouvertes from list_open_requests() where id = :'bk';
+\echo '--- Changement de date : Gina (pas retenue) ne peut pas proposer (doit échouer)'
+select set_config('request.jwt.claim.sub', :'gina', false) \g /dev/null
+select propose_reschedule(:'bk', montreal_today() + 5, 'morning', 'x');
+\echo '--- Paul : date passée, même date et créneau (doivent échouer), puis une proposition (doit réussir), une 2e (doit échouer)'
+select set_config('request.jwt.claim.sub', :'paul', false) \g /dev/null
+select propose_reschedule(:'bk', montreal_today() - 1, 'morning', '');
+select propose_reschedule(:'bk', montreal_today() + 2, 'afternoon', '');
+select propose_reschedule(:'bk', montreal_today() + 5, 'morning', 'Camion en panne') as resched \gset
+select propose_reschedule(:'bk', montreal_today() + 6, 'morning', '');
+\echo '--- Paul : fausse carte directe (doit échouer), répondre à sa propre proposition (doit échouer)'
+insert into messages (conversation_id, sender_kind, provider_id, type, text, reschedule)
+  values (:'conv', 'provider', 'p-paul', 'reschedule', '', '{"status":"accepted"}');
+select respond_reschedule(:'resched', true);
+\echo '--- Alice refuse : date inchangée (dans 2 jours, après-midi), message rescheduleDeclined'
+select set_config('request.jwt.claim.sub', :'alice', false) \g /dev/null
+select respond_reschedule(:'resched', false);
+select scheduled_date = montreal_today() + 2 as date_inchangee, time_slot from bookings where id = :'bk';
+\echo '--- Paul repropose, Alice accepte : nouvelle date (dans 5 jours, matin) ; répondre à nouveau (doit échouer)'
+select set_config('request.jwt.claim.sub', :'paul', false) \g /dev/null
+select propose_reschedule(:'bk', montreal_today() + 5, 'morning', 'Camion en panne') as resched \gset
+select set_config('request.jwt.claim.sub', :'alice', false) \g /dev/null
+select respond_reschedule(:'resched', true);
+select scheduled_date = montreal_today() + 5 as nouvelle_date, time_slot from bookings where id = :'bk';
+select respond_reschedule(:'resched', false);
+select system_key from messages where conversation_id = :'conv' and system_key like 'reschedule%'
+  order by created_at;
 \echo '--- Gina ne peut pas commencer le travail de Paul (doit échouer)'
 select set_config('request.jwt.claim.sub', :'gina', false) \g /dev/null
 select start_job(:'bk');

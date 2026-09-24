@@ -4,7 +4,8 @@
 -- Fiche devis complète (docs/devis-et-fin-de-mission.md §4) : lignes chiffrées, total
 -- calculé ici (jamais envoyé par l'app), durée estimée, date et créneau proposés,
 -- garantie, ce qui est inclus. Accepter le devis (accept_quote, transitions.sql)
--- recopie la date et le créneau sur la réservation.
+-- recopie la date et le créneau sur la réservation. Changement de date ensuite :
+-- propose_reschedule (prestataire retenu) puis respond_reschedule (client), §5.
 --
 -- Stockage : messages.quote (jsonb), clés en snake_case :
 --   amount, details (ce qui est inclus), status, lines [{label, category, amount}],
@@ -143,8 +144,119 @@ begin
 end;
 $$;
 
+-- --- propose_reschedule : le prestataire retenu propose une autre date ------------
+-- Mission confirmée (pas encore commencée), une seule proposition en attente. Carte
+-- `reschedule` dans la conversation ; la date de la mission ne change qu'à l'accord.
+create or replace function public.propose_reschedule(
+  p_booking_id uuid,
+  p_date       date,
+  p_slot       text,
+  p_reason     text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_provider     text := public.current_provider_id();
+  v_booking      public.bookings;
+  v_conversation uuid;
+  v_message      uuid;
+begin
+  if v_provider is null then raise exception 'not_a_provider'; end if;
+  select * into v_booking from public.bookings
+  where id = p_booking_id and provider_id = v_provider and status = 'confirmed'
+  for update;
+  if not found then raise exception 'booking_not_confirmed'; end if;
+  if p_date is null or p_date < public.montreal_today() or p_date > public.montreal_today() + 60 then
+    raise exception 'invalid_date';
+  end if;
+  if coalesce(p_slot, '') not in ('morning', 'afternoon', 'evening') then
+    raise exception 'invalid_slot';
+  end if;
+  if p_date = v_booking.scheduled_date and p_slot = v_booking.time_slot then
+    raise exception 'same_date';
+  end if;
+  if length(coalesce(p_reason, '')) > 300 then raise exception 'reason_too_long'; end if;
+
+  select id into v_conversation from public.conversations
+  where booking_id = p_booking_id and provider_id = v_provider;
+  if v_conversation is null then raise exception 'booking_not_confirmed'; end if;
+  if exists (
+    select 1 from public.messages
+    where conversation_id = v_conversation and type = 'reschedule'
+      and reschedule ->> 'status' = 'pending'
+  ) then
+    raise exception 'reschedule_already_pending';
+  end if;
+
+  insert into public.messages (conversation_id, sender_kind, provider_id, type, text, reschedule)
+  values (v_conversation, 'provider', v_provider, 'reschedule', '',
+          jsonb_build_object(
+            'date', p_date, 'slot', p_slot, 'reason', coalesce(btrim(p_reason), ''),
+            'previous_date', v_booking.scheduled_date, 'previous_slot', v_booking.time_slot,
+            'status', 'pending'))
+  returning id into v_message;
+  return v_message;
+end;
+$$;
+
+-- --- respond_reschedule : le client accepte (nouvelle date) ou refuse ------------
+create or replace function public.respond_reschedule(p_message_id uuid, p_accept boolean)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_conversation uuid;
+  v_booking      uuid;
+  v_date         date;
+  v_slot         text;
+begin
+  select m.conversation_id, c.booking_id, (m.reschedule ->> 'date')::date,
+         m.reschedule ->> 'slot'
+    into v_conversation, v_booking, v_date, v_slot
+  from public.messages m
+  join public.conversations c on c.id = m.conversation_id
+  where m.id = p_message_id
+    and m.type = 'reschedule'
+    and m.reschedule ->> 'status' = 'pending'
+    and c.user_id = auth.uid()
+  for update of m;
+  if not found then raise exception 'reschedule_not_pending'; end if;
+
+  -- Mission toujours confirmée (ni commencée, ni annulée) et à ce prestataire.
+  perform 1 from public.bookings b
+  join public.conversations c on c.id = v_conversation
+  where b.id = v_booking and b.status = 'confirmed' and b.provider_id = c.provider_id
+  for update of b;
+  if not found then raise exception 'booking_not_confirmed'; end if;
+
+  update public.messages
+  set reschedule = jsonb_set(reschedule, '{status}',
+                             to_jsonb(case when p_accept then 'accepted' else 'declined' end))
+  where id = p_message_id;
+
+  if p_accept then
+    update public.bookings set scheduled_date = v_date, time_slot = v_slot where id = v_booking;
+    insert into public.messages (conversation_id, sender_kind, type, text, system_key)
+    values (v_conversation, 'system', 'system', 'Nouvelle date acceptée.', 'rescheduleAccepted');
+  else
+    insert into public.messages (conversation_id, sender_kind, type, text, system_key)
+    values (v_conversation, 'system', 'system',
+            'Nouvelle date refusée : la date prévue est maintenue.', 'rescheduleDeclined');
+  end if;
+end;
+$$;
+
 -- --- Droits d'exécution --------------------------------------------------------
 revoke execute on function public.send_quote(uuid, jsonb, date, text, numeric, text, text)
   from public, anon;
 grant execute on function public.send_quote(uuid, jsonb, date, text, numeric, text, text)
   to authenticated;
+revoke execute on function public.propose_reschedule(uuid, date, text, text) from public, anon;
+revoke execute on function public.respond_reschedule(uuid, boolean) from public, anon;
+grant execute on function public.propose_reschedule(uuid, date, text, text) to authenticated;
+grant execute on function public.respond_reschedule(uuid, boolean) to authenticated;

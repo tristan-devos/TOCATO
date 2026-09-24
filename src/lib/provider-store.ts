@@ -17,7 +17,7 @@ import { rowToOpenRequest } from '@/lib/db-mappers';
 import type { QuoteInput } from '@/lib/quote-draft';
 import { useAppStore } from '@/lib/store';
 import { supabase } from '@/lib/supabase';
-import type { OpenRequest } from '@/lib/types';
+import type { OpenRequest, TimeSlotId } from '@/lib/types';
 
 interface ProviderState {
   openRequests: OpenRequest[];
@@ -29,6 +29,13 @@ interface ProviderState {
   /** Envoie un devis complet (quote-draft.ts) ; renvoie la conversation, ou null. */
   sendQuote: (bookingId: string, quote: QuoteInput) => Promise<string | null>;
   /** true si la transition a été appliquée. */
+  /** Propose une autre date au client ; renvoie un code d'erreur, ou null si c'est fait. */
+  proposeReschedule: (
+    bookingId: string,
+    date: string,
+    slot: TimeSlotId,
+    reason: string,
+  ) => Promise<string | null>;
   startJob: (bookingId: string) => Promise<boolean>;
   completeJob: (bookingId: string) => Promise<boolean>;
   clear: () => void;
@@ -86,6 +93,18 @@ export const useProviderStore = create<ProviderState>((set) => ({
     ]);
     set({ openRequests, clientNames });
     return data;
+  },
+
+  proposeReschedule: async (bookingId, date, slot, reason) => {
+    const { error } = await supabase.rpc('propose_reschedule', {
+      p_booking_id: bookingId,
+      p_date: date,
+      p_slot: slot,
+      p_reason: reason.trim(),
+    });
+    if (error && __DEV__) console.warn('[propose_reschedule]', error.message);
+    await useAppStore.getState().loadAll();
+    return error ? error.message : null;
   },
 
   startJob: async (bookingId) => {

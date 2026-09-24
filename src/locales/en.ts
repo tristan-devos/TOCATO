@@ -181,6 +181,27 @@ const en = {
     duration_one: 'Estimated duration: {{count}} h',
     duration_other: 'Estimated duration: {{count}} h',
   },
+  reschedule: {
+    cardTitle: 'New date proposed',
+    insteadOf: 'Instead of: {{when}}',
+    keepDate: 'Keep the planned date',
+    accept: 'Accept',
+    propose: 'Propose another date',
+    pendingNotice: 'New date proposed ({{when}}): waiting for the client’s answer.',
+    currentDate: 'Planned date: {{when}}.',
+    reasonLabel: 'Reason (optional)',
+    reasonPlaceholder: 'E.g. truck broke down',
+    explain: 'The client gets the proposal in the chat. If they decline, the planned date stands.',
+    send: 'Send the proposal',
+    errors: {
+      missing: 'Choose a day and a time slot.',
+      same_date: 'That is already the planned date.',
+      reschedule_already_pending: 'A proposal is already waiting for the client’s answer.',
+      booking_not_confirmed: 'This job can no longer be changed (started or cancelled).',
+      invalid_date: 'Choose a date between today and 60 days from now.',
+      generic: 'The proposal could not be sent. Try again.',
+    },
+  },
   statusLine: {
     waiting: 'Waiting for the first offers',
     offers_one: '{{count}} offer received: compare and choose',
@@ -431,6 +452,14 @@ const en = {
     jobCompleted: {
       client: 'Job completed.',
       provider: 'Job completed.',
+    },
+    rescheduleAccepted: {
+      client: 'You accepted the new date.',
+      provider: 'The client accepted the new date.',
+    },
+    rescheduleDeclined: {
+      client: 'You kept the planned date.',
+      provider: 'The client declined the new date: the planned date stands.',
     },
   },
   apply: {
