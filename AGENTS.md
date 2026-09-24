@@ -27,6 +27,14 @@ plombier, déménageur, jardinier.
   complète des imports si d'autres écrans venaient à en avoir besoin.
 - **Styling : StyleSheet + design tokens** (`src/constants/theme.ts`). Pas de NativeWind :
   choix délibéré pour limiter les couches fragiles au-dessus de Metro/Babel.
+- **Police : Plus Jakarta Sans** (`@expo-google-fonts/plus-jakarta-sans` + `expo-font`).
+  Deux dépendances ajoutées, justifiées : la typographie porte l'essentiel de la
+  personnalité de l'app (`docs/experience-emotionnelle.md`), et la police système ne
+  distingue pas TOCATO. Chargée au runtime par `useFonts` (compatible Expo Go, pas de
+  build natif). `expo-font` était déjà présent en transitif via `expo`, déclaré pour
+  l'import direct.
+- **Mouvement et toucher** : `react-native-reanimated` (déjà présent) pour la contraction
+  au toucher, les entrées de liste et les squelettes ; `expo-haptics` via `lib/haptics.ts`.
 - **Zustand 5** + AsyncStorage (persistance) pour l'état global.
 - **lucide-react-native** pour les icônes (jamais `lucide-react`, DOM-only).
 - **expo-image** pour les images, **expo-image-picker** pour les photos du wizard.
@@ -146,7 +154,10 @@ plombier, déménageur, jardinier.
   déployée depuis la PR #8, jamais mergée, a tourné en production (ancienne `provider-reply`,
   supprimée au lot 5 de l'interface prestataire).
 
-Pas de tests unitaires ni de linter au-delà d'`eslint-config-expo` pour l'instant.
+- `npx expo lint` : ESLint (`eslint-config-expo`, `eslint.config.js`). Avertissements
+  existants tolérés (i18n, `use-color-scheme.web.ts`) ; pas de nouvelle erreur.
+
+Pas de tests unitaires pour l'instant.
 
 ## Déploiement (EAS Update)
 
@@ -251,7 +262,10 @@ src/components/             Composants métier (booking-card, provider-row, serv
   chat/                     message-bubble (texte / devis / document / système ; les
                             boutons d'un devis n'existent que côté client)
   ui/                       Primitives (button, card, chip, badge, avatar, screen,
-                            text-field, segmented-control…)
+                            text-field, segmented-control…) + pressable-scale (Pressable
+                            qui se contracte au toucher : base de Button, Card, Chip),
+                            skeleton (Skeleton, ListSkeleton : listes tant que dataReady
+                            est faux), fade-in-item (entrée décalée des 8 premiers éléments)
 src/lib/
   types.ts                  Types du domaine = futurs contrats d'API
   services.ts               Catalogue des services + questions du wizard (config-driven :
@@ -312,9 +326,13 @@ src/i18n/index.ts           Init i18next (FR/EN) : langue par défaut = langue d
                             loadSavedLanguage()/changeLanguage(). Monté dans app/_layout.tsx.
 src/locales/{fr,en}.ts      Catalogues de traduction (source de vérité des textes UI).
                             Dépassent volontairement le plafond 300 lignes (voir anti-dérive).
-src/constants/theme.ts      Design tokens (couleurs light/dark, spacing, radius, fontsize)
+src/constants/theme.ts      Design tokens : couleurs light/dark (dont accent chaud), Font (une
+                            famille par graisse), FONT_FILES, Elevation (ombres, aucune en
+                            sombre), spacing, radius, fontsize (dont display)
 src/hooks/use-color-scheme.ts  Color scheme actif (variante .web.ts pour le rendu web)
-src/hooks/use-theme.ts      Accès au thème selon le color scheme
+src/hooks/use-theme.ts      Accès au thème selon le color scheme (+ useElevation)
+src/hooks/use-press-scale.ts Contraction au toucher (reanimated), coupée si « réduire les
+                            animations » est actif
 src/hooks/use-formats.ts    Formatters (prix/dates) liés à la langue active (fr-CA / en-CA)
 src/hooks/use-auth-guard.ts Redirige selon la session ET le rôle : connexion, app client,
                             onglets prestataire ou /apply (demandeur) ; sort chacun des routes
@@ -326,6 +344,8 @@ src/hooks/use-auth-guard.ts Redirige selon la session ET le rôle : connexion, a
                             racines de rôle ((tabs), (provider), (auth), apply) s'ouvrent
                             sans animation (le glissement iOS du
                             replace montrait encore l'accueil client après le splash).
+                            Inactive tant que la police charge : _layout ne rend pas
+                            encore le Stack, et naviguer avant son montage lève une erreur.
 src/hooks/use-counterpart.ts Nom de « l'autre » dans une conversation selon le rôle
                             (prestataire pour un client, prénom du client pour un prestataire)
 supabase/schema.sql         Schéma Postgres : tables + migrations + Realtime + bucket Storage
@@ -361,7 +381,7 @@ docs/                       Documents de conception, validés en PR avant le cod
                             approbation admin). Validé, lots en cours.
   experience-emotionnelle.md  Design émotionnel (fondations, mouvement, haptique), photos
                             des prestataires, tableau de bord prestataire avec calendrier.
-                            À valider.
+                            Validé, lots en cours.
 ```
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).
@@ -507,6 +527,20 @@ Ces règles sont non négociables :
   `useTheme()`, jamais de couleurs en dur dans les écrans (exception : avatars et logo).
 - Chaque composant : styles statiques dans `StyleSheet.create`, couleurs dynamiques inline
   depuis `useTheme()`.
+- **Texte : jamais `fontWeight`**, toujours la famille de la graisse (`...Font.semibold`,
+  `...Font.bold`…) ; un style de texte sans graisse prend `...Font.regular`. Avec une
+  police personnalisée, chaque graisse est une famille distincte : `fontWeight` seul
+  retomberait sur la police système, et combiné, Android simulerait le gras. Préférer
+  `AppText` (variantes `display`, `title`, `heading`…) à un `Text` brut.
+- **Ombres** : `useElevation()` (`boxShadow`, pris en charge par iOS, Android et le web),
+  jamais de `shadow*` en dur. En sombre, une bordure fine à la place (voir `Card`).
+- **Haptique** : seulement via `lib/haptics.ts` (`select` pour un choix, `success` pour une
+  action clé réussie), jamais `expo-haptics` directement. Les actions du store qui
+  déclenchent un succès renvoient `true`/`false` (`respondToQuote`, `startJob`,
+  `completeJob`).
+- **Mouvement** : court (150 à 300 ms), aucune boucle sauf les squelettes, et toujours
+  compatible « réduire les animations » (`useReducedMotion`). Principes complets :
+  `docs/experience-emotionnelle.md` §3.
 - Sélecteurs Zustand : ne jamais retourner un objet/tableau neuf dans le sélecteur
   (boucle de re-render avec Zustand v5) : sélectionner le tableau brut et filtrer en
   `useMemo` dans le composant.

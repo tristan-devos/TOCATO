@@ -158,9 +158,10 @@ export function initAuth(): void {
   if (initialized) return;
   initialized = true;
 
-  // Pas de projet branché : on reste 'anonymous' sans appel réseau.
+  // Pas de projet branché : on reste 'anonymous' sans appel réseau, et rien à
+  // charger (les listes montrent leur état vide, pas un squelette sans fin).
   if (!isSupabaseConfigured) {
-    useAuthStore.setState({ status: 'anonymous' });
+    useAuthStore.setState({ status: 'anonymous', dataReady: true });
     return;
   }
 

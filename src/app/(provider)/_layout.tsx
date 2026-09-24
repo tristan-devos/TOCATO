@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { Briefcase, Inbox, MessageCircle, UserRound } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 
-import { FontSize } from '@/constants/theme';
+import { Font, FontSize } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useUnreadTotal } from '@/lib/store';
 
@@ -19,7 +19,7 @@ export default function ProviderTabsLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 11, ...Font.semibold },
       }}>
       <Tabs.Screen
         name="requests"
@@ -44,6 +44,7 @@ export default function ProviderTabsLayout() {
           tabBarBadgeStyle: {
             backgroundColor: colors.destructive,
             color: '#FFFFFF',
+            ...Font.regular,
             fontSize: FontSize.xs,
           },
         }}

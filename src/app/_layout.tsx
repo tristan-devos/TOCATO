@@ -1,12 +1,13 @@
 import '@/i18n';
 
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
-import { Colors } from '@/constants/theme';
+import { Colors, FONT_FILES } from '@/constants/theme';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { loadSavedLanguage } from '@/i18n';
@@ -33,10 +34,16 @@ export default function RootLayout() {
     initAuth();
   }, []);
 
-  const routeSettled = useAuthGuard();
+  // Police : rien n'est rendu avant son chargement (un texte rendu avec une
+  // famille absente retomberait sur la police système). En cas d'échec, l'app
+  // démarre quand même avec la police système.
+  const [fontsLoaded, fontError] = useFonts(FONT_FILES);
+  const fontsSettled = fontsLoaded || fontError !== null;
+
+  const routeSettled = useAuthGuard(fontsSettled);
   const status = useAuthStatus();
   const dataReady = useDataReady();
-  const ready = routeSettled && (status !== 'authenticated' || dataReady);
+  const ready = fontsSettled && routeSettled && (status !== 'authenticated' || dataReady);
 
   useEffect(() => {
     if (ready) {
@@ -60,6 +67,8 @@ export default function RootLayout() {
       border: palette.border,
     },
   };
+
+  if (!fontsSettled) return null;
 
   return (
     <ThemeProvider value={navTheme}>

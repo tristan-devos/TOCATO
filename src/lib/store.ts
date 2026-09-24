@@ -52,7 +52,8 @@ interface AppState {
   createBooking: (draft: BookingDraft) => Promise<{ bookingId: string } | null>;
   cancelBooking: (bookingId: string) => Promise<void>;
   sendMessage: (conversationId: string, text: string) => Promise<void>;
-  respondToQuote: (messageId: string, accept: boolean) => Promise<void>;
+  /** true si le serveur a appliqué la réponse. */
+  respondToQuote: (messageId: string, accept: boolean) => Promise<boolean>;
   markConversationRead: (conversationId: string) => Promise<void>;
   setActiveConversation: (conversationId: string | null) => void;
 }
@@ -223,7 +224,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   respondToQuote: async (messageId, accept) => {
     const message = get().messages.find((m) => m.id === messageId);
-    if (!message?.quote || message.quote.status !== 'pending') return;
+    if (!message?.quote || message.quote.status !== 'pending') return false;
 
     // Le serveur applique la transition complète (devis, réservation, message
     // système) et refuse un devis déjà traité ou une réservation non en attente.
@@ -232,6 +233,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     });
     if (error && __DEV__) console.warn('[respondToQuote]', error.message);
     await Promise.all([refreshBookings(), refreshMessages()]);
+    return !error;
   },
 
   markConversationRead: async (conversationId) => {

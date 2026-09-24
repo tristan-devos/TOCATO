@@ -9,6 +9,7 @@ import { TextField } from '@/components/ui/text-field';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { parseAmountInput } from '@/lib/format';
+import { haptics } from '@/lib/haptics';
 import { useProviderStore } from '@/lib/provider-store';
 
 interface QuoteFormProps {
@@ -38,6 +39,7 @@ export function QuoteForm({ requestId, onSent }: QuoteFormProps) {
     const conversationId = await sendQuote(requestId, amount, details);
     setSending(false);
     if (conversationId) {
+      haptics.success();
       onSent(conversationId);
     } else {
       Alert.alert(t('providerApp.quoteErrorTitle'), t('providerApp.quoteErrorMessage'));

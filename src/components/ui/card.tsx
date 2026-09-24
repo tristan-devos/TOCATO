@@ -1,8 +1,10 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { PressableScale } from '@/components/ui/pressable-scale';
 import { Radius, Spacing } from '@/constants/theme';
-import { useTheme } from '@/hooks/use-theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useElevation, useTheme } from '@/hooks/use-theme';
 
 interface CardProps {
   children: ReactNode;
@@ -10,27 +12,31 @@ interface CardProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/** Surface de base : fond carte, coins arrondis, bordure fine. */
+/**
+ * Surface de base, coins arrondis : ombre douce en clair, bordure fine en sombre
+ * (une ombre ne se voit pas sur fond sombre). Pressable : se contracte au toucher.
+ */
 export function Card({ children, onPress, style }: CardProps) {
   const colors = useTheme();
-  const surface = { backgroundColor: colors.card, borderColor: colors.border };
+  const elevation = useElevation();
+  const dark = useColorScheme() === 'dark';
+  const surface: ViewStyle = dark
+    ? { backgroundColor: colors.card, borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth }
+    : { backgroundColor: colors.card, boxShadow: elevation.sm };
 
   if (!onPress) {
     return <View style={[styles.base, surface, style]}>{children}</View>;
   }
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.base, surface, pressed && { opacity: 0.85 }, style]}>
+    <PressableScale onPress={onPress} scaleTo={0.98} style={[styles.base, surface, style]}>
       {children}
-    </Pressable>
+    </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
     borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
     padding: Spacing.three,
   },
 });

@@ -17,9 +17,10 @@ import { useTranslation } from 'react-i18next';
 
 import { MessageBubble } from '@/components/chat/message-bubble';
 import { Avatar } from '@/components/ui/avatar';
-import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useCounterpartName } from '@/hooks/use-counterpart';
+import { haptics } from '@/lib/haptics';
 import { useRole } from '@/lib/profile-store';
 import { useOpenRequest } from '@/lib/provider-store';
 import { useProvider } from '@/lib/providers-store';
@@ -46,6 +47,12 @@ export default function ChatScreen() {
   const openRequest = useOpenRequest(isProvider ? conversation?.bookingId : undefined);
 
   const [draft, setDraft] = useState('');
+
+  const onQuoteResponse = (messageId: string, accept: boolean) => {
+    void respondToQuote(messageId, accept).then((ok) => {
+      if (ok && accept) haptics.success();
+    });
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -145,7 +152,7 @@ export default function ChatScreen() {
           renderItem={({ item }) => (
             <MessageBubble
               message={item}
-              onQuoteResponse={isProvider ? undefined : respondToQuote}
+              onQuoteResponse={isProvider ? undefined : onQuoteResponse}
             />
           )}
         />
@@ -210,8 +217,8 @@ const styles = StyleSheet.create({
     gap: Spacing.two + 4,
   },
   headerTexts: { flex: 1 },
-  headerName: { fontSize: FontSize.base, fontWeight: '600' },
-  headerSubtitle: { fontSize: FontSize.xs },
+  headerName: { fontSize: FontSize.base, ...Font.semibold },
+  headerSubtitle: { ...Font.regular, fontSize: FontSize.xs },
   listContent: { paddingVertical: Spacing.three },
   inputBar: {
     flexDirection: 'row',
@@ -228,6 +235,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingTop: 10,
     paddingBottom: 10,
+    ...Font.regular,
     fontSize: FontSize.base,
     maxHeight: 110,
   },

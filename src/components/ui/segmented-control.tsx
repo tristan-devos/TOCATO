@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { FontSize, Radius } from '@/constants/theme';
+import { Font, FontSize, Radius } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
+import { haptics } from '@/lib/haptics';
 
 interface SegmentedControlProps<T extends string> {
   options: { id: T; label: string }[];
@@ -23,7 +24,10 @@ export function SegmentedControl<T extends string>({
         return (
           <Pressable
             key={option.id}
-            onPress={() => onChange(option.id)}
+            onPress={() => {
+              if (!selected) haptics.select();
+              onChange(option.id);
+            }}
             style={[styles.segment, selected && { backgroundColor: colors.card }]}>
             <Text
               style={[styles.label, { color: selected ? colors.text : colors.textSecondary }]}>
@@ -44,5 +48,5 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: Radius.md - 3,
   },
-  label: { fontSize: FontSize.sm, fontWeight: '600' },
+  label: { fontSize: FontSize.sm, ...Font.semibold },
 });

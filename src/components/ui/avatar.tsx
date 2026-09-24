@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { Font } from '@/constants/theme';
+
 /** Palette de fonds d'avatar : choisie par hachage du nom pour rester stable. */
 const AVATAR_COLORS = ['#2563EB', '#7C3AED', '#0D9488', '#D97706', '#DB2777', '#475569'];
 
@@ -30,5 +32,5 @@ export function Avatar({ name, size = 44 }: AvatarProps) {
 
 const styles = StyleSheet.create({
   base: { alignItems: 'center', justifyContent: 'center' },
-  initials: { fontWeight: '700', color: '#FFFFFF' },
+  initials: { ...Font.bold, color: '#FFFFFF' },
 });

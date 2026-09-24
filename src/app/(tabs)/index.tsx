@@ -11,7 +11,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Card } from '@/components/ui/card';
 import { Screen } from '@/components/ui/screen';
 import { SectionHeader } from '@/components/ui/section-header';
-import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useProfile } from '@/lib/profile-store';
 import { useProviders } from '@/lib/providers-store';
@@ -45,7 +45,7 @@ export default function HomeScreen() {
     <Screen>
       <View style={styles.header}>
         <View>
-          <AppText variant="title">{t('home.greeting', { name: firstName })}</AppText>
+          <AppText variant="display">{t('home.greeting', { name: firstName })}</AppText>
           <View style={styles.location}>
             <MapPin size={14} color={colors.textSecondary} />
             <AppText variant="secondary">{t('home.location')}</AppText>
@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingVertical: 14,
   },
-  searchPlaceholder: { fontSize: FontSize.base },
+  searchPlaceholder: { ...Font.regular, fontSize: FontSize.base },
   servicesList: { gap: Spacing.two + 4 },
   steps: { gap: Spacing.three },
   stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.three },
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepNumber: { fontWeight: '700', fontSize: FontSize.sm },
+  stepNumber: { ...Font.bold, fontSize: FontSize.sm },
   stepTexts: { flex: 1, gap: 2 },
   providersCard: { gap: Spacing.three },
   divider: { height: StyleSheet.hairlineWidth, marginBottom: Spacing.three },
@@ -175,5 +175,5 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     padding: Spacing.three,
   },
-  trustText: { fontSize: FontSize.sm, fontWeight: '600', flex: 1 },
+  trustText: { fontSize: FontSize.sm, ...Font.semibold, flex: 1 },
 });

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 type Tone = 'primary' | 'success' | 'warning' | 'destructive' | 'neutral';
@@ -36,5 +36,5 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
     alignSelf: 'flex-start',
   },
-  label: { fontSize: FontSize.xs, fontWeight: '600' },
+  label: { fontSize: FontSize.xs, ...Font.semibold },
 });

@@ -7,11 +7,14 @@ import { useTranslation } from 'react-i18next';
 import { BookingCard } from '@/components/booking-card';
 import { AppText } from '@/components/ui/app-text';
 import { EmptyState } from '@/components/ui/empty-state';
+import { FadeInItem } from '@/components/ui/fade-in-item';
 import { Screen } from '@/components/ui/screen';
+import { ListSkeleton } from '@/components/ui/skeleton';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useCounterpartName } from '@/hooks/use-counterpart';
+import { useDataReady } from '@/lib/auth-store';
 import { isActiveStatus } from '@/lib/booking-status';
 import { useAppStore } from '@/lib/store';
 
@@ -23,6 +26,7 @@ type Filter = 'active' | 'history';
  */
 export default function ProviderJobsScreen() {
   const colors = useTheme();
+  const dataReady = useDataReady();
   const router = useRouter();
   const { t } = useTranslation();
   const bookings = useAppStore((s) => s.bookings);
@@ -55,27 +59,35 @@ export default function ProviderJobsScreen() {
       <FlatList
         data={jobs}
         keyExtractor={(j) => j.booking.id}
-        contentContainerStyle={jobs.length === 0 ? styles.emptyContainer : styles.list}
+        contentContainerStyle={
+          jobs.length === 0 && dataReady ? styles.emptyContainer : styles.list
+        }
         ItemSeparatorComponent={() => <View style={styles.gap} />}
         ListEmptyComponent={
-          <EmptyState
-            icon={<Briefcase size={32} color={colors.primary} />}
-            title={
-              filter === 'active'
-                ? t('providerApp.jobsEmptyActiveTitle')
-                : t('providerApp.jobsEmptyHistoryTitle')
-            }
-            message={t('providerApp.jobsEmptyMessage')}
-          />
+          dataReady ? (
+            <EmptyState
+              icon={<Briefcase size={32} color={colors.primary} />}
+              title={
+                filter === 'active'
+                  ? t('providerApp.jobsEmptyActiveTitle')
+                  : t('providerApp.jobsEmptyHistoryTitle')
+              }
+              message={t('providerApp.jobsEmptyMessage')}
+            />
+          ) : (
+            <ListSkeleton variant="card" />
+          )
         }
-        renderItem={({ item }) => (
-          <BookingCard
-            booking={item.booking}
-            subtitle={
-              item.clientName ? t('providerApp.clientLabel', { name: item.clientName }) : undefined
-            }
-            onPress={() => router.push({ pathname: '/job/[id]', params: { id: item.booking.id } })}
-          />
+        renderItem={({ item, index }) => (
+          <FadeInItem index={index}>
+            <BookingCard
+              booking={item.booking}
+              subtitle={
+                item.clientName ? t('providerApp.clientLabel', { name: item.clientName }) : undefined
+              }
+              onPress={() => router.push({ pathname: '/job/[id]', params: { id: item.booking.id } })}
+            />
+          </FadeInItem>
         )}
       />
     </Screen>

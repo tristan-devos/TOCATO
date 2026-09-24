@@ -7,12 +7,15 @@ import { useTranslation } from 'react-i18next';
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/ui/avatar';
 import { EmptyState } from '@/components/ui/empty-state';
+import { FadeInItem } from '@/components/ui/fade-in-item';
 import { Screen } from '@/components/ui/screen';
-import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { ListSkeleton } from '@/components/ui/skeleton';
+import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useCounterpartName } from '@/hooks/use-counterpart';
 import { useFormats } from '@/hooks/use-formats';
 import { useSystemMessageText } from '@/hooks/use-message-text';
+import { useDataReady } from '@/lib/auth-store';
 import { useRole } from '@/lib/profile-store';
 import { useOpenRequests } from '@/lib/provider-store';
 import { useAppStore } from '@/lib/store';
@@ -27,6 +30,7 @@ interface ConversationItem {
 
 export default function ChatsScreen() {
   const colors = useTheme();
+  const dataReady = useDataReady();
   const router = useRouter();
   const { t } = useTranslation();
   const { formatRelative } = useFormats();
@@ -85,67 +89,73 @@ export default function ChatsScreen() {
         data={items}
         keyExtractor={(item) => item.conversation.id}
         contentContainerStyle={
-          items.length === 0 ? styles.emptyContainer : styles.listContent
+          items.length === 0 && dataReady ? styles.emptyContainer : styles.listContent
         }
         ItemSeparatorComponent={() => (
           <View style={[styles.separator, { backgroundColor: colors.border }]} />
         )}
         ListEmptyComponent={
-          <EmptyState
-            icon={<MessageCircle size={32} color={colors.primary} />}
-            title={t('chats.emptyTitle')}
-            message={t(role === 'provider' ? 'providerApp.chatsEmpty' : 'chats.emptyMessage')}
-            actionLabel={role === 'provider' ? undefined : t('common.bookService')}
-            onAction={role === 'provider' ? undefined : () => router.push('/(tabs)/reserver')}
-          />
+          dataReady ? (
+            <EmptyState
+              icon={<MessageCircle size={32} color={colors.primary} />}
+              title={t('chats.emptyTitle')}
+              message={t(role === 'provider' ? 'providerApp.chatsEmpty' : 'chats.emptyMessage')}
+              actionLabel={role === 'provider' ? undefined : t('common.bookService')}
+              onAction={role === 'provider' ? undefined : () => router.push('/(tabs)/reserver')}
+            />
+          ) : (
+            <ListSkeleton variant="row" />
+          )
         }
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           const { conversation } = item;
           const unread = conversation.unreadCount > 0;
           return (
-            <Pressable
-              onPress={() =>
-                router.push({ pathname: '/chat/[id]', params: { id: conversation.id } })
-              }
-              style={({ pressed }) => [
-                styles.row,
-                pressed && { backgroundColor: colors.backgroundElement },
-              ]}>
-              <Avatar name={item.providerName} size={50} />
-              <View style={styles.rowTexts}>
-                <View style={styles.rowTop}>
-                  <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-                    {item.providerName}
+            <FadeInItem index={index}>
+              <Pressable
+                onPress={() =>
+                  router.push({ pathname: '/chat/[id]', params: { id: conversation.id } })
+                }
+                style={({ pressed }) => [
+                  styles.row,
+                  pressed && { backgroundColor: colors.backgroundElement },
+                ]}>
+                <Avatar name={item.providerName} size={50} />
+                <View style={styles.rowTexts}>
+                  <View style={styles.rowTop}>
+                    <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+                      {item.providerName}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.time,
+                        { color: unread ? colors.primary : colors.textSecondary },
+                      ]}>
+                      {formatRelative(conversation.lastMessageAt)}
+                    </Text>
+                  </View>
+                  <Text style={[styles.service, { color: colors.primary }]}>
+                    {item.serviceName}
                   </Text>
-                  <Text
-                    style={[
-                      styles.time,
-                      { color: unread ? colors.primary : colors.textSecondary },
-                    ]}>
-                    {formatRelative(conversation.lastMessageAt)}
-                  </Text>
+                  <View style={styles.rowBottom}>
+                    <Text
+                      numberOfLines={1}
+                      style={[
+                        styles.preview,
+                        { color: unread ? colors.text : colors.textSecondary },
+                        unread && styles.previewUnread,
+                      ]}>
+                      {item.preview}
+                    </Text>
+                    {unread ? (
+                      <View style={[styles.unreadDot, { backgroundColor: colors.primary }]}>
+                        <Text style={styles.unreadCount}>{conversation.unreadCount}</Text>
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
-                <Text style={[styles.service, { color: colors.primary }]}>
-                  {item.serviceName}
-                </Text>
-                <View style={styles.rowBottom}>
-                  <Text
-                    numberOfLines={1}
-                    style={[
-                      styles.preview,
-                      { color: unread ? colors.text : colors.textSecondary },
-                      unread && styles.previewUnread,
-                    ]}>
-                    {item.preview}
-                  </Text>
-                  {unread ? (
-                    <View style={[styles.unreadDot, { backgroundColor: colors.primary }]}>
-                      <Text style={styles.unreadCount}>{conversation.unreadCount}</Text>
-                    </View>
-                  ) : null}
-                </View>
-              </View>
-            </Pressable>
+              </Pressable>
+            </FadeInItem>
           );
         }}
       />
@@ -179,12 +189,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Spacing.two,
   },
-  name: { fontSize: FontSize.base, fontWeight: '600', flex: 1 },
-  time: { fontSize: FontSize.xs },
-  service: { fontSize: FontSize.xs, fontWeight: '600' },
+  name: { fontSize: FontSize.base, ...Font.semibold, flex: 1 },
+  time: { ...Font.regular, fontSize: FontSize.xs },
+  service: { fontSize: FontSize.xs, ...Font.semibold },
   rowBottom: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  preview: { fontSize: FontSize.sm, flex: 1 },
-  previewUnread: { fontWeight: '600' },
+  preview: { ...Font.regular, fontSize: FontSize.sm, flex: 1 },
+  previewUnread: { ...Font.semibold },
   unreadDot: {
     minWidth: 20,
     height: 20,
@@ -193,5 +203,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 5,
   },
-  unreadCount: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
+  unreadCount: { color: '#FFFFFF', fontSize: 11, ...Font.bold },
 });

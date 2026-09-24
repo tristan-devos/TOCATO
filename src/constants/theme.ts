@@ -5,9 +5,13 @@
  * Accès via le hook `useTheme()` (src/hooks/use-theme.ts).
  */
 
-import '@/global.css';
-
-import { Platform } from 'react-native';
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 
 const light = {
     // Surfaces
@@ -35,6 +39,11 @@ const light = {
     warningMuted: '#FDF3E3',
     destructive: '#DC2626',
     destructiveMuted: '#FDEAEA',
+
+    // Accent chaud : moments positifs (note, célébration). Icônes et aplats,
+    // pas du texte courant (contraste 3:1 visé, pas 4.5:1).
+    accent: '#B97A10',
+    accentMuted: '#FBF0DA',
 };
 
 export type ThemeColors = { readonly [K in keyof typeof light]: string };
@@ -66,30 +75,46 @@ const dark: ThemeColors = {
     warningMuted: '#3A2E12',
     destructive: '#F87171',
     destructiveMuted: '#3B1A1A',
+
+    accent: '#F2B544',
+    accentMuted: '#33291A',
 };
 
 export const Colors: { light: ThemeColors; dark: ThemeColors } = { light, dark };
 
-export const Fonts = Platform.select({
-  ios: {
-    sans: 'system-ui',
-    serif: 'ui-serif',
-    rounded: 'ui-rounded',
-    mono: 'ui-monospace',
+/**
+ * Police de l'app (Plus Jakarta Sans, @expo-google-fonts), chargée dans
+ * app/_layout.tsx avant le retrait de l'écran de démarrage. Une famille par
+ * graisse : ne jamais combiner avec `fontWeight` (Android simulerait le gras).
+ */
+export const FONT_FILES = {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+};
+
+export const Font = {
+  regular: { fontFamily: 'PlusJakartaSans_400Regular' },
+  medium: { fontFamily: 'PlusJakartaSans_500Medium' },
+  semibold: { fontFamily: 'PlusJakartaSans_600SemiBold' },
+  bold: { fontFamily: 'PlusJakartaSans_700Bold' },
+  extrabold: { fontFamily: 'PlusJakartaSans_800ExtraBold' },
+} as const;
+
+/**
+ * Élévation : ombre douce en clair ; en sombre une ombre ne se voit pas, la
+ * carte garde sa bordure (voir Card). `boxShadow` est pris en charge par iOS,
+ * Android et le web (nouvelle architecture).
+ */
+export const Elevation = {
+  light: {
+    sm: '0px 1px 2px rgba(26, 26, 18, 0.05), 0px 2px 8px rgba(26, 26, 18, 0.06)',
+    md: '0px 2px 4px rgba(26, 26, 18, 0.06), 0px 8px 24px rgba(26, 26, 18, 0.10)',
   },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
-  },
-  web: {
-    sans: 'var(--font-display)',
-    serif: 'var(--font-serif)',
-    rounded: 'var(--font-rounded)',
-    mono: 'var(--font-mono)',
-  },
-});
+  dark: { sm: 'none', md: 'none' },
+} as const;
 
 export const Spacing = {
   half: 2,
@@ -116,6 +141,7 @@ export const FontSize = {
   lg: 18,
   xl: 22,
   xxl: 28,
+  display: 34,
 } as const;
 
 export const MaxContentWidth = 800;

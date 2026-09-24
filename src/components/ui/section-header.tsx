@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import { FontSize, Spacing } from '@/constants/theme';
+import { Font, FontSize, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface SectionHeaderProps {
@@ -32,5 +32,5 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: Spacing.three,
   },
-  action: { fontSize: FontSize.sm, fontWeight: '600' },
+  action: { fontSize: FontSize.sm, ...Font.semibold },
 });

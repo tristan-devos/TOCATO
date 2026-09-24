@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
 import { Card } from '@/components/ui/card';
-import { FontSize, Radius, Spacing } from '@/constants/theme';
+import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import type { BookingStatus } from '@/lib/types';
 
@@ -88,6 +88,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   timelineLine: { width: 2, flex: 1, minHeight: 18, marginVertical: 2 },
-  timelineLabel: { fontSize: FontSize.sm, flex: 1, paddingBottom: Spacing.three, marginTop: 2 },
-  timelineLabelCurrent: { fontWeight: '700' },
+  timelineLabel: { ...Font.regular, fontSize: FontSize.sm, flex: 1, paddingBottom: Spacing.three, marginTop: 2 },
+  timelineLabelCurrent: { ...Font.bold },
 });
