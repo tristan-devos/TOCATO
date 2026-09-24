@@ -10,11 +10,12 @@ import { Colors } from '@/constants/theme';
 import { useAuthGuard } from '@/hooks/use-auth-guard';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { loadSavedLanguage } from '@/i18n';
-import { initAuth } from '@/lib/auth-store';
+import { initAuth, useAuthStatus, useDataReady } from '@/lib/auth-store';
 
 // Écran de démarrage gardé jusqu'à ce que la garde d'auth ait posé la bonne
 // route (sinon l'accueil client, route par défaut, s'affiche un instant pour un
-// prestataire). Plafonné : jamais bloqué si le chargement du rôle échoue.
+// prestataire) et, si connecté, que les données soient chargées (sinon un écran
+// vide s'affiche un instant). Plafonné : jamais bloqué si un chargement échoue.
 void SplashScreen.preventAutoHideAsync();
 const SPLASH_MAX_MS = 5000;
 // Racines de chaque rôle : on n'y entre que par un replace de la garde d'auth.
@@ -33,16 +34,19 @@ export default function RootLayout() {
   }, []);
 
   const routeSettled = useAuthGuard();
+  const status = useAuthStatus();
+  const dataReady = useDataReady();
+  const ready = routeSettled && (status !== 'authenticated' || dataReady);
 
   useEffect(() => {
-    if (routeSettled) {
+    if (ready) {
       // Une image de plus : la route posée est peinte avant le retrait.
       const frame = requestAnimationFrame(() => void SplashScreen.hideAsync());
       return () => cancelAnimationFrame(frame);
     }
     const timer = setTimeout(() => void SplashScreen.hideAsync(), SPLASH_MAX_MS);
     return () => clearTimeout(timer);
-  }, [routeSettled]);
+  }, [ready]);
 
   // Align the navigation theme (backgrounds, native headers) with our tokens.
   const navTheme = {

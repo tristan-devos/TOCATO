@@ -320,8 +320,9 @@ src/hooks/use-auth-guard.ts Redirige selon la session ET le rôle : connexion, a
                             onglets prestataire ou /apply (demandeur) ; sort chacun des routes
                             des autres rôles ; /admin réservé aux admins (inactif sans Supabase).
                             Renvoie « route posée » : _layout garde l'écran de démarrage
-                            jusque-là (5 s max), sinon un prestataire voit l'accueil client
-                            un instant au lancement (route par défaut avant le rôle). Les
+                            jusque-là et jusqu'au premier chargement des données
+                            (auth-store `dataReady`), 5 s max ; sinon un prestataire voit
+                            l'accueil client, puis des listes vides, un instant. Les
                             racines de rôle ((tabs), (provider), (auth), apply) s'ouvrent
                             sans animation (le glissement iOS du
                             replace montrait encore l'accueil client après le splash).
