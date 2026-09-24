@@ -359,6 +359,9 @@ docs/                       Documents de conception, validés en PR avant le cod
   interface-prestataire.md  Appel d'offres + comptes prestataires (lots 1 à 5, tous faits).
   adhesion-prestataires.md  Inscription et vérification des prestataires (RBQ, pièces,
                             approbation admin). Validé, lots en cours.
+  experience-emotionnelle.md  Design émotionnel (fondations, mouvement, haptique), photos
+                            des prestataires, tableau de bord prestataire avec calendrier.
+                            À valider.
 ```
 
 **Alias** : `@/*` → `./src/*`, `@/assets/*` → `./assets/*` (tsconfig.json).
