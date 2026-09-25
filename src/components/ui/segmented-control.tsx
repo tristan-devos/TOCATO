@@ -5,7 +5,8 @@ import { useTheme } from '@/hooks/use-theme';
 import { haptics } from '@/lib/haptics';
 
 interface SegmentedControlProps<T extends string> {
-  options: { id: T; label: string }[];
+  /** `badge` : compteur affiché à côté du libellé (ex. non-lus), masqué à 0. */
+  options: { id: T; label: string; badge?: number }[];
   value: T;
   onChange: (id: T) => void;
 }
@@ -29,10 +30,19 @@ export function SegmentedControl<T extends string>({
               onChange(option.id);
             }}
             style={[styles.segment, selected && { backgroundColor: colors.card }]}>
-            <Text
-              style={[styles.label, { color: selected ? colors.text : colors.textSecondary }]}>
-              {option.label}
-            </Text>
+            <View style={styles.content}>
+              <Text
+                style={[styles.label, { color: selected ? colors.text : colors.textSecondary }]}>
+                {option.label}
+              </Text>
+              {option.badge ? (
+                <View style={[styles.badge, { backgroundColor: colors.primary }]}>
+                  <Text style={[styles.badgeText, { color: colors.onPrimary }]}>
+                    {option.badge}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </Pressable>
         );
       })}
@@ -48,5 +58,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: Radius.md - 3,
   },
+  content: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   label: { fontSize: FontSize.sm, ...Font.semibold },
+  badge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: Radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  badgeText: { fontSize: 11, ...Font.bold },
 });

@@ -1,42 +1,39 @@
-import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 
+import {
+  CONVERSATION_AVATAR_SIZE,
+  ConversationRow,
+  type ConversationItem,
+} from '@/components/chat/conversation-row';
 import { ChatIllustration } from '@/components/illustrations/chat-illustration';
-import { ProviderAvatar } from '@/components/provider-avatar';
 import { AppText } from '@/components/ui/app-text';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FadeInItem } from '@/components/ui/fade-in-item';
 import { Screen } from '@/components/ui/screen';
+import { SegmentedControl } from '@/components/ui/segmented-control';
 import { ListSkeleton } from '@/components/ui/skeleton';
-import { Font, FontSize, Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 import { useCounterpartName } from '@/hooks/use-counterpart';
-import { useFormats } from '@/hooks/use-formats';
 import { useSystemMessageText } from '@/hooks/use-message-text';
 import { useDataReady } from '@/lib/auth-store';
+import { splitConversations } from '@/lib/conversation-state';
 import { useRole } from '@/lib/profile-store';
 import { useOpenRequests } from '@/lib/provider-store';
 import { useProviders } from '@/lib/providers-store';
 import { useAppStore } from '@/lib/store';
 import type { Conversation, Message } from '@/lib/types';
 
-interface ConversationItem {
-  conversation: Conversation;
-  providerName: string;
-  /** Photo du prestataire (côté client) ; null côté prestataire (le client n'en a pas). */
-  photoPath: string | null;
-  serviceName: string;
-  preview: string;
-}
+type Tab = 'active' | 'closed';
 
 export default function ChatsScreen() {
   const colors = useTheme();
   const dataReady = useDataReady();
   const router = useRouter();
   const { t } = useTranslation();
-  const { formatRelative } = useFormats();
   const conversations = useAppStore((s) => s.conversations);
   const messages = useAppStore((s) => s.messages);
   const bookings = useAppStore((s) => s.bookings);
@@ -46,6 +43,26 @@ export default function ChatsScreen() {
   // Prestataire : une demande encore ouverte n'est connue que par list_open_requests.
   const openRequests = useOpenRequests();
   const providers = useProviders();
+  const [tab, setTab] = useState<Tab>('active');
+  // L'onglet reste monté : « maintenant » est relu à chaque retour, pour qu'une
+  // conversation passe dans « Terminées » à la fin de ses 48 h.
+  const [now, setNow] = useState(() => new Date());
+  useFocusEffect(useCallback(() => setNow(new Date()), []));
+
+  const split = useMemo(
+    () =>
+      splitConversations(
+        conversations,
+        bookings,
+        new Set(openRequests.map((r) => r.id)),
+        now,
+      ),
+    [conversations, bookings, openRequests, now],
+  );
+  const closedUnread = split.closed.filter((c) => c.unreadCount > 0).length;
+  // Pas de sélecteur tant que rien n'est terminé : la liste reste simple au début.
+  const showTabs = split.closed.length > 0;
+  const shown: Conversation[] = showTabs && tab === 'closed' ? split.closed : split.active;
 
   const items = useMemo<ConversationItem[]>(() => {
     const previewOf = (message: Message | undefined): string => {
@@ -69,7 +86,7 @@ export default function ChatsScreen() {
       }
     };
 
-    return [...conversations]
+    return [...shown]
       .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt))
       .map((conversation) => {
         const lastMessage = [...messages]
@@ -89,22 +106,24 @@ export default function ChatsScreen() {
           preview: previewOf(lastMessage),
         };
       });
-  }, [
-    conversations,
-    messages,
-    bookings,
-    openRequests,
-    providers,
-    role,
-    counterpartName,
-    systemText,
-    t,
-  ]);
+  }, [shown, messages, bookings, openRequests, providers, role, counterpartName, systemText, t]);
+
+  const closedTabShown = showTabs && tab === 'closed';
 
   return (
     <Screen scroll={false}>
       <View style={styles.header}>
         <AppText variant="title">{t('chats.title')}</AppText>
+        {showTabs ? (
+          <SegmentedControl<Tab>
+            options={[
+              { id: 'active', label: t('chats.activeTab') },
+              { id: 'closed', label: t('chats.closedTab'), badge: closedUnread },
+            ]}
+            value={tab}
+            onChange={setTab}
+          />
+        ) : null}
       </View>
 
       <FlatList
@@ -117,7 +136,15 @@ export default function ChatsScreen() {
           <View style={[styles.separator, { backgroundColor: colors.border }]} />
         )}
         ListEmptyComponent={
-          dataReady ? (
+          !dataReady ? (
+            <ListSkeleton variant="row" />
+          ) : closedTabShown ? (
+            <EmptyState
+              illustration={<ChatIllustration />}
+              title={t('chats.closedEmptyTitle')}
+              message={t('chats.closedEmptyMessage')}
+            />
+          ) : (
             <EmptyState
               illustration={<ChatIllustration />}
               title={t('chats.emptyTitle')}
@@ -125,61 +152,13 @@ export default function ChatsScreen() {
               actionLabel={role === 'provider' ? undefined : t('common.bookService')}
               onAction={role === 'provider' ? undefined : () => router.push('/(tabs)/reserver')}
             />
-          ) : (
-            <ListSkeleton variant="row" />
           )
         }
-        renderItem={({ item, index }) => {
-          const { conversation } = item;
-          const unread = conversation.unreadCount > 0;
-          return (
-            <FadeInItem index={index}>
-              <Pressable
-                onPress={() =>
-                  router.push({ pathname: '/chat/[id]', params: { id: conversation.id } })
-                }
-                style={({ pressed }) => [
-                  styles.row,
-                  pressed && { backgroundColor: colors.backgroundElement },
-                ]}>
-                <ProviderAvatar name={item.providerName} photoPath={item.photoPath} size={50} />
-                <View style={styles.rowTexts}>
-                  <View style={styles.rowTop}>
-                    <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-                      {item.providerName}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.time,
-                        { color: unread ? colors.primary : colors.textSecondary },
-                      ]}>
-                      {formatRelative(conversation.lastMessageAt)}
-                    </Text>
-                  </View>
-                  <Text style={[styles.service, { color: colors.primary }]}>
-                    {item.serviceName}
-                  </Text>
-                  <View style={styles.rowBottom}>
-                    <Text
-                      numberOfLines={1}
-                      style={[
-                        styles.preview,
-                        { color: unread ? colors.text : colors.textSecondary },
-                        unread && styles.previewUnread,
-                      ]}>
-                      {item.preview}
-                    </Text>
-                    {unread ? (
-                      <View style={[styles.unreadDot, { backgroundColor: colors.primary }]}>
-                        <Text style={styles.unreadCount}>{conversation.unreadCount}</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                </View>
-              </Pressable>
-            </FadeInItem>
-          );
-        }}
+        renderItem={({ item, index }) => (
+          <FadeInItem index={index}>
+            <ConversationRow item={item} />
+          </FadeInItem>
+        )}
       />
     </Screen>
   );
@@ -190,40 +169,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.three,
     paddingTop: Spacing.three,
     paddingBottom: Spacing.two,
+    gap: Spacing.three,
   },
   listContent: { paddingBottom: Spacing.five },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   separator: {
     height: StyleSheet.hairlineWidth,
-    marginLeft: Spacing.three + 50 + Spacing.three,
+    marginLeft: Spacing.three + CONVERSATION_AVATAR_SIZE + Spacing.three,
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.three,
-  },
-  rowTexts: { flex: 1, gap: 2 },
-  rowTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.two,
-  },
-  name: { fontSize: FontSize.base, ...Font.semibold, flex: 1 },
-  time: { ...Font.regular, fontSize: FontSize.xs },
-  service: { fontSize: FontSize.xs, ...Font.semibold },
-  rowBottom: { flexDirection: 'row', alignItems: 'center', gap: Spacing.two },
-  preview: { ...Font.regular, fontSize: FontSize.sm, flex: 1 },
-  previewUnread: { ...Font.semibold },
-  unreadDot: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: Radius.full,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 5,
-  },
-  unreadCount: { color: '#FFFFFF', fontSize: 11, ...Font.bold },
 });

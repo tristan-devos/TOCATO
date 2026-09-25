@@ -295,7 +295,8 @@ src/components/             Composants métier (booking-card, provider-row, serv
                             garantie ; boutons accepter/refuser côté client seulement) +
                             reschedule-card (nouvelle date proposée ; garder ou accepter) +
                             review-card (note de fin de mission ; carte review_request) +
-                            chat-composer (saisie, ou bandeau « conversation fermée »)
+                            chat-composer (saisie, ou bandeau « conversation fermée ») +
+                            conversation-row (ligne de la liste Messages)
   ui/                       Primitives (button, card, chip, badge, avatar, screen (option
                             refreshControl), text-field, segmented-control…) + pressable-scale (Pressable
                             qui se contracte au toucher : base de Button, Card, Chip),
@@ -341,7 +342,9 @@ src/lib/
                             temps réel -> rechargées au focus / tirer pour rafraîchir), prénoms
                             des clients, sendQuote / startJob / completeJob.
   conversation-state.ts     Conversation ouverte ou fermée (miroir de conversation_open) et
-                            délai de notation : zone de saisie ou bandeau dans le chat.
+                            délai de notation : zone de saisie ou bandeau dans le chat, et
+                            onglets « En cours / Terminées » de Messages (splitConversations,
+                            sélecteur masqué tant qu'aucune n'est fermée, non-lus en badge).
   reviews.ts                Avis : lecture (client auteur, prestataire noté) et submit_review.
   quote-draft.ts            Brouillon de la fiche devis et ses règles (mêmes que send_quote) :
                             lignes, date proposable (aujourd'hui à +60 j), durée, total.
