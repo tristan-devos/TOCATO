@@ -54,3 +54,35 @@ export function reviewWindowOpen(booking: Booking | undefined, now: Date): boole
   if (!booking?.completedAt) return false;
   return Date.parse(booking.completedAt) + REVIEW_WINDOW_DAYS * 24 * HOUR_MS > now.getTime();
 }
+
+export interface SplitConversations {
+  active: Conversation[];
+  closed: Conversation[];
+}
+
+/**
+ * Onglets de Messages : « En cours » (on peut encore écrire) et « Terminées »
+ * (conversationState fermé). Même règle que le bandeau du chat, donc une mission
+ * terminée reste en cours pendant les 48 h où le client peut la noter.
+ * `openRequestIds` : côté prestataire, les demandes encore ouvertes.
+ */
+export function splitConversations(
+  conversations: Conversation[],
+  bookings: Booking[],
+  openRequestIds: ReadonlySet<string>,
+  now: Date,
+): SplitConversations {
+  const active: Conversation[] = [];
+  const closed: Conversation[] = [];
+  for (const conversation of conversations) {
+    const booking = bookings.find((b) => b.id === conversation.bookingId);
+    const state = conversationState(
+      conversation,
+      booking,
+      openRequestIds.has(conversation.bookingId),
+      now,
+    );
+    (state.open ? active : closed).push(conversation);
+  }
+  return { active, closed };
+}

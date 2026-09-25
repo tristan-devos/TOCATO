@@ -65,6 +65,11 @@ const fr = {
     emptyTitle: 'Aucune conversation',
     emptyMessage:
       'Réservez une prestation : les prestataires intéressés vous écriront ici.',
+    activeTab: 'En cours',
+    closedTab: 'Terminées',
+    closedEmptyTitle: 'Aucune conversation terminée',
+    closedEmptyMessage:
+      'Les conversations fermées (mission terminée, demande annulée ou confiée à un autre prestataire) se rangeront ici.',
   },
   wizard: {
     abandonTitle: 'Abandonner la demande ?',

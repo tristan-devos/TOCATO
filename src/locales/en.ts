@@ -63,6 +63,11 @@ const en = {
     quoteReceived: 'Quote received',
     emptyTitle: 'No conversations',
     emptyMessage: 'Book a service: interested providers will write to you here.',
+    activeTab: 'Active',
+    closedTab: 'Closed',
+    closedEmptyTitle: 'No closed conversations',
+    closedEmptyMessage:
+      'Closed conversations (job completed, request cancelled or given to another provider) will be kept here.',
   },
   wizard: {
     abandonTitle: 'Abandon request?',
